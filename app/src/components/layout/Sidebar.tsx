@@ -1,3 +1,6 @@
+import * as React from "react";
+import { CreekyIcon } from "@/components/icons/CreekyIcon";
+
 export type CreekyView =
   | "tasks"
   | "calendar"
@@ -28,6 +31,14 @@ function Badge({ id, count }: { id: string; count?: number }) {
 }
 
 export function Sidebar({ view, onSelect, badges, userInitial, onLogout, collapsed, onToggleCollapse, mobileOpen }: SidebarProps) {
+  const [userOpen, setUserOpen] = React.useState(false);
+  React.useEffect(() => {
+    if (!userOpen) return;
+    const onDoc = () => setUserOpen(false);
+    document.addEventListener("click", onDoc);
+    return () => document.removeEventListener("click", onDoc);
+  }, [userOpen]);
+
   const item = (v: CreekyView, label: string, icon: string, badgeKey?: string) => (
     <li key={v}>
       <button
@@ -35,9 +46,8 @@ export function Sidebar({ view, onSelect, badges, userInitial, onLogout, collaps
         data-page={v}
         onClick={() => onSelect(v)}
       >
-        {/* inline svg icon using simple text for now — replace with lucide later */}
-        <span className="nav-icon" aria-hidden="true" style={{ display: "inline-flex", width: 22, height: 22, alignItems: "center", justifyContent: "center" }}>
-          {icon}
+        <span className="nav-icon" aria-hidden="true">
+          <CreekyIcon name={icon} size={18} />
         </span>
         <span className="nav-label">{label}</span>
         {badgeKey ? <Badge id={badgeKey} count={badges[badgeKey]} /> : null}
@@ -67,30 +77,30 @@ export function Sidebar({ view, onSelect, badges, userInitial, onLogout, collaps
           <li className="nav-section">
             <span className="nav-section-label">PRINCIPAL</span>
             <ul className="nav-items" role="list">
-              {item("tasks", "Tareas", "✓", "tasks-badge")}
-              {item("calendar", "Calendario", "📅", "badge-calendar")}
+              {item("tasks", "Tareas", "tasks", "tasks-badge")}
+              {item("calendar", "Calendario", "calendar", "badge-calendar")}
             </ul>
           </li>
           <li className="nav-section">
             <span className="nav-section-label">PRODUCTIVIDAD</span>
             <ul className="nav-items" role="list">
-              {item("pomodoro", "Pomodoro", "⏱", "badge-pomodoro")}
-              {item("eisenhower", "Matriz Eisenhower", "⊞", "badge-eisenhower")}
-              {item("habits", "Hábitos", "👥", "badge-habits")}
+              {item("pomodoro", "Pomodoro", "clock", "badge-pomodoro")}
+              {item("eisenhower", "Matriz Eisenhower", "eisenhower", "badge-eisenhower")}
+              {item("habits", "Hábitos", "users", "badge-habits")}
             </ul>
           </li>
           <li className="nav-section">
             <span className="nav-section-label">HERRAMIENTAS</span>
             <ul className="nav-items" role="list">
-              {item("countdown", "Cuenta regresiva", "⏳", "badge-countdown")}
-              {item("search", "Búsqueda", "🔍")}
+              {item("countdown", "Cuenta regresiva", "clock", "badge-countdown")}
+              {item("search", "Búsqueda", "search")}
             </ul>
           </li>
           <li className="nav-section">
             <span className="nav-section-label">SISTEMA</span>
             <ul className="nav-items" role="list">
-              {item("sync", "Sincronización", "🔄")}
-              {item("notifications", "Notificaciones", "🔔", "notif-badge")}
+              {item("sync", "Sincronización", "sync")}
+              {item("notifications", "Notificaciones", "bell", "notif-badge")}
             </ul>
           </li>
         </ul>
@@ -98,16 +108,29 @@ export function Sidebar({ view, onSelect, badges, userInitial, onLogout, collaps
 
       <div className="sidebar-footer">
         <button className={`nav-link ${view === "help" ? "active" : ""}`} data-page="help" onClick={() => onSelect("help")}>
-          <span className="nav-icon" aria-hidden="true">?</span>
+          <span className="nav-icon" aria-hidden="true"><CreekyIcon name="help" size={18} /></span>
           <span className="nav-label">Ayuda</span>
         </button>
         <div className="user-menu">
-          <button className="user-avatar" aria-label="Menú de usuario" onClick={() => onSelect("profile")}>
+          <button
+            className="user-avatar"
+            aria-expanded={userOpen}
+            aria-haspopup="true"
+            aria-label="Menú de usuario"
+            onClick={(e) => { e.stopPropagation(); setUserOpen((o) => !o); }}
+          >
             <span>{userInitial}</span>
           </button>
-          <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
-            <button className="btn btn-ghost btn-sm" onClick={() => onSelect("profile")}>Perfil</button>
-            {onLogout ? <button className="btn btn-ghost btn-sm" onClick={onLogout} style={{ color: "#C62828" }}>Salir</button> : null}
+          <div className={`user-dropdown ${userOpen ? "" : "hidden"}`} role="menu">
+            <button className="dropdown-item" role="menuitem" onClick={() => { setUserOpen(false); onSelect("profile"); }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+              <span>Perfil</span>
+            </button>
+            <div className="dropdown-divider" />
+            <button className="dropdown-item danger" role="menuitem" onClick={() => { setUserOpen(false); onLogout?.(); }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
+              <span>Cerrar sesión</span>
+            </button>
           </div>
         </div>
       </div>

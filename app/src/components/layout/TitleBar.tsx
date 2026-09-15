@@ -26,7 +26,7 @@ export function TitleBar({
   };
 
   return (
-    <header className="pywebview-drag-region h-10 px-3.5 flex items-center justify-between bg-(--bg-primary) border-b border-(--border-light) select-none shrink-0">
+    <header className="pywebview-drag-region h-10 px-3.5 flex items-center justify-between bg-(--bg) border-b border-(--border) select-none shrink-0" style={{ zIndex: 50, position: "relative" }}>
       {/* Left: logo + name */}
       <div className="flex items-center gap-2">
         <img
