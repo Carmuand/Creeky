@@ -1,7 +1,3 @@
-/**
- * useCreekyStore — React wrapper around localStorage db (no zustand).
- * Provides reactive DB via state + save helper. Any mutation must go through setDb + db.save.
- */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { CreekyDB } from "@/types/creeky";
 import { db, rolloverHabits } from "@/services/storage";
@@ -31,11 +27,15 @@ export function useCreekyStore() {
     setStore({ ...s });
   }, []);
 
-  // Keep tabs in sync
   useEffect(() => {
     const onStorage = (e: StorageEvent) => { if (e.key === "creeky_db_v1") refresh(); };
+    const onCustom = () => refresh();
     window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
+    window.addEventListener("creeky:db:changed", onCustom);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("creeky:db:changed", onCustom);
+    };
   }, [refresh]);
 
   return useMemo(() => ({ store, save, update, refresh, setStore }), [store, save, update, refresh]);

@@ -1,7 +1,3 @@
-/**
- * Creeky storage — localStorage port of app/src/js/store.js
- * Keep 100% compatible with KEY = creeky_db_v1 so existing data migrates.
- */
 import { APP_VERSION, DEFAULT_TAGS } from "@/types/creeky";
 import type { CreekyDB, Task } from "@/types/creeky";
 import { addDaysISO, isoWeekKey, mondayOfWeekKey, todayISO } from "@/utils/date";
@@ -134,8 +130,13 @@ export const db = {
       return migrate(s);
     } catch { const s = seed(); try { localStorage.setItem(KEY, JSON.stringify(s)); } catch { /* ignore */ } return s; }
   },
-  save(s: CreekyDB): void { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch { /* ignore */ } },
-  clear(): void { try { localStorage.removeItem(KEY); } catch { /* ignore */ } },
+  save(s: CreekyDB): void {
+    try {
+      localStorage.setItem(KEY, JSON.stringify(s));
+      window.dispatchEvent(new CustomEvent("creeky:db:changed"));
+    } catch { /* ignore */ }
+  },
+  clear(): void { try { localStorage.removeItem(KEY); window.dispatchEvent(new CustomEvent("creeky:db:changed")); } catch { /* ignore */ } },
 };
 
 export function registerTags(s: CreekyDB, tags: string[] = []): boolean {
