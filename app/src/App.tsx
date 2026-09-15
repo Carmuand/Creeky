@@ -19,6 +19,7 @@ import { useBridge } from "@/hooks/useBridge";
 import { useCreekyEvents } from "@/hooks/useCreekyEvents";
 import { useCreekyStore } from "@/hooks/useCreekyStore";
 import { useToast } from "@/hooks/useToast";
+import { useReminders } from "@/hooks/useReminders";
 import { db } from "@/services/storage";
 import { todayISO } from "@/utils/date";
 import { occursOn } from "@/utils/task";
@@ -72,6 +73,19 @@ export default function App() {
       if (v in TITLES) setView(v as CreekyView);
     },
   });
+
+  useReminders({ onToast: push, onRefresh: refresh });
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setView("search");
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const handleAuthed = useCallback(() => {
     refresh();
@@ -143,7 +157,7 @@ export default function App() {
 
   const renderView = () => {
     switch (view) {
-      case "tasks": return <TasksView />;
+      case "tasks": return <TasksView onToast={push} />;
       case "calendar": return <CalendarView />;
       case "pomodoro": return <PomodoroView />;
       case "eisenhower": return <EisenhowerView />;
@@ -154,13 +168,13 @@ export default function App() {
       case "notifications": return <NotificationsView />;
       case "help": return <HelpView />;
       case "profile": return <ProfileView />;
-      default: return <TasksView />;
+      default: return <TasksView onToast={push} />;
     }
   };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", width: "100vw", height: "100vh", background: "var(--bg-soft)", color: "var(--text)", overflow: "hidden" }}>
-      <TitleBar bridgeReady={bridgeReady} />
+      <TitleBar bridgeReady={bridgeReady} title="Creeky" />
       <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
         <AppLayout
           view={view}
