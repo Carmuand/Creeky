@@ -12,4 +12,12 @@ export default defineConfig({
       '@shared': `${import.meta.dirname}/src/shared`,
     },
   },
+  server: {
+    port: 5173,
+    strictPort: true,
+  },
+  build: {
+    outDir: 'dist',
+    emptyOutDir: true,
+  },
 });
