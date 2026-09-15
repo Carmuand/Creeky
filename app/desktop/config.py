@@ -17,8 +17,8 @@ class AppConfig:
     debug: bool          = field(default_factory=lambda: os.getenv("DEBUG", "false").lower() == "true")
 
     # Window
-    width: int   = 1208
-    height: int  = 722
+    width: int   = 1366
+    height: int  = 800
     resizable: bool = False
     frameless: bool = True
     easy_drag: bool = False
