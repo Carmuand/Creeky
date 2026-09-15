@@ -26,9 +26,6 @@ interface SidebarProps {
   mobileOpen: boolean;
 }
 
-/**
- * Badge displayed next to a navigation item.
- */
 function Badge({ id, count }: { id: string; count?: number }) {
   if (!count) return null;
   return (
@@ -38,9 +35,6 @@ function Badge({ id, count }: { id: string; count?: number }) {
   );
 }
 
-/**
- * Collapsed badge shown as an overlay on the icon.
- */
 function CollapsedBadge({ id, count }: { id: string; count?: number }) {
   if (!count) return null;
   return (
@@ -53,9 +47,6 @@ function CollapsedBadge({ id, count }: { id: string; count?: number }) {
   );
 }
 
-/**
- * Sidebar navigation with Tailwind-only styling.
- */
 export function Sidebar({ view, onSelect, badges, userInitial, onLogout, collapsed, onToggleCollapse, mobileOpen }: SidebarProps) {
   const [userOpen, setUserOpen] = React.useState(false);
 
@@ -67,9 +58,9 @@ export function Sidebar({ view, onSelect, badges, userInitial, onLogout, collaps
   }, [userOpen]);
 
   const navLink = (active: boolean) =>
-    `flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13.5px] transition-colors relative ${
+    `flex w-full items-center gap-3 rounded-lg text-[15px] transition-colors relative ${collapsed ? "justify-center p-3" : "px-4 py-3"} ${
       active ? "bg-(--accent-light) font-medium text-(--accent)" : "text-(--text-soft) hover:bg-(--bg-hover) hover:text-(--text)"
-    } ${collapsed ? "justify-center px-2" : ""}`;
+    }`;
 
   const item = (v: CreekyView, label: string, icon: string, badgeKey?: string) => {
     const active = view === v;
@@ -102,9 +93,9 @@ export function Sidebar({ view, onSelect, badges, userInitial, onLogout, collaps
         collapsed ? "w-18" : "w-70"
       } ${mobileOpen ? "translate-x-0 shadow-xl" : "-translate-x-full md:translate-x-0"} md:shadow-none`}
       role="navigation"
-      aria-label="NavegaciÃ³n principal"
+      aria-label="Navegación principal"
     >
-      <div className={`flex items-center justify-between border-b border-(--border-light) ${collapsed ? "justify-center px-2 py-4" : "px-4 py-4"}`} style={{ minHeight: 64 }}>
+      <div className={`flex items-center border-b border-(--border-light) ${collapsed ? "justify-center px-2 py-4" : "justify-between pl-4 pr-5 py-4"}`} style={{ minHeight: 64 }}>
         {!collapsed ? (
           <div className="flex items-center gap-3 text-(--accent)">
             <svg className="h-7 w-7 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
@@ -126,7 +117,7 @@ export function Sidebar({ view, onSelect, badges, userInitial, onLogout, collaps
         </button>
       </div>
 
-      <nav className="flex-1 overflow-y-auto overflow-x-hidden p-3" aria-label="Secciones principales">
+      <nav className={`flex-1 overflow-x-hidden p-3 scrollbar-gutter-stable ${collapsed ? "overflow-y-auto scrollbar-none [&::-webkit-scrollbar]:hidden hover:scrollbar-thin hover:[&::-webkit-scrollbar]:block hover:[&::-webkit-scrollbar]:w-1.5" : "overflow-y-auto"}`} aria-label="Secciones principales">
         <ul className="flex flex-col gap-6">
           <li>
             <span className={`mb-2 block px-3 text-[11px] font-semibold uppercase tracking-widest text-(--muted) ${collapsed ? "hidden" : ""}`}>Principal</span>
@@ -177,7 +168,7 @@ export function Sidebar({ view, onSelect, badges, userInitial, onLogout, collaps
             className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-(--accent-border) bg-(--accent-light) text-[15px] font-semibold text-(--accent) transition-colors hover:bg-(--accent) hover:text-white"
             aria-expanded={userOpen}
             aria-haspopup="true"
-            aria-label="MenÃº de usuario"
+            aria-label="Menú de usuario"
             onClick={(e) => { e.stopPropagation(); setUserOpen((o) => !o); }}
           >
             <span>{userInitial}</span>
@@ -198,4 +189,3 @@ export function Sidebar({ view, onSelect, badges, userInitial, onLogout, collaps
     </aside>
   );
 }
-
