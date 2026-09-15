@@ -1,0 +1,5 @@
+pyinstaller
+python-dotenv
+colorama
+screeninfo
+pywebview
