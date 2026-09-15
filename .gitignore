@@ -1,0 +1,6 @@
+# OS
+Thumbs.db
+.DS_Store
+
+# deps si pruebas npx serve
+node_modules/
