@@ -4,3 +4,5 @@ Thumbs.db
 
 # deps si pruebas npx serve
 node_modules/
+
+.vscode/
