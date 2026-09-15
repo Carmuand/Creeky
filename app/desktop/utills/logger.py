@@ -37,6 +37,8 @@ LogLevel = Literal["INFO", "SUCCESS", "WARNING", "ERROR", "DEBUG", "CRITICAL"]
 class Tags(StrEnum):
     MAIN             = "MAIN"
     LOADER           = "LOADER"
+    WINDOW           = "WINDOW"
+    BRIDGE           = "BRIDGE"
 
 
 def log(level: LogLevel, tag: Tags | str, message: str) -> None:
