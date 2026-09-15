@@ -45,7 +45,12 @@
   --color-gray-300: #e0e0e0;
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+/* Encapsulado en @layer base: en Tailwind v4 el CSS "suelto" (sin capa)
+   le gana a las utilidades (hover:, focus:, disabled:, etc.) sin importar
+   la especificidad. @layer base respeta el orden de Tailwind (base <
+   components < utilities) para que hover:bg-red-500 y similares sigan
+   funcionando sobre <button>, <a>, etc. */
+@layer base {
 
 html { font-size: 16px; -webkit-font-smoothing: antialiased; }
 
@@ -71,6 +76,8 @@ img, svg { display: block; max-width: 100%; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #bdbdbd; border-radius: 999px; }
 ::-webkit-scrollbar-thumb:hover { background: #9e9e9e; }
+
+} /* fin @layer base */
 
 /* Utility */
 .pywebview-drag-region { -webkit-app-region: drag; }

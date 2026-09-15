@@ -91,12 +91,12 @@
 /* ========================================
    Reset & Base
    ======================================== */
-
-*, *::before, *::after {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-}
+/* Encapsulado en @layer base: en Tailwind v4 cualquier CSS "suelto" (sin
+   capa) le gana a las utilidades (hover:, focus:, disabled:, etc.) sin
+   importar la especificidad. Meterlo en @layer base respeta el orden de
+   capas de Tailwind (base < components < utilities) para que hover:/focus:
+   sigan funcionando sobre <button>, <a>, etc. en toda la app. */
+@layer base {
 
 html {
     font-size: 16px;
@@ -163,6 +163,8 @@ kbd {
     border-radius: var(--radius-sm);
     color: var(--text-tertiary);
 }
+
+} /* fin @layer base */
 
 /* ========================================
    Utility Classes
@@ -479,18 +481,6 @@ h4 { font-size: 1.125rem; font-weight: 600; line-height: 1.4; }
 
 .modal-container .form-actions .btn-secondary {
     background: var(--bg-primary);
-}
-
-@media (max-width: 480px) {
-    .modal-container .form-actions {
-        flex-direction: column-reverse;
-        align-items: stretch;
-    }
-
-    .modal-container .form-actions .btn {
-        width: 100%;
-        min-width: 0;
-    }
 }
 
 .modal-header h2 {
