@@ -15,6 +15,7 @@ import { SyncView } from "@/features/sync/SyncView";
 import { NotificationsView } from "@/features/notifications/NotificationsView";
 import { HelpView } from "@/features/help/HelpView";
 import { ProfileView } from "@/features/profile/ProfileView";
+import { TooltipProvider } from "@/components/ui/Tooltip";
 import { useBridge } from "@/hooks/useBridge";
 import { useCreekyEvents } from "@/hooks/useCreekyEvents";
 import { useCreekyStore } from "@/hooks/useCreekyStore";
@@ -173,25 +174,27 @@ export default function App() {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", width: "100vw", height: "100vh", background: "var(--bg-soft)", color: "var(--text)", overflow: "hidden" }}>
-      <TitleBar bridgeReady={bridgeReady} title="Creeky" />
-      <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
-        <AppLayout
-          view={view}
-          onViewChange={setView}
-          title={TITLES[view] ?? view}
-          badges={badges}
-          userInitial={(user?.name || "U")[0]?.toUpperCase()}
-          onLogout={handleLogout}
-          collapsed={collapsed}
-          onToggleCollapse={() => setCollapsed((c) => !c)}
-        >
-          {renderView()}
-        </AppLayout>
+    <TooltipProvider>
+      <div style={{ display: "flex", flexDirection: "column", width: "100vw", height: "100vh", background: "var(--bg-soft)", color: "var(--text)", overflow: "hidden" }}>
+        <TitleBar bridgeReady={bridgeReady} title="Creeky" />
+        <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
+          <AppLayout
+            view={view}
+            onViewChange={setView}
+            title={TITLES[view] ?? view}
+            badges={badges}
+            userInitial={(user?.name || "U")[0]?.toUpperCase()}
+            onLogout={handleLogout}
+            collapsed={collapsed}
+            onToggleCollapse={() => setCollapsed((c) => !c)}
+          >
+            {renderView()}
+          </AppLayout>
+        </div>
+        <ToastContainer toasts={toasts} onDismiss={dismiss} />
+
+        <span style={{ position: "fixed", bottom: 4, right: 8, fontSize: 10, color: "var(--text-tertiary)", opacity: 0.6 }}>v{APP_VERSION}</span>
       </div>
-      <ToastContainer toasts={toasts} onDismiss={dismiss} />
-      
-      <span style={{ position: "fixed", bottom: 4, right: 8, fontSize: 10, color: "var(--text-tertiary)", opacity: 0.6 }}>v{APP_VERSION}</span>
-    </div>
+    </TooltipProvider>
   );
 }

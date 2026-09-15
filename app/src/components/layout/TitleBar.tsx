@@ -5,7 +5,7 @@ import { windowApi } from "@/services/api";
  * Properties for the {@link TitleBar} component.
  */
 interface TitleBarProps {
-  /** Application name displayed beside the logo. @default import.meta.env.VITE_APP_NAME ?? "Creeky" */
+  /** Application name displayed beside the logo. @default "Creeky" */
   title?: string;
   /** Whether the bridge connection is ready (enables window controls). @default false */
   bridgeReady?: boolean;
@@ -15,7 +15,7 @@ interface TitleBarProps {
  * Custom frameless window title bar
  */
 export function TitleBar({
-  title = import.meta.env.VITE_APP_NAME ?? "Creeky",
+  title = "Creeky",
   bridgeReady = false,
 }: TitleBarProps) {
   const handleMinimize = () => {
