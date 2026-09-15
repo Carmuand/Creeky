@@ -26,7 +26,7 @@ export function TasksView({ onToast }: { onToast?: ToastFn }) {
     else window.__creeky_toast?.({ message: m, type: t });
   };
 
-  const { ui, updateView, setFilter, setSub, toggleDetail, closeDetail, resetFilters, derived } = useTasksUi(store);
+  const { ui, updateView, setFilter, setSub, closeDetail, resetFilters, derived } = useTasksUi(store);
   const actions = createTaskActions({ refresh, toast, setFocus, closeDetail });
 
   const [inlineTitle, setInlineTitle] = useState("");
@@ -119,10 +119,8 @@ export function TasksView({ onToast }: { onToast?: ToastFn }) {
                   key={t.id}
                   task={t}
                   store={store}
-                  isOpen={ui.openDetails.has(t.id)}
                   focusId={focusId}
                   isTrash={ui.filter === "trash" || !!t.deleted}
-                  onToggle={() => toggleDetail(t.id)}
                   onCheck={() => actions.toggleDone(t.id)}
                   onDelete={() => actions.softDelete(t.id)}
                   onRestore={() => actions.restore(t.id)}

@@ -11,6 +11,7 @@ import { Modal, ModalBody, ModalFooter, ModalHeader } from "@/components/ui/Moda
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
+import { Select } from "@/components/ui/Select";
 
 const PALETTE = ["#212121", "#616161", "#3949AB", "#00897B", "#2E7D32", "#B58900", "#C62828", "#6A1B9A", "#EF6C00", "#0277BD"];
 
@@ -141,99 +142,109 @@ export function QuickAddModal({ open, onClose, preset, onToast, onCreated }: Qui
   return (
     <Modal open={open} onClose={onClose} className="w-full max-w-140 max-h-[90vh]">
       <ModalHeader title="Nueva tarea" onClose={onClose} />
-      <form onSubmit={handleSubmit} className="flex flex-col">
-        <ModalBody>
-          <div className="form-group">
-            <label className="form-label">Título</label>
-            <div className="input-wrapper">
-              <span className="input-icon"><Icon name="pencil" size={16} /></span>
-              <Input value={form.title} onChange={(e) => update("title", e.target.value)} placeholder="Qué necesitas hacer…" required autoFocus />
+      <form onSubmit={handleSubmit} className="flex flex-1 flex-col min-h-0">
+        <ModalBody className="gap-5">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-(--text-soft)">Título *</label>
+            <div className="relative flex items-center">
+              <span className="pointer-events-none absolute left-3 flex h-4 w-4 items-center justify-center text-(--muted)"><Icon name="pencil" size={16} /></span>
+              <Input value={form.title} onChange={(e) => update("title", e.target.value)} placeholder="¿Qué necesitas hacer?" required autoFocus className="pl-10" />
             </div>
           </div>
-          <div className="form-group">
-            <label className="form-label">Descripción</label>
-            <Textarea value={form.desc} onChange={(e) => update("desc", e.target.value)} placeholder="Detalles opcionales…" rows={3} />
-          </div>
-          <div className="form-row">
-            <div className="form-group">
-              <label className="form-label">Lista</label>
-              <div className="select-wrapper">
-                <select className="form-select" value={form.list} onChange={(e) => update("list", e.target.value)}>
-                  {snapshot.lists.map((l) => <option key={l.id} value={l.id}>{l.icon} {l.name}</option>)}
-                </select>
-                <span className="select-arrow" />
+
+          <div className="grid grid-cols-2 gap-4 max-[480px]:grid-cols-1">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium text-(--text-soft)">Lista</label>
+              <Select value={form.list} onChange={(v) => update("list", v)} options={snapshot.lists.map((l) => ({ value: l.id, label: `${l.icon} ${l.name}` }))} placeholder="Seleccionar lista" />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium text-(--text-soft)">Prioridad</label>
+              <div className="flex gap-2">
+                {(["high", "medium", "low", "none"] as const).map((v) => {
+                  const isSelected = form.priority === v;
+                  const tint: Record<string, string> = { high: "bg-[#fff0f0]", medium: "bg-[#fff8e6]", low: "bg-[#eef7ee]", none: "bg-(--bg-primary)" };
+                  return (
+                    <button key={v} type="button" onClick={() => update("priority", v)} className={`flex h-12 w-14.5 flex-col items-center justify-center rounded-xl border px-1 py-1.5 text-xs transition-all ${isSelected ? `border-(--accent) shadow-sm -translate-y-0.5 ${tint[v]}` : "border-(--border-light) bg-(--bg-secondary) hover:-translate-y-0.5 hover:shadow-sm hover:border-(--border-medium)"}`}>
+                      <span className="text-[15px] font-extrabold leading-none" style={{ color: PRIO_META[v].color }}>{PRIO_META[v].mark}</span>
+                      <span className="mt-1 text-[10px] font-bold uppercase tracking-wide opacity-90" style={{ color: PRIO_META[v].color }}>{PRIO_META[v].label}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
-            <div className="form-group">
-              <label className="form-label">Duración</label>
-              <div className="select-wrapper">
-                <select className="form-select" value={form.duration} onChange={(e) => update("duration", Number(e.target.value))}>
-                  {[15, 30, 45, 60, 90, 120].map((d) => <option key={d} value={d}>{d} min</option>)}
-                </select>
-                <span className="select-arrow" />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-(--text-soft)">Descripción</label>
+            <Textarea value={form.desc} onChange={(e) => update("desc", e.target.value)} placeholder="Detalles opcionales…" rows={2} />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 max-[480px]:grid-cols-1">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium text-(--text-soft)">Fecha</label>
+              <div className="relative flex items-center">
+                <span className="pointer-events-none absolute left-3 flex h-4 w-4 items-center justify-center text-(--muted)"><Icon name="calendar" size={16} /></span>
+                <Input type="date" value={form.due} onChange={(e) => update("due", e.target.value)} className="pl-10" />
+              </div>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium text-(--text-soft)">Hora</label>
+              <div className="relative flex items-center">
+                <span className="pointer-events-none absolute left-3 flex h-4 w-4 items-center justify-center text-(--muted)"><Icon name="clock" size={16} /></span>
+                <Input type="time" value={form.dueTime} onChange={(e) => update("dueTime", e.target.value)} className="pl-10" />
               </div>
             </div>
           </div>
-          <div className="form-row">
-            <div className="form-group"><label className="form-label">Fecha</label><Input type="date" value={form.due} onChange={(e) => update("due", e.target.value)} /></div>
-            <div className="form-group"><label className="form-label">Hora</label><Input type="time" value={form.dueTime} onChange={(e) => update("dueTime", e.target.value)} /></div>
-          </div>
-          <div className="form-group">
-            <label className="form-label">Prioridad</label>
-            <div className="priority-swatches">
-              {(["high", "medium", "low", "none"] as const).map((v) => (
-                <button key={v} type="button" className={`priority-swatch ${form.priority === v ? "selected" : ""}`} onClick={() => update("priority", v)}>
-                  <span className="mark">{PRIO_META[v].mark}</span><span className="label">{PRIO_META[v].label}</span>
-                </button>
-              ))}
+
+          <div className="grid grid-cols-2 gap-4 max-[480px]:grid-cols-1">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium text-(--text-soft)">Duración</label>
+              <Select value={String(form.duration)} onChange={(v) => update("duration", Number(v))} options={[{ value: "15", label: "15 min" }, { value: "30", label: "30 min" }, { value: "45", label: "45 min" }, { value: "60", label: "1 hora" }, { value: "90", label: "1.5 horas" }, { value: "120", label: "2 horas" }]} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium text-(--text-soft)">Avisar</label>
+              <Select value={String(form.remindBefore)} onChange={(v) => update("remindBefore", Number(v))} options={REMIND_OPTIONS.map((o) => ({ value: String(o.v), label: o.label }))} />
             </div>
           </div>
-          <div className="form-row">
-            <div className="form-group">
-              <label className="form-label">Aviso</label>
-              <div className="select-wrapper">
-                <select className="form-select" value={form.remindBefore} onChange={(e) => update("remindBefore", Number(e.target.value))}>
-                  {REMIND_OPTIONS.map((o) => <option key={o.v} value={o.v}>{o.label}</option>)}
-                </select>
-                <span className="select-arrow" />
-              </div>
-            </div>
-            <div className="form-group">
-              <label className="form-label">Etiquetas</label>
-              <div className="tags-input-wrapper">
-                <Input value={form.tags} onChange={(e) => update("tags", e.target.value)} placeholder="trabajo, personal…" list="tag-options-modal" />
-                <span className="tags-icon"><Icon name="tag" size={16} /></span>
-              </div>
-              <datalist id="tag-options-modal">{snapshot.tags.map((t) => <option key={t} value={t} />)}</datalist>
-            </div>
-          </div>
-          <div className="form-group">
-            <label className="form-label">Repetir</label>
-            <div className="repeat-row">
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-(--text-soft)">Repetir días</label>
+            <div className="flex gap-1.5">
               {WEEKDAYS.map((w) => (
-                <button key={w.v} type="button" className={`day-chip ${form.repeat.has(w.v) ? "on" : ""}`} onClick={() => setForm((p) => { const n = new Set(p.repeat); if (n.has(w.v)) n.delete(w.v); else n.add(w.v); return { ...p, repeat: n }; })}>{w.label}</button>
+                <button key={w.v} type="button" onClick={() => setForm((p) => { const n = new Set(p.repeat); if (n.has(w.v)) n.delete(w.v); else n.add(w.v); return { ...p, repeat: n }; })} className={`flex h-8 w-8 items-center justify-center rounded-full border text-xs font-bold transition-colors ${form.repeat.has(w.v) ? "bg-(--accent) border-(--accent) text-white" : "border-(--border-medium) bg-(--bg-primary) text-(--muted) hover:border-(--accent)"}`}>{w.label}</button>
               ))}
             </div>
           </div>
-          <div className="form-group pomodoro-reserve">
-            <label className="pomodoro-toggle">
-              <input type="checkbox" checked={form.pomodoro} onChange={(e) => update("pomodoro", e.target.checked)} />
-              <span className="toggle-slider" />
-              <span className="toggle-label" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><span className="pomodoro-icon"><Icon name="timer" size={15} /></span>Reservar Pomodoro</span>
+
+          <div className="flex flex-col gap-2 rounded-lg border border-(--border-light) bg-(--bg-secondary) p-3">
+            <span className="flex items-center gap-1.5 text-xs font-medium text-(--text-soft)"><Icon name="timer" size={15} /> Reservar Pomodoro <span className="text-xs font-normal text-(--muted)">(opcional)</span></span>
+            <label className="flex cursor-pointer items-center gap-2.5">
+              <input type="checkbox" checked={form.pomodoro} onChange={(e) => update("pomodoro", e.target.checked)} className="h-4 w-4 rounded border-(--border-medium) text-(--accent) focus:ring-(--accent)" />
+              <span className="text-sm text-(--text-soft)">Reservar sesión Pomodoro en esta franja</span>
             </label>
             {pomoPreview ? (
-              <div className="pomodoro-preview">
-                <div className="pomodoro-blocks">
-                  {pomoPreview.blocks.map((b, i) => <span key={i} className={b.type === "focus" ? "focus" : b.type === "shortBreak" ? "shortbreak" : "longbreak"} />)}
-                  <span className="pomo-preview-text">{pomoPreview.focus} foco{pomoPreview.focus === 1 ? "" : "s"} • {pomoPreview.mins} min</span>
+              <div className="rounded-md bg-(--bg-primary) border border-(--border-light) p-2.5">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {pomoPreview.blocks.map((b, i) => <span key={i} className={`h-3 w-3 rounded-full ${b.type === "focus" ? "bg-(--accent)" : b.type === "shortBreak" ? "bg-(--muted)" : "bg-(--accent-light)"}`} />)}
+                  <span className="ml-1 text-xs font-medium text-(--muted)">{pomoPreview.focus} foco{pomoPreview.focus === 1 ? "" : "s"} • {pomoPreview.mins} min</span>
                 </div>
+                <p className="mt-1.5 text-xs text-(--muted)">La app dividirá la duración en bloques de 25/5/15 min según la duración total.</p>
               </div>
             ) : null}
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-(--text-soft)">Etiquetas</label>
+            <div className="relative flex items-center">
+              <Input value={form.tags} onChange={(e) => update("tags", e.target.value)} placeholder="trabajo, personal, urgente..." list="tag-options-modal" className="pr-10" />
+              <span className="pointer-events-none absolute right-3 flex h-4 w-4 items-center justify-center text-(--muted)"><Icon name="tag" size={16} /></span>
+            </div>
+            <datalist id="tag-options-modal">{snapshot.tags.map((t) => <option key={t} value={t} />)}</datalist>
           </div>
         </ModalBody>
         <ModalFooter>
           <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
-          <Button type="submit" variant="primary">Crear tarea</Button>
+          <Button type="submit" variant="primary">Guardar</Button>
         </ModalFooter>
       </form>
     </Modal>
@@ -294,32 +305,32 @@ export function ListModal({ open, onClose, editId, onToast }: { open: boolean; o
       <ModalHeader title={editing ? "Editar lista" : "Nueva lista"} onClose={onClose} />
       <form onSubmit={handleSubmit} className="flex flex-col">
         <ModalBody>
-          <div className="form-group"><label className="form-label">Nombre</label><Input value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} required placeholder="Ej. Trabajo" /></div>
-          <div className="form-group"><label className="form-label">Descripción</label><Input value={form.desc} onChange={(e) => setForm((p) => ({ ...p, desc: e.target.value }))} placeholder="Opcional" /></div>
-          <div className="form-group">
-            <label className="form-label">Color</label>
-            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-              <input type="color" value={form.color} onChange={(e) => setForm((p) => ({ ...p, color: e.target.value }))} style={{ width: 34, height: 34 }} />
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {PALETTE.map((c) => <button key={c} type="button" className={`swatch ${c === form.color ? "sel" : ""}`} style={{ background: c, width: 32, height: 32, borderRadius: "50%", border: c === form.color ? "2px solid #000" : "2px solid transparent" }} onClick={() => setForm((p) => ({ ...p, color: c }))} title={c} />)}
+          <div className="flex flex-col gap-1.5"><label className="text-xs font-medium text-(--text-soft)">Nombre</label><Input value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} required placeholder="Ej. Trabajo" /></div>
+          <div className="flex flex-col gap-1.5"><label className="text-xs font-medium text-(--text-soft)">Descripción</label><Input value={form.desc} onChange={(e) => setForm((p) => ({ ...p, desc: e.target.value }))} placeholder="Opcional" /></div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-(--text-soft)">Color del tema</label>
+            <div className="flex flex-wrap items-center gap-2">
+              <input type="color" value={form.color} onChange={(e) => setForm((p) => ({ ...p, color: e.target.value }))} className="h-8 w-8 rounded-full border-0 p-0" />
+              <div className="flex flex-wrap gap-2">
+                {PALETTE.map((c) => <button key={c} type="button" onClick={() => setForm((p) => ({ ...p, color: c }))} className={`h-8 w-8 rounded-full border-2 transition-transform hover:scale-110 ${form.color === c ? "border-black shadow-sm" : "border-transparent"}`} style={{ background: c }} title={c} />)}
               </div>
             </div>
           </div>
-          <div className="form-group">
-            <label className="form-label">Emoji</label>
-            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-              <span style={{ fontSize: "1.8rem", width: 52, height: 52, display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg-secondary)", borderRadius: 12 }}>{form.icon}</span>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-(--text-soft)">Emoji de la lista</label>
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-13 w-13 shrink-0 items-center justify-center rounded-xl bg-(--bg-secondary) text-2xl">{form.icon}</span>
               <Input value={form.filter} onChange={(e) => setForm((p) => ({ ...p, filter: e.target.value }))} placeholder="Buscar emoji…" className="flex-1" />
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(8,1fr)", gap: 4, maxHeight: 190, overflowY: "auto", background: "var(--bg-secondary)", padding: 8, borderRadius: 10 }}>
+            <div className="grid max-h-47.5 grid-cols-8 gap-1 overflow-y-auto rounded-lg border border-(--border-light) bg-(--bg-secondary) p-2">
               {EMOJI_GRID.map((g) => {
                 const q = form.filter.trim().toLowerCase();
                 const hit = g.items.filter((e) => !q || e.includes(form.filter.trim()) || g.cat.toLowerCase().includes(q));
                 if (!hit.length) return null;
                 return (
-                  <div key={g.cat} style={{ display: "contents" }}>
-                    <div style={{ gridColumn: "1 / -1", fontSize: ".68rem", fontWeight: 700, textTransform: "uppercase", color: "var(--text-tertiary)", paddingTop: 6 }}>{g.cat}</div>
-                    {hit.map((e) => <button key={e} type="button" onClick={() => setForm((p) => ({ ...p, icon: e }))} style={{ fontSize: "1.3rem", padding: 4, borderRadius: 8, background: e === form.icon ? "var(--accent-light)" : "transparent", outline: e === form.icon ? "2px solid var(--accent)" : "none" }}>{e}</button>)}
+                  <div key={g.cat} className="contents">
+                    <div className="col-span-8 pt-1.5 text-[11px] font-bold uppercase tracking-widest text-(--muted)">{g.cat}</div>
+                    {hit.map((e) => <button key={e} type="button" onClick={() => setForm((p) => ({ ...p, icon: e }))} className={`rounded-lg p-1 text-[20px] transition-colors ${e === form.icon ? "bg-(--accent-light) ring-2 ring-(--accent)" : "hover:bg-(--bg-hover)"}`}>{e}</button>)}
                   </div>
                 );
               })}
@@ -354,10 +365,10 @@ export function TagModal({ open, onClose, onToast }: { open: boolean; onClose: (
       <ModalHeader title="Nueva etiqueta" onClose={onClose} />
       <form onSubmit={handleSubmit} className="flex flex-col">
         <ModalBody>
-          <div className="form-group">
-            <label className="form-label">Nombre</label>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-(--text-soft)">Nombre</label>
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej. urgente" required autoFocus />
-            <div style={{ marginTop: 8, fontSize: ".85rem", color: "var(--text-tertiary)" }}>Vista previa: <span className="rounded-full bg-(--bg-tertiary) border border-(--border-light) px-2 py-0.5 text-xs">#{name.trim().toLowerCase() || "etiqueta"}</span></div>
+            <div className="mt-1 text-xs text-(--muted)">Vista previa: <span className="rounded-full bg-(--bg-tertiary) border border-(--border-light) px-2 py-0.5">#{name.trim().toLowerCase() || "etiqueta"}</span></div>
           </div>
         </ModalBody>
         <ModalFooter>

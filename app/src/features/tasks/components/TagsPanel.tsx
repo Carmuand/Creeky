@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Icon } from "@/components/icons/Icon";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { Dropdown, DropdownItem } from "@/components/ui/Dropdown";
+import { TooltipSimple } from "@/components/ui/Tooltip";
 import { db } from "@/services/storage";
 
 interface TagsPanelProps {
@@ -17,8 +19,6 @@ interface TagsPanelProps {
 }
 
 export function TagsPanel({ tags, visTags, view, activeTag, onChangeView, onSetActiveTag, onNewTag, onToast, onRefresh }: TagsPanelProps) {
-  const [menuOpen, setMenuOpen] = useState(false);
-
   const handleClean = () => {
     const s = db.load();
     const used = new Set<string>();
@@ -35,16 +35,19 @@ export function TagsPanel({ tags, visTags, view, activeTag, onChangeView, onSetA
       <div className="flex items-center gap-2 px-1 py-2">
         <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-(--bg-tertiary) text-(--accent)"><Icon name="tag" size={16} /></span>
         <h3 className="flex-1 text-xs font-semibold uppercase tracking-widest text-(--muted)">Etiquetas <span className="font-normal">({tags.length})</span></h3>
-        <span className="relative" onClick={(e) => e.stopPropagation()}>
-          <button className="flex h-7 w-7 items-center justify-center rounded-md text-(--muted) hover:bg-(--bg-hover) hover:text-(--text) transition-colors" onClick={() => setMenuOpen((v) => !v)} title="Opciones de etiquetas"><Icon name="gear" size={15} /></button>
-          {menuOpen ? (
-            <span className="absolute right-0 top-full z-20 mt-1 flex w-48 flex-col rounded-lg border border-(--border-medium) bg-(--bg-primary) p-1 shadow-lg">
-              <button className="rounded-md px-3 py-2 text-left text-sm text-(--text-soft) hover:bg-(--bg-hover) hover:text-(--text)" onClick={() => onChangeView({ tagSort: !view.tagSort })}>Ordenar A–Z {view.tagSort ? "✓" : ""}</button>
-              <button className="rounded-md px-3 py-2 text-left text-sm text-(--text-soft) hover:bg-(--bg-hover) hover:text-(--text)" onClick={handleClean}>Eliminar sin uso</button>
-            </span>
-          ) : null}
-        </span>
-        <button className="flex h-7 w-7 items-center justify-center rounded-md text-(--muted) hover:bg-(--bg-hover) hover:text-(--text) transition-colors" onClick={onNewTag} title="Nueva etiqueta"><Icon name="plus" size={15} /></button>
+        <Dropdown
+          trigger={
+            <button className="flex h-7 w-7 items-center justify-center rounded-md text-(--muted) hover:bg-(--bg-hover) hover:text-(--text) transition-colors" aria-label="Opciones de etiquetas">
+              <Icon name="gear" size={15} />
+            </button>
+          }
+        >
+          <DropdownItem onClick={() => onChangeView({ tagSort: !view.tagSort })}>Ordenar A–Z {view.tagSort ? "✓" : ""}</DropdownItem>
+          <DropdownItem onClick={handleClean}>Eliminar sin uso</DropdownItem>
+        </Dropdown>
+        <TooltipSimple content="Nueva etiqueta" side="top">
+          <button className="flex h-7 w-7 items-center justify-center rounded-md text-(--muted) hover:bg-(--bg-hover) hover:text-(--text) transition-colors" onClick={onNewTag} aria-label="Nueva etiqueta"><Icon name="plus" size={15} /></button>
+        </TooltipSimple>
       </div>
 
       <div className="flex flex-col gap-1 px-1">
@@ -104,8 +107,12 @@ function InlineTag({ tag, activeTag, onSetActiveTag, onToast, onRefresh }: { tag
     <div className="flex items-center gap-2 rounded-md px-2 py-1 hover:bg-(--bg-hover) transition-colors">
       <span className="flex-1 rounded-full bg-(--bg-tertiary) border border-(--border-light) px-2 py-0.5 text-xs">#{tag}</span>
       <span className="flex gap-1">
-        <button className="flex h-6 w-6 items-center justify-center rounded-md text-(--muted) hover:bg-(--bg-primary) hover:text-(--text) transition-colors" onClick={() => { setVal(tag); setEditing(true); }} title="Renombrar"><Icon name="pencil" size={14} /></button>
-        <button className="flex h-6 w-6 items-center justify-center rounded-md text-(--muted) hover:bg-(--bg-primary) hover:text-[#C62828] transition-colors" onClick={remove} title="Eliminar">✕</button>
+        <TooltipSimple content="Renombrar" side="top">
+          <button className="flex h-6 w-6 items-center justify-center rounded-md text-(--muted) hover:bg-(--bg-primary) hover:text-(--text) transition-colors" onClick={() => { setVal(tag); setEditing(true); }} aria-label="Renombrar"><Icon name="pencil" size={14} /></button>
+        </TooltipSimple>
+        <TooltipSimple content="Eliminar" side="top">
+          <button className="flex h-6 w-6 items-center justify-center rounded-md text-(--muted) hover:bg-(--bg-primary) hover:text-[#C62828] transition-colors" onClick={remove} aria-label="Eliminar">✕</button>
+        </TooltipSimple>
       </span>
     </div>
   );

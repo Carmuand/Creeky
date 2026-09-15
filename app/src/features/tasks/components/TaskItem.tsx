@@ -1,8 +1,10 @@
-﻿import type { CreekyDB, Task } from "@/types/creeky";
+﻿import { useState } from "react";
+import type { CreekyDB, Task } from "@/types/creeky";
 import { PRIO_META } from "@/types/creeky";
 import { listColor } from "@/utils/task";
 import { Icon } from "@/components/icons/Icon";
-import { TaskDetail } from "./TaskDetail";
+import { TooltipSimple } from "@/components/ui/Tooltip";
+import { TaskDetailModal } from "./TaskDetailModal";
 
 interface TaskItemProps {
   task: Task;
@@ -22,28 +24,29 @@ interface TaskItemProps {
   onMove: (listId: string) => void;
 }
 
-export function TaskItem({ task: t, store, isOpen, focusId, isTrash, onToggle, onCheck, onDelete, onRestore, onPermDelete, onCyclePrio, onFocus, onSaveDetail, onRepeatToggle, onMove }: TaskItemProps) {
+export function TaskItem({ task: t, store, focusId, isTrash, onCheck, onDelete, onRestore, onPermDelete, onCyclePrio, onFocus, onSaveDetail, onRepeatToggle, onMove }: Omit<TaskItemProps, "isOpen" | "onToggle"> & Partial<Pick<TaskItemProps, "isOpen" | "onToggle">>) {
   const prio = t.priority || "none";
+  const [detailOpen, setDetailOpen] = useState(false);
 
   return (
-    <article
-      className={`flex gap-3 items-start p-3 border rounded-lg bg-(--bg-primary) transition-all ${t.done ? "opacity-65" : "hover:border-(--border-dark) hover:shadow-sm"} border-(--border-light)`}
-      style={{ borderLeft: `4px solid ${listColor(store, t.list)}` }}
-    >
-      <button
-        className={`flex h-5.5 w-5.5 shrink-0 items-center justify-center rounded-full border-2 mt-0.5 text-sm ${t.done ? "bg-(--accent) border-(--accent) text-white" : "border-(--border-dark) text-transparent"}`}
-        onClick={onCheck}
-        aria-label="Casilla completar"
+    <>
+      <article
+        className={`flex gap-3 items-start p-3 border rounded-lg bg-(--bg-primary) transition-all ${t.done ? "opacity-65" : "hover:border-(--border-dark) hover:shadow-sm"} border-(--border-light)`}
+        style={{ borderLeft: `4px solid ${listColor(store, t.list)}` }}
       >
-        {t.done ? "✓" : ""}
-      </button>
-
-      <div className="flex-1 min-w-0">
-        <div className={`font-medium text-[15px] ${t.done ? "line-through opacity-70" : ""}`}>{t.title}</div>
-        <button className="text-xs text-(--muted) underline hover:text-(--accent) mt-1" onClick={onToggle}>
-          {t.description ? "Ver descripción" : "+ Añadir descripción"}
+        <button
+          className={`flex h-5.5 w-5.5 shrink-0 items-center justify-center rounded-full border-2 mt-0.5 text-sm ${t.done ? "bg-(--accent) border-(--accent) text-white" : "border-(--border-dark) text-transparent"}`}
+          onClick={onCheck}
+          aria-label="Casilla completar"
+        >
+          {t.done ? "✓" : ""}
         </button>
-        {isOpen ? <TaskDetail task={t} store={store} onSave={onSaveDetail} onRepeatToggle={onRepeatToggle} onMove={onMove} /> : null}
+
+        <div className="flex-1 min-w-0">
+          <div className={`font-medium text-[15px] ${t.done ? "line-through opacity-70" : ""}`}>{t.title}</div>
+          <button className="text-xs text-(--muted) underline hover:text-(--accent) mt-1" onClick={() => setDetailOpen(true)}>
+            Ver detalles
+          </button>
 
         <div className="flex flex-wrap gap-2 mt-2 text-xs text-(--muted)">
           {t.due ? <a href="#calendar" className="rounded-full bg-(--bg-tertiary) border border-(--border-light) px-2 py-0.5">{t.due}{t.dueTime ? ` ${t.dueTime}` : ""}</a> : null}
@@ -59,20 +62,22 @@ export function TaskItem({ task: t, store, isOpen, focusId, isTrash, onToggle, o
       </div>
 
       <div className="flex gap-0.5 items-center shrink-0">
-        <button className="flex h-7 w-7 items-center justify-center rounded-md text-(--muted) hover:bg-(--bg-hover) hover:text-(--text)" onClick={onToggle} title="Programar"><Icon name="calendar" size={16} /></button>
-        <button className={`flex h-7 w-7 items-center justify-center rounded-md hover:bg-(--bg-hover) ${(t.reminder || t.dueTime) ? "text-(--accent) bg-(--accent-light)" : "text-(--muted) hover:text-(--text)"}`} onClick={onToggle} title="Recordatorio"><Icon name="bell" size={16} /></button>
-        <button className={`flex h-7 w-7 items-center justify-center rounded-md hover:bg-(--bg-hover) ${focusId === t.id ? "text-(--accent) bg-(--accent-light)" : "text-(--muted) hover:text-(--text)"}`} onClick={onFocus} title="Enfocar en Pomodoro"><Icon name="timer" size={16} /></button>
-        <button className="flex h-7 w-7 items-center justify-center rounded-md text-(--muted) hover:bg-(--bg-hover) hover:text-(--text)" onClick={onCyclePrio} title={`Prioridad ${PRIO_META[prio].label}`}><Icon name="flag" size={16} /></button>
+        <TooltipSimple content="Ver detalles" side="top"><button className="flex h-7 w-7 items-center justify-center rounded-md text-(--muted) hover:bg-(--bg-hover) hover:text-(--text)" onClick={() => setDetailOpen(true)} aria-label="Detalles"><Icon name="calendar" size={16} /></button></TooltipSimple>
+        <TooltipSimple content="Recordatorio / alarma" side="top"><button className={`flex h-7 w-7 items-center justify-center rounded-md hover:bg-(--bg-hover) ${(t.reminder || t.dueTime) ? "text-(--accent) bg-(--accent-light)" : "text-(--muted) hover:text-(--text)"}`} onClick={() => setDetailOpen(true)} aria-label="Alarma"><Icon name="bell" size={16} /></button></TooltipSimple>
+        <TooltipSimple content="Enfocar en Pomodoro" side="top"><button className={`flex h-7 w-7 items-center justify-center rounded-md hover:bg-(--bg-hover) ${focusId === t.id ? "text-(--accent) bg-(--accent-light)" : "text-(--muted) hover:text-(--text)"}`} onClick={onFocus} aria-label="Pomodoro"><Icon name="timer" size={16} /></button></TooltipSimple>
+        <TooltipSimple content={`Prioridad ${PRIO_META[prio].label}`} side="top"><button className="flex h-7 w-7 items-center justify-center rounded-md text-(--muted) hover:bg-(--bg-hover) hover:text-(--text)" onClick={onCyclePrio} aria-label="Prioridad"><Icon name="flag" size={16} /></button></TooltipSimple>
         {isTrash ? (
           <>
-            <button className="flex h-7 w-7 items-center justify-center rounded-md text-(--muted) hover:bg-(--bg-hover) hover:text-(--text)" onClick={onRestore} title="Restaurar"><Icon name="restore" size={16} /></button>
-            <button className="flex h-7 w-7 items-center justify-center rounded-md text-(--muted) hover:bg-(--bg-hover) hover:text-[#C62828]" onClick={onPermDelete} title="Eliminar definitivo">✕</button>
+            <TooltipSimple content="Restaurar" side="top"><button className="flex h-7 w-7 items-center justify-center rounded-md text-(--muted) hover:bg-(--bg-hover) hover:text-(--text)" onClick={onRestore} aria-label="Restaurar"><Icon name="restore" size={16} /></button></TooltipSimple>
+            <TooltipSimple content="Eliminar definitivo" side="top"><button className="flex h-7 w-7 items-center justify-center rounded-md text-(--muted) hover:bg-(--bg-hover) hover:text-[#C62828]" onClick={onPermDelete} aria-label="Eliminar definitivo">✕</button></TooltipSimple>
           </>
         ) : (
-          <button className="flex h-7 w-7 items-center justify-center rounded-md text-(--muted) hover:bg-(--bg-hover) hover:text-[#C62828]" onClick={onDelete} aria-label="Eliminar">✕</button>
+          <TooltipSimple content="Eliminar" side="top"><button className="flex h-7 w-7 items-center justify-center rounded-md text-(--muted) hover:bg-(--bg-hover) hover:text-[#C62828]" onClick={onDelete} aria-label="Eliminar">✕</button></TooltipSimple>
         )}
       </div>
     </article>
+      <TaskDetailModal open={detailOpen} onClose={() => setDetailOpen(false)} task={t} store={store} onSave={onSaveDetail} onRepeatToggle={onRepeatToggle} onMove={onMove} />
+    </>
   );
 }
 
