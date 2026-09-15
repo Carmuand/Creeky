@@ -17,3 +17,7 @@ __pycache__/
 # Enviroments
 .env.local
 .env
+
+# Vite build
+dist/
+build/
