@@ -1,7 +1,10 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import type { CreekyDB, Task } from "@/types/creeky";
 import { PRIO_META, REMIND_OPTIONS, WEEKDAYS } from "@/types/creeky";
-import { CreekyIcon } from "@/components/icons/CreekyIcon";
+import { Icon } from "@/components/icons/Icon";
+import { Input } from "@/components/ui/Input";
+import { Textarea } from "@/components/ui/Textarea";
+import { Button } from "@/components/ui/Button";
 import { todayISO, addDaysISO } from "@/utils/date";
 
 interface TaskDetailProps {
@@ -49,50 +52,51 @@ export function TaskDetail({ task, store, onSave, onRepeatToggle, onMove }: Task
   };
 
   return (
-    <div className="task-detail">
-      <textarea className="form-textarea" value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} placeholder="Descripción…" />
+    <div className="mt-2 flex flex-col gap-3 rounded-lg border border-(--border-light) bg-(--bg-secondary) p-3">
+      <Textarea value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} placeholder="Descripción…" rows={2} />
 
-      <div className="preset-row" role="group" aria-label="Fecha rápida">
-        <button className="chip" onClick={() => setForm((p) => ({ ...p, due: todayISO() }))}>Hoy</button>
-        <button className="chip" onClick={() => setForm((p) => ({ ...p, due: addDaysISO(todayISO(), 1) }))}>Mañana</button>
-        <button className="chip" onClick={() => setForm((p) => ({ ...p, due: addDaysISO(todayISO(), 7) }))}>Esta semana</button>
-        <button className="chip" onClick={() => setForm((p) => ({ ...p, due: "" }))}>Sin fecha</button>
+      <div className="flex flex-wrap gap-1.5" role="group" aria-label="Fecha rápida">
+        <button className="rounded-full border border-(--border-medium) bg-(--bg-primary) px-3 py-1 text-xs text-(--muted) hover:border-(--accent) hover:text-(--accent) transition-colors" onClick={() => setForm((p) => ({ ...p, due: todayISO() }))}>Hoy</button>
+        <button className="rounded-full border border-(--border-medium) bg-(--bg-primary) px-3 py-1 text-xs text-(--muted) hover:border-(--accent) hover:text-(--accent) transition-colors" onClick={() => setForm((p) => ({ ...p, due: addDaysISO(todayISO(), 1) }))}>Mañana</button>
+        <button className="rounded-full border border-(--border-medium) bg-(--bg-primary) px-3 py-1 text-xs text-(--muted) hover:border-(--accent) hover:text-(--accent) transition-colors" onClick={() => setForm((p) => ({ ...p, due: addDaysISO(todayISO(), 7) }))}>Esta semana</button>
+        <button className="rounded-full border border-(--border-medium) bg-(--bg-primary) px-3 py-1 text-xs text-(--muted) hover:border-(--accent) hover:text-(--accent) transition-colors" onClick={() => setForm((p) => ({ ...p, due: "" }))}>Sin fecha</button>
       </div>
 
-      <div className="task-detail-row">
-        <label><CreekyIcon name="calendar" size={16} /> <input type="date" className="form-input" value={form.due} onChange={(e) => setForm((p) => ({ ...p, due: e.target.value }))} /></label>
-        <label><CreekyIcon name="clock" size={16} /> <input type="time" className="form-input" value={form.dueTime} onChange={(e) => setForm((p) => ({ ...p, dueTime: e.target.value }))} /></label>
-        <label>Duración <select className="form-select" value={form.duration} onChange={(e) => setForm((p) => ({ ...p, duration: e.target.value }))}>
+      <div className="flex flex-wrap gap-2">
+        <label className="flex items-center gap-1.5 text-xs text-(--text-soft)"><Icon name="calendar" size={16} /> <Input type="date" value={form.due} onChange={(e) => setForm((p) => ({ ...p, due: e.target.value }))} className="w-auto" /></label>
+        <label className="flex items-center gap-1.5 text-xs text-(--text-soft)"><Icon name="clock" size={16} /> <Input type="time" value={form.dueTime} onChange={(e) => setForm((p) => ({ ...p, dueTime: e.target.value }))} className="w-auto" /></label>
+        <label className="flex items-center gap-1.5 text-xs text-(--text-soft)">Duración <select className="form-select" value={form.duration} onChange={(e) => setForm((p) => ({ ...p, duration: e.target.value }))}>
           {[15, 30, 45, 60, 90, 120].map((d) => <option key={d} value={d}>{d} min</option>)}
         </select></label>
       </div>
 
-      <div className="repeat-row">
-        <span className="repeat-label">Repetir:</span>
+      <div className="flex flex-wrap items-center gap-1.5 text-xs">
+        <span className="font-semibold text-(--text-soft)">Repetir:</span>
         {WEEKDAYS.map((w) => (
-          <button key={w.v} className={`day-chip ${form.tags ? "" : ""} ${(task.repeat || []).includes(w.v) ? "on" : ""}`} onClick={() => onRepeatToggle(w.v)} title={`Repetir ${w.label}`}>{w.label}</button>
+          <button key={w.v} className={`flex h-7 w-7 items-center justify-center rounded-full border text-xs font-bold transition-colors ${(task.repeat || []).includes(w.v) ? "bg-(--accent) border-(--accent) text-white" : "border-(--border-medium) text-(--muted) hover:border-(--accent)"}`} onClick={() => onRepeatToggle(w.v)} title={`Repetir ${w.label}`}>{w.label}</button>
         ))}
       </div>
 
-      <div className="task-detail-row">
-        <label><CreekyIcon name="bell" size={16} /> Avisar <select className="form-select" value={form.remindBefore} onChange={(e) => setForm((p) => ({ ...p, remindBefore: e.target.value }))}>
+      <div className="flex flex-wrap gap-2">
+        <label className="flex items-center gap-1.5 text-xs text-(--text-soft)"><Icon name="bell" size={16} /> Avisar <select className="form-select" value={form.remindBefore} onChange={(e) => setForm((p) => ({ ...p, remindBefore: e.target.value }))}>
           {REMIND_OPTIONS.map((o) => <option key={o.v} value={o.v}>{o.label}</option>)}
         </select></label>
-        <label><span className="prio-badge" style={{ ["--prio" as never]: PRIO_META[form.priority].color }}>{PRIO_META[form.priority].mark}</span> Prioridad <select className="form-select" value={form.priority} onChange={(e) => setForm((p) => ({ ...p, priority: e.target.value as Task["priority"] }))}>
+        <label className="flex items-center gap-1.5 text-xs text-(--text-soft)"><span className="flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white" style={{ background: PRIO_META[form.priority].color }}>{PRIO_META[form.priority].mark}</span> Prioridad <select className="form-select" value={form.priority} onChange={(e) => setForm((p) => ({ ...p, priority: e.target.value as Task["priority"] }))}>
           {Object.entries(PRIO_META).map(([v, m]) => <option key={v} value={v}>{m.label}</option>)}
         </select></label>
       </div>
 
-      <div className="task-detail-row">
-        <label><CreekyIcon name="box" size={16} /> Mover a <select className="form-select" value={task.list} onChange={(e) => onMove(e.target.value)}>
+      <div className="flex flex-wrap gap-2">
+        <label className="flex items-center gap-1.5 text-xs text-(--text-soft)"><Icon name="box" size={16} /> Mover a <select className="form-select" value={task.list} onChange={(e) => onMove(e.target.value)}>
           {store.lists.map((l) => <option key={l.id} value={l.id}>{l.icon} {l.name}</option>)}
         </select></label>
       </div>
 
-      <div className="task-detail-row">
-        <input className="form-input" value={form.tags} onChange={(e) => setForm((p) => ({ ...p, tags: e.target.value }))} list="tag-options" placeholder="Etiquetas, separadas por coma…" />
-        <button className="btn btn-primary btn-sm" onClick={handleSave}>Guardar</button>
+      <div className="flex flex-wrap gap-2">
+        <Input value={form.tags} onChange={(e) => setForm((p) => ({ ...p, tags: e.target.value }))} list="tag-options" placeholder="Etiquetas, separadas por coma…" className="flex-1 min-w-40" />
+        <Button variant="primary" size="sm" onClick={handleSave}>Guardar</Button>
       </div>
     </div>
   );
 }
+

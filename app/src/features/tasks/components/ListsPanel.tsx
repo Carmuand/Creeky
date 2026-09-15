@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { TaskList, Task } from "@/types/creeky";
-import { CreekyIcon } from "@/components/icons/CreekyIcon";
+import { Icon } from "@/components/icons/Icon";
 import { db } from "@/services/storage";
 
 interface ListsPanelProps {
@@ -38,46 +38,50 @@ export function ListsPanel({ lists, visLists, alive, trashCount, activeFilter, v
     setArmed(false);
   };
 
+  const listItem = (active: boolean) =>
+    `flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition-colors ${active ? "bg-(--accent-light) font-medium text-(--accent)" : "text-(--text-soft) hover:bg-(--bg-hover) hover:text-(--text)"}`;
+
   return (
-    <div className="panel-sec">
-      <div className="panel-sec-head">
-        <span className="panel-sec-icon"><CreekyIcon name="list" size={16} /></span>
-        <h3>Listas <span className="panel-count">({lists.length})</span></h3>
-        <span className="menu-wrap" onClick={(e) => e.stopPropagation()}>
-          <button className="icon-btn sm" onClick={() => setMenuOpen((v) => !v)} title="Opciones de listas"><CreekyIcon name="gear" size={15} /></button>
+    <div className="flex flex-col gap-1">
+      <div className="flex items-center gap-2 px-1 py-2">
+        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-(--bg-tertiary) text-(--accent)"><Icon name="list" size={16} /></span>
+        <h3 className="flex-1 text-xs font-semibold uppercase tracking-widest text-(--muted)">Listas <span className="font-normal text-(--muted)">({lists.length})</span></h3>
+        <span className="relative" onClick={(e) => e.stopPropagation()}>
+          <button className="flex h-7 w-7 items-center justify-center rounded-md text-(--muted) hover:bg-(--bg-hover) hover:text-(--text) transition-colors" onClick={() => setMenuOpen((v) => !v)} title="Opciones de listas"><Icon name="gear" size={15} /></button>
           {menuOpen ? (
-            <span className="menu-dropdown">
-              <button onClick={() => onChangeView({ listSort: !view.listSort })}>Ordenar A–Z {view.listSort ? "✓" : ""}</button>
-              <button onClick={() => onChangeView({ hideEmpty: !view.hideEmpty })}>{view.hideEmpty ? "Mostrar vacías" : "Ocultar vacías"}</button>
-              <button onClick={handleEmptyTrash}>{armed ? "¿Seguro? Clic de nuevo" : "Vaciar papelera"}</button>
+            <span className="absolute right-0 top-full z-20 mt-1 flex w-48 flex-col rounded-lg border border-(--border-medium) bg-(--bg-primary) p-1 shadow-lg">
+              <button className="rounded-md px-3 py-2 text-left text-sm text-(--text-soft) hover:bg-(--bg-hover) hover:text-(--text)" onClick={() => onChangeView({ listSort: !view.listSort })}>Ordenar A–Z {view.listSort ? "✓" : ""}</button>
+              <button className="rounded-md px-3 py-2 text-left text-sm text-(--text-soft) hover:bg-(--bg-hover) hover:text-(--text)" onClick={() => onChangeView({ hideEmpty: !view.hideEmpty })}>{view.hideEmpty ? "Mostrar vacías" : "Ocultar vacías"}</button>
+              <button className="rounded-md px-3 py-2 text-left text-sm text-(--text-soft) hover:bg-(--bg-hover) hover:text-(--text)" onClick={handleEmptyTrash}>{armed ? "¿Seguro? Clic de nuevo" : "Vaciar papelera"}</button>
             </span>
           ) : null}
         </span>
-        <button className="icon-btn sm" onClick={onNewList} title="Nueva lista"><CreekyIcon name="plus" size={15} /></button>
+        <button className="flex h-7 w-7 items-center justify-center rounded-md text-(--muted) hover:bg-(--bg-hover) hover:text-(--text) transition-colors" onClick={onNewList} title="Nueva lista"><Icon name="plus" size={15} /></button>
       </div>
 
-      <button className={`list-item ${activeFilter === "all" ? "active" : ""}`} onClick={() => onSelect("all")}>
-        <span className="list-emoji"><CreekyIcon name="board" size={15} /></span> Todas <span className="list-count">{alive.filter((t) => !t.done).length}</span>
+      <button className={listItem(activeFilter === "all")} onClick={() => onSelect("all")}>
+        <span className="flex h-5 w-5 items-center justify-center text-base"><Icon name="board" size={15} /></span> Todas <span className="ml-auto rounded-full bg-(--bg-tertiary) px-2 py-0.5 text-xs text-(--muted)">{alive.filter((t) => !t.done).length}</span>
       </button>
-      <button className={`list-item ${activeFilter === "today" ? "active" : ""}`} onClick={() => onSelect("today")}>
-        <span className="list-emoji"><CreekyIcon name="calendar" size={15} /></span> Hoy <span className="list-count">{alive.filter((t) => t.due === new Date().toISOString().slice(0, 10) && !t.done).length}</span>
+      <button className={listItem(activeFilter === "today")} onClick={() => onSelect("today")}>
+        <span className="flex h-5 w-5 items-center justify-center text-base"><Icon name="calendar" size={15} /></span> Hoy <span className="ml-auto rounded-full bg-(--bg-tertiary) px-2 py-0.5 text-xs text-(--muted)">{alive.filter((t) => t.due === new Date().toISOString().slice(0, 10) && !t.done).length}</span>
       </button>
 
       {visLists.map((l) => {
         const lt = alive.filter((t) => t.list === l.id);
         const lo = lt.filter((t) => !t.done).length;
+        const active = activeFilter === l.id;
         return (
-          <div key={l.id} className={`list-row ${activeFilter === l.id ? "active" : ""}`}>
-            <button className="list-item" onClick={() => onSelect(l.id)} style={{ flex: 1, minWidth: 0 }} title={`${l.description || "Sin descripción"} • ${lo} pendientes`}>
-              <span className="list-emoji">{l.icon || "📋"}</span><span className="list-dot" style={{ background: l.color }} /> {l.name} <span className="list-count">{lo}</span>
+          <div key={l.id} className={`flex items-center gap-1 rounded-md ${active ? "bg-(--accent-light)" : ""}`}>
+            <button className={`${listItem(active)} flex-1 min-w-0`} onClick={() => onSelect(l.id)} title={`${l.description || "Sin descripción"} • ${lo} pendientes`}>
+              <span className="flex h-5 w-5 items-center justify-center text-base">{l.icon || "📋"}</span><span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: l.color }} /> <span className="truncate">{l.name}</span> <span className="ml-auto rounded-full bg-(--bg-tertiary) px-2 py-0.5 text-xs text-(--muted)">{lo}</span>
             </button>
-            <button className="icon-btn sm" onClick={() => onEditList(l.id)} title="Configurar lista"><CreekyIcon name="gear" size={14} /></button>
+            <button className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-(--muted) hover:bg-(--bg-hover) hover:text-(--text) transition-colors" onClick={() => onEditList(l.id)} title="Configurar lista"><Icon name="gear" size={14} /></button>
           </div>
         );
       })}
 
-      <button className={`list-item ${activeFilter === "trash" ? "active" : ""}`} onClick={() => onSelect("trash")}>
-        <span className="list-emoji"><CreekyIcon name="trash" size={15} /></span> Eliminadas <span className="list-count">{trashCount}</span>
+      <button className={listItem(activeFilter === "trash")} onClick={() => onSelect("trash")}>
+        <span className="flex h-5 w-5 items-center justify-center text-base"><Icon name="trash" size={15} /></span> Eliminadas <span className="ml-auto rounded-full bg-(--bg-tertiary) px-2 py-0.5 text-xs text-(--muted)">{trashCount}</span>
       </button>
     </div>
   );

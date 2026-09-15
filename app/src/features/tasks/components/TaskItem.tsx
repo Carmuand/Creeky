@@ -1,7 +1,7 @@
-import type { CreekyDB, Task } from "@/types/creeky";
+﻿import type { CreekyDB, Task } from "@/types/creeky";
 import { PRIO_META } from "@/types/creeky";
 import { listColor } from "@/utils/task";
-import { CreekyIcon } from "@/components/icons/CreekyIcon";
+import { Icon } from "@/components/icons/Icon";
 import { TaskDetail } from "./TaskDetail";
 
 interface TaskItemProps {
@@ -26,39 +26,53 @@ export function TaskItem({ task: t, store, isOpen, focusId, isTrash, onToggle, o
   const prio = t.priority || "none";
 
   return (
-    <article className={`task-item ${t.done ? "done" : ""}`} style={{ borderLeft: `4px solid ${listColor(store, t.list)}` }}>
-      <button className={`task-check ${t.done ? "done" : ""}`} onClick={onCheck} aria-label="Casilla completar">{t.done ? "✓" : ""}</button>
+    <article
+      className={`flex gap-3 items-start p-3 border rounded-lg bg-(--bg-primary) transition-all ${t.done ? "opacity-65" : "hover:border-(--border-dark) hover:shadow-sm"} border-(--border-light)`}
+      style={{ borderLeft: `4px solid ${listColor(store, t.list)}` }}
+    >
+      <button
+        className={`flex h-5.5 w-5.5 shrink-0 items-center justify-center rounded-full border-2 mt-0.5 text-sm ${t.done ? "bg-(--accent) border-(--accent) text-white" : "border-(--border-dark) text-transparent"}`}
+        onClick={onCheck}
+        aria-label="Casilla completar"
+      >
+        {t.done ? "✓" : ""}
+      </button>
 
-      <div className="task-body">
-        <div className="task-title">{t.title}</div>
-        <button className="task-desc-toggle" onClick={onToggle}>{t.description ? "Ver descripción" : "+ Añadir descripción"}</button>
+      <div className="flex-1 min-w-0">
+        <div className={`font-medium text-[15px] ${t.done ? "line-through opacity-70" : ""}`}>{t.title}</div>
+        <button className="text-xs text-(--muted) underline hover:text-(--accent) mt-1" onClick={onToggle}>
+          {t.description ? "Ver descripción" : "+ Añadir descripción"}
+        </button>
         {isOpen ? <TaskDetail task={t} store={store} onSave={onSaveDetail} onRepeatToggle={onRepeatToggle} onMove={onMove} /> : null}
 
-        <div className="task-meta">
-          {t.due ? <a href="#calendar" className="tag">{t.due}{t.dueTime ? ` ${t.dueTime}` : ""}</a> : null}
-          <span className="tag" style={{ display: (t.repeat || []).length ? "" : "none" }}>↻ <b>{(t.repeat || []).length}</b>d</span>
-          {(t.remindBefore ?? 0) > 0 && t.due ? <span className="tag">aviso −{t.remindBefore}m</span> : null}
-          {t.reminder ? <span className="tag">{String(t.reminder).slice(0, 16).replace("T", " ")}</span> : null}
-          <button className="tag" onClick={onCyclePrio}><span className="prio-badge" style={{ ["--prio" as never]: PRIO_META[prio].color }}>{PRIO_META[prio].mark}</span> {PRIO_META[prio].label}</button>
-          {(t.pomo || 0) > 0 ? <span className="tag">pomodoro ×{t.pomo}</span> : null}
-          {(t.tags || []).map((x) => <span key={x} className="tag">#{x}</span>)}
+        <div className="flex flex-wrap gap-2 mt-2 text-xs text-(--muted)">
+          {t.due ? <a href="#calendar" className="rounded-full bg-(--bg-tertiary) border border-(--border-light) px-2 py-0.5">{t.due}{t.dueTime ? ` ${t.dueTime}` : ""}</a> : null}
+          {(t.repeat || []).length ? <span className="rounded-full bg-(--bg-tertiary) border border-(--border-light) px-2 py-0.5">↻ <b>{(t.repeat || []).length}</b>d</span> : null}
+          {(t.remindBefore ?? 0) > 0 && t.due ? <span className="rounded-full bg-(--bg-tertiary) border border-(--border-light) px-2 py-0.5">aviso −{t.remindBefore}m</span> : null}
+          {t.reminder ? <span className="rounded-full bg-(--bg-tertiary) border border-(--border-light) px-2 py-0.5">{String(t.reminder).slice(0, 16).replace("T", " ")}</span> : null}
+          <button className="rounded-full bg-(--bg-tertiary) border border-(--border-light) px-2 py-0.5 flex items-center gap-1" onClick={onCyclePrio}>
+            <span className="flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white" style={{ background: PRIO_META[prio].color }}>{PRIO_META[prio].mark}</span> {PRIO_META[prio].label}
+          </button>
+          {(t.pomo || 0) > 0 ? <span className="rounded-full bg-(--bg-tertiary) border border-(--border-light) px-2 py-0.5">pomodoro ×{t.pomo}</span> : null}
+          {(t.tags || []).map((x) => <span key={x} className="rounded-full bg-(--bg-tertiary) border border-(--border-light) px-2 py-0.5">#{x}</span>)}
         </div>
       </div>
 
-      <div className="task-icons">
-        <button className="icon-btn" onClick={onToggle} title="Programar"><CreekyIcon name="calendar" /></button>
-        <button className={`icon-btn ${(t.reminder || t.dueTime) ? "on" : ""}`} onClick={onToggle} title="Recordatorio"><CreekyIcon name="bell" /></button>
-        <button className={`icon-btn ${focusId === t.id ? "on" : ""}`} onClick={onFocus} title="Enfocar en Pomodoro"><CreekyIcon name="timer" /></button>
-        <button className="icon-btn" onClick={onCyclePrio} title={`Prioridad ${PRIO_META[prio].label}`}><CreekyIcon name="flag" /></button>
+      <div className="flex gap-0.5 items-center shrink-0">
+        <button className="flex h-7 w-7 items-center justify-center rounded-md text-(--muted) hover:bg-(--bg-hover) hover:text-(--text)" onClick={onToggle} title="Programar"><Icon name="calendar" size={16} /></button>
+        <button className={`flex h-7 w-7 items-center justify-center rounded-md hover:bg-(--bg-hover) ${(t.reminder || t.dueTime) ? "text-(--accent) bg-(--accent-light)" : "text-(--muted) hover:text-(--text)"}`} onClick={onToggle} title="Recordatorio"><Icon name="bell" size={16} /></button>
+        <button className={`flex h-7 w-7 items-center justify-center rounded-md hover:bg-(--bg-hover) ${focusId === t.id ? "text-(--accent) bg-(--accent-light)" : "text-(--muted) hover:text-(--text)"}`} onClick={onFocus} title="Enfocar en Pomodoro"><Icon name="timer" size={16} /></button>
+        <button className="flex h-7 w-7 items-center justify-center rounded-md text-(--muted) hover:bg-(--bg-hover) hover:text-(--text)" onClick={onCyclePrio} title={`Prioridad ${PRIO_META[prio].label}`}><Icon name="flag" size={16} /></button>
         {isTrash ? (
           <>
-            <button className="icon-btn" onClick={onRestore} title="Restaurar"><CreekyIcon name="restore" /></button>
-            <button className="task-del" onClick={onPermDelete} title="Eliminar definitivo">✕</button>
+            <button className="flex h-7 w-7 items-center justify-center rounded-md text-(--muted) hover:bg-(--bg-hover) hover:text-(--text)" onClick={onRestore} title="Restaurar"><Icon name="restore" size={16} /></button>
+            <button className="flex h-7 w-7 items-center justify-center rounded-md text-(--muted) hover:bg-(--bg-hover) hover:text-[#C62828]" onClick={onPermDelete} title="Eliminar definitivo">✕</button>
           </>
         ) : (
-          <button className="task-del" onClick={onDelete} aria-label="Eliminar">✕</button>
+          <button className="flex h-7 w-7 items-center justify-center rounded-md text-(--muted) hover:bg-(--bg-hover) hover:text-[#C62828]" onClick={onDelete} aria-label="Eliminar">✕</button>
         )}
       </div>
     </article>
   );
 }
+

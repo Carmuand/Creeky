@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { CreekyIcon } from "@/components/icons/CreekyIcon";
+import { Icon } from "@/components/icons/Icon";
+import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
 import { db } from "@/services/storage";
 
 interface TagsPanelProps {
@@ -29,27 +31,27 @@ export function TagsPanel({ tags, visTags, view, activeTag, onChangeView, onSetA
   };
 
   return (
-    <div className="panel-sec">
-      <div className="panel-sec-head">
-        <span className="panel-sec-icon"><CreekyIcon name="tag" size={16} /></span>
-        <h3>Etiquetas <span className="panel-count">({tags.length})</span></h3>
-        <span className="menu-wrap" onClick={(e) => e.stopPropagation()}>
-          <button className="icon-btn sm" onClick={() => setMenuOpen((v) => !v)} title="Opciones de etiquetas"><CreekyIcon name="gear" size={15} /></button>
+    <div className="flex flex-col gap-1">
+      <div className="flex items-center gap-2 px-1 py-2">
+        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-(--bg-tertiary) text-(--accent)"><Icon name="tag" size={16} /></span>
+        <h3 className="flex-1 text-xs font-semibold uppercase tracking-widest text-(--muted)">Etiquetas <span className="font-normal">({tags.length})</span></h3>
+        <span className="relative" onClick={(e) => e.stopPropagation()}>
+          <button className="flex h-7 w-7 items-center justify-center rounded-md text-(--muted) hover:bg-(--bg-hover) hover:text-(--text) transition-colors" onClick={() => setMenuOpen((v) => !v)} title="Opciones de etiquetas"><Icon name="gear" size={15} /></button>
           {menuOpen ? (
-            <span className="menu-dropdown">
-              <button onClick={() => onChangeView({ tagSort: !view.tagSort })}>Ordenar A–Z {view.tagSort ? "✓" : ""}</button>
-              <button onClick={handleClean}>Eliminar sin uso</button>
+            <span className="absolute right-0 top-full z-20 mt-1 flex w-48 flex-col rounded-lg border border-(--border-medium) bg-(--bg-primary) p-1 shadow-lg">
+              <button className="rounded-md px-3 py-2 text-left text-sm text-(--text-soft) hover:bg-(--bg-hover) hover:text-(--text)" onClick={() => onChangeView({ tagSort: !view.tagSort })}>Ordenar A–Z {view.tagSort ? "✓" : ""}</button>
+              <button className="rounded-md px-3 py-2 text-left text-sm text-(--text-soft) hover:bg-(--bg-hover) hover:text-(--text)" onClick={handleClean}>Eliminar sin uso</button>
             </span>
           ) : null}
         </span>
-        <button className="icon-btn sm" onClick={onNewTag} title="Nueva etiqueta"><CreekyIcon name="plus" size={15} /></button>
+        <button className="flex h-7 w-7 items-center justify-center rounded-md text-(--muted) hover:bg-(--bg-hover) hover:text-(--text) transition-colors" onClick={onNewTag} title="Nueva etiqueta"><Icon name="plus" size={15} /></button>
       </div>
 
-      <div className="tag-list">
+      <div className="flex flex-col gap-1 px-1">
         {visTags.map((t) => (
           <InlineTag key={t} tag={t} activeTag={activeTag} onSetActiveTag={onSetActiveTag} onToast={onToast} onRefresh={onRefresh} />
         ))}
-        {!visTags.length ? <p className="text-xs" style={{ color: "var(--text-tertiary)", padding: "0 8px" }}>Sin etiquetas.</p> : null}
+        {!visTags.length ? <p className="px-2 text-xs text-(--muted)">Sin etiquetas.</p> : null}
       </div>
     </div>
   );
@@ -91,19 +93,19 @@ function InlineTag({ tag, activeTag, onSetActiveTag, onToast, onRefresh }: { tag
 
   if (editing) {
     return (
-      <div className="tag-row" style={{ display: "flex", gap: 6 }}>
-        <input className="form-input" value={val} onChange={(e) => setVal(e.target.value)} style={{ flex: 1, minWidth: 0 }} autoFocus onKeyDown={(e) => { if (e.key === "Enter") save(); }} />
-        <button className="btn btn-primary btn-sm" onClick={save}>OK</button>
+      <div className="flex items-center gap-1.5 rounded-md px-1 py-1">
+        <Input value={val} onChange={(e) => setVal(e.target.value)} className="flex-1 min-w-0" autoFocus onKeyDown={(e) => { if (e.key === "Enter") save(); }} />
+        <Button variant="primary" size="sm" onClick={save}>OK</Button>
       </div>
     );
   }
 
   return (
-    <div className="tag-row">
-      <span className="tag">#{tag}</span>
-      <span className="tag-tools">
-        <button className="icon-btn sm" onClick={() => { setVal(tag); setEditing(true); }} title="Renombrar"><CreekyIcon name="pencil" size={14} /></button>
-        <button className="task-del sm" onClick={remove} title="Eliminar">✕</button>
+    <div className="flex items-center gap-2 rounded-md px-2 py-1 hover:bg-(--bg-hover) transition-colors">
+      <span className="flex-1 rounded-full bg-(--bg-tertiary) border border-(--border-light) px-2 py-0.5 text-xs">#{tag}</span>
+      <span className="flex gap-1">
+        <button className="flex h-6 w-6 items-center justify-center rounded-md text-(--muted) hover:bg-(--bg-primary) hover:text-(--text) transition-colors" onClick={() => { setVal(tag); setEditing(true); }} title="Renombrar"><Icon name="pencil" size={14} /></button>
+        <button className="flex h-6 w-6 items-center justify-center rounded-md text-(--muted) hover:bg-(--bg-primary) hover:text-[#C62828] transition-colors" onClick={remove} title="Eliminar">✕</button>
       </span>
     </div>
   );

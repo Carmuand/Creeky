@@ -6,7 +6,11 @@ import { db, registerTags, uid } from "@/services/storage";
 import { calcPomodoroBlocks } from "@/utils/pomodoro";
 import { findConflict } from "@/utils/task";
 import { pushNotification } from "@/utils/notifications";
-import { CreekyIcon } from "@/components/icons/CreekyIcon";
+import { Icon } from "@/components/icons/Icon";
+import { Modal, ModalBody, ModalFooter, ModalHeader } from "@/components/ui/Modal";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Textarea } from "@/components/ui/Textarea";
 
 const PALETTE = ["#212121", "#616161", "#3949AB", "#00897B", "#2E7D32", "#B58900", "#C62828", "#6A1B9A", "#EF6C00", "#0277BD"];
 
@@ -135,20 +139,20 @@ export function QuickAddModal({ open, onClose, preset, onToast, onCreated }: Qui
   };
 
   return (
-    <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="modal-container task-modal">
-        <header className="modal-header"><h2>Nueva tarea</h2><button className="modal-close" onClick={onClose}>×</button></header>
-        <form onSubmit={handleSubmit} className="task-form" style={{ padding: "22px 24px 18px" }}>
+    <Modal open={open} onClose={onClose} className="w-full max-w-140 max-h-[90vh]">
+      <ModalHeader title="Nueva tarea" onClose={onClose} />
+      <form onSubmit={handleSubmit} className="flex flex-col">
+        <ModalBody>
           <div className="form-group">
             <label className="form-label">Título</label>
             <div className="input-wrapper">
-              <span className="input-icon"><CreekyIcon name="pencil" size={16} /></span>
-              <input className="form-input" value={form.title} onChange={(e) => update("title", e.target.value)} placeholder="Qué necesitas hacer…" required autoFocus />
+              <span className="input-icon"><Icon name="pencil" size={16} /></span>
+              <Input value={form.title} onChange={(e) => update("title", e.target.value)} placeholder="Qué necesitas hacer…" required autoFocus />
             </div>
           </div>
           <div className="form-group">
             <label className="form-label">Descripción</label>
-            <textarea className="form-textarea" value={form.desc} onChange={(e) => update("desc", e.target.value)} placeholder="Detalles opcionales…" rows={3} />
+            <Textarea value={form.desc} onChange={(e) => update("desc", e.target.value)} placeholder="Detalles opcionales…" rows={3} />
           </div>
           <div className="form-row">
             <div className="form-group">
@@ -171,8 +175,8 @@ export function QuickAddModal({ open, onClose, preset, onToast, onCreated }: Qui
             </div>
           </div>
           <div className="form-row">
-            <div className="form-group"><label className="form-label">Fecha</label><input type="date" className="form-input" value={form.due} onChange={(e) => update("due", e.target.value)} /></div>
-            <div className="form-group"><label className="form-label">Hora</label><input type="time" className="form-input" value={form.dueTime} onChange={(e) => update("dueTime", e.target.value)} /></div>
+            <div className="form-group"><label className="form-label">Fecha</label><Input type="date" value={form.due} onChange={(e) => update("due", e.target.value)} /></div>
+            <div className="form-group"><label className="form-label">Hora</label><Input type="time" value={form.dueTime} onChange={(e) => update("dueTime", e.target.value)} /></div>
           </div>
           <div className="form-group">
             <label className="form-label">Prioridad</label>
@@ -197,8 +201,8 @@ export function QuickAddModal({ open, onClose, preset, onToast, onCreated }: Qui
             <div className="form-group">
               <label className="form-label">Etiquetas</label>
               <div className="tags-input-wrapper">
-                <input className="form-input" value={form.tags} onChange={(e) => update("tags", e.target.value)} placeholder="trabajo, personal…" list="tag-options-modal" />
-                <span className="tags-icon"><CreekyIcon name="tag" size={16} /></span>
+                <Input value={form.tags} onChange={(e) => update("tags", e.target.value)} placeholder="trabajo, personal…" list="tag-options-modal" />
+                <span className="tags-icon"><Icon name="tag" size={16} /></span>
               </div>
               <datalist id="tag-options-modal">{snapshot.tags.map((t) => <option key={t} value={t} />)}</datalist>
             </div>
@@ -215,7 +219,7 @@ export function QuickAddModal({ open, onClose, preset, onToast, onCreated }: Qui
             <label className="pomodoro-toggle">
               <input type="checkbox" checked={form.pomodoro} onChange={(e) => update("pomodoro", e.target.checked)} />
               <span className="toggle-slider" />
-              <span className="toggle-label" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><span className="pomodoro-icon"><CreekyIcon name="timer" size={15} /></span>Reservar Pomodoro</span>
+              <span className="toggle-label" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><span className="pomodoro-icon"><Icon name="timer" size={15} /></span>Reservar Pomodoro</span>
             </label>
             {pomoPreview ? (
               <div className="pomodoro-preview">
@@ -226,13 +230,13 @@ export function QuickAddModal({ open, onClose, preset, onToast, onCreated }: Qui
               </div>
             ) : null}
           </div>
-          <div className="form-actions">
-            <button type="button" className="btn btn-secondary" onClick={onClose}>Cancelar</button>
-            <button type="submit" className="btn btn-primary">Crear tarea</button>
-          </div>
-        </form>
-      </div>
-    </div>
+        </ModalBody>
+        <ModalFooter>
+          <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
+          <Button type="submit" variant="primary">Crear tarea</Button>
+        </ModalFooter>
+      </form>
+    </Modal>
   );
 }
 
@@ -286,12 +290,12 @@ export function ListModal({ open, onClose, editId, onToast }: { open: boolean; o
   };
 
   return (
-    <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="modal-container" style={{ maxWidth: 520 }}>
-        <header className="modal-header"><h2>{editing ? "Editar lista" : "Nueva lista"}</h2><button className="modal-close" onClick={onClose}>×</button></header>
-        <form onSubmit={handleSubmit} style={{ padding: 24, display: "flex", flexDirection: "column", gap: 12 }}>
-          <div className="form-group"><label className="form-label">Nombre</label><input className="form-input" value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} required placeholder="Ej. Trabajo" /></div>
-          <div className="form-group"><label className="form-label">Descripción</label><input className="form-input" value={form.desc} onChange={(e) => setForm((p) => ({ ...p, desc: e.target.value }))} placeholder="Opcional" /></div>
+    <Modal open={open} onClose={onClose} className="w-full max-w-130 max-h-[90vh]">
+      <ModalHeader title={editing ? "Editar lista" : "Nueva lista"} onClose={onClose} />
+      <form onSubmit={handleSubmit} className="flex flex-col">
+        <ModalBody>
+          <div className="form-group"><label className="form-label">Nombre</label><Input value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} required placeholder="Ej. Trabajo" /></div>
+          <div className="form-group"><label className="form-label">Descripción</label><Input value={form.desc} onChange={(e) => setForm((p) => ({ ...p, desc: e.target.value }))} placeholder="Opcional" /></div>
           <div className="form-group">
             <label className="form-label">Color</label>
             <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
@@ -305,7 +309,7 @@ export function ListModal({ open, onClose, editId, onToast }: { open: boolean; o
             <label className="form-label">Emoji</label>
             <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
               <span style={{ fontSize: "1.8rem", width: 52, height: 52, display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg-secondary)", borderRadius: 12 }}>{form.icon}</span>
-              <input className="form-input" value={form.filter} onChange={(e) => setForm((p) => ({ ...p, filter: e.target.value }))} placeholder="Buscar emoji…" style={{ flex: 1 }} />
+              <Input value={form.filter} onChange={(e) => setForm((p) => ({ ...p, filter: e.target.value }))} placeholder="Buscar emoji…" className="flex-1" />
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(8,1fr)", gap: 4, maxHeight: 190, overflowY: "auto", background: "var(--bg-secondary)", padding: 8, borderRadius: 10 }}>
               {EMOJI_GRID.map((g) => {
@@ -321,14 +325,14 @@ export function ListModal({ open, onClose, editId, onToast }: { open: boolean; o
               })}
             </div>
           </div>
-          <div className="form-actions">
-            {editing ? <button type="button" className="btn btn-danger" onClick={handleDelete}>Eliminar</button> : <span />}
-            <button type="button" className="btn btn-secondary" onClick={onClose}>Cancelar</button>
-            <button type="submit" className="btn btn-primary">{editing ? "Guardar cambios" : "Crear lista"}</button>
-          </div>
-        </form>
-      </div>
-    </div>
+        </ModalBody>
+        <ModalFooter>
+          {editing ? <Button type="button" variant="danger" onClick={handleDelete}>Eliminar</Button> : <span />}
+          <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
+          <Button type="submit" variant="primary">{editing ? "Guardar cambios" : "Crear lista"}</Button>
+        </ModalFooter>
+      </form>
+    </Modal>
   );
 }
 
@@ -337,7 +341,7 @@ export function TagModal({ open, onClose, onToast }: { open: boolean; onClose: (
   const [name, setName] = useState("");
   useEffect(() => { if (open) setName(""); }, [open]);
   if (!open) return null;
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     const v = name.trim().toLowerCase();
     if (!v) return;
@@ -346,21 +350,21 @@ export function TagModal({ open, onClose, onToast }: { open: boolean; onClose: (
     s.tags.push(v); db.save(s); refresh(); onClose(); onToast(`Etiqueta #${v} creada.`, "success");
   };
   return (
-    <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="modal-container" style={{ maxWidth: 420 }}>
-        <header className="modal-header"><h2>Nueva etiqueta</h2><button className="modal-close" onClick={onClose}>×</button></header>
-        <form onSubmit={handleSubmit} style={{ padding: 24, display: "flex", flexDirection: "column", gap: 12 }}>
+    <Modal open={open} onClose={onClose} className="w-full max-w-105 max-h-[90vh]">
+      <ModalHeader title="Nueva etiqueta" onClose={onClose} />
+      <form onSubmit={handleSubmit} className="flex flex-col">
+        <ModalBody>
           <div className="form-group">
             <label className="form-label">Nombre</label>
-            <input className="form-input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej. urgente" required autoFocus />
-            <div style={{ marginTop: 8, fontSize: ".85rem", color: "var(--text-tertiary)" }}>Vista previa: <span className="tag">#{name.trim().toLowerCase() || "etiqueta"}</span></div>
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej. urgente" required autoFocus />
+            <div style={{ marginTop: 8, fontSize: ".85rem", color: "var(--text-tertiary)" }}>Vista previa: <span className="rounded-full bg-(--bg-tertiary) border border-(--border-light) px-2 py-0.5 text-xs">#{name.trim().toLowerCase() || "etiqueta"}</span></div>
           </div>
-          <div className="form-actions">
-            <button type="button" className="btn btn-secondary" onClick={onClose}>Cancelar</button>
-            <button type="submit" className="btn btn-primary">Crear</button>
-          </div>
-        </form>
-      </div>
-    </div>
+        </ModalBody>
+        <ModalFooter>
+          <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
+          <Button type="submit" variant="primary">Crear</Button>
+        </ModalFooter>
+      </form>
+    </Modal>
   );
 }

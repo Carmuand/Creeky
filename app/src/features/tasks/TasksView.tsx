@@ -11,15 +11,13 @@ import { TagsPanel } from "./components/TagsPanel";
 import { TaskItem } from "./components/TaskItem";
 import { TaskBoard } from "./components/TaskBoard";
 import { QuickAddModal, ListModal, TagModal } from "./components/QuickAddModal";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import { db } from "@/services/storage";
 import type { Task } from "@/types/creeky";
 
 type ToastFn = (msg: string, type?: "info" | "success" | "warning" | "error") => void;
 
-/**
- * TasksView — orquestador modular de Tareas.
- * Delegates UI state to useTasksUi and business logic to createTaskActions.
- */
 export function TasksView({ onToast }: { onToast?: ToastFn }) {
   const { store, refresh } = useCreekyStore();
   const { focusId, setFocus } = useCreekyFocus();
@@ -43,19 +41,22 @@ export function TasksView({ onToast }: { onToast?: ToastFn }) {
       ? [{ id: "__trash", name: "Eliminadas", color: "#C62828", icon: "", description: "" }]
       : (["all", "today", "trash"].includes(ui.filter) ? derived.visLists : derived.visLists.filter((l) => l.id === ui.filter));
 
+  const tabBtn = (active: boolean) =>
+    `rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${active ? "bg-(--accent) border-(--accent) text-white" : "border-(--border-medium) bg-(--bg-primary) text-(--muted) hover:border-(--accent) hover:text-(--accent)"}`;
+
   return (
-    <section className="page" aria-label="Tareas y listas">
+    <section className="max-w-275 mx-auto animate-[fadeIn_200ms_ease]" aria-label="Tareas y listas">
       <datalist id="tag-options">{store.tags.map((t) => <option key={t} value={t} />)}</datalist>
 
-      <div className="page-head">
-        <div><p>{derived.openTasks.length} pendientes • {derived.doneT.length} completadas • {derived.trash.length} eliminadas</p></div>
-        <div className="page-actions"><button className="btn btn-primary" onClick={() => setQuick({ open: true })}>+ Nueva tarea</button></div>
+      <div className="mb-5 flex items-start justify-between gap-4">
+        <div><p className="text-sm text-(--muted)">{derived.openTasks.length} pendientes • {derived.doneT.length} completadas • {derived.trash.length} eliminadas</p></div>
+        <div className="flex gap-2"><Button variant="primary" onClick={() => setQuick({ open: true })}>+ Nueva tarea</Button></div>
       </div>
 
       <Segments counts={derived.segments} onAdd={(preset) => setQuick({ open: true, preset })} todayISO={todayISO()} weekEndISO={weekEndISO()} />
 
-      <div className="tasks-layout">
-        <aside className="card lists-panel">
+      <div className="grid grid-cols-[280px_1fr] gap-4 items-start max-[900px]:grid-cols-1">
+        <aside className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-3 shadow-sm">
           <ListsPanel
             lists={store.lists}
             visLists={derived.visLists}
@@ -70,6 +71,7 @@ export function TasksView({ onToast }: { onToast?: ToastFn }) {
             onToast={toast}
             onRefresh={refresh}
           />
+          <div className="my-3 h-px bg-(--border-light)" />
           <TagsPanel
             tags={store.tags}
             visTags={derived.visTags}
@@ -83,23 +85,23 @@ export function TasksView({ onToast }: { onToast?: ToastFn }) {
           />
         </aside>
 
-        <div className="card">
+        <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) shadow-sm overflow-hidden">
           {ui.filter !== "trash" ? (
-            <form onSubmit={(e) => { e.preventDefault(); actions.createInline(inlineTitle, ui.filter); setInlineTitle(""); }} className="task-input-row">
-              <input className="form-input" value={inlineTitle} onChange={(e) => setInlineTitle(e.target.value)} placeholder={`+ Añadir tarea a ${ui.filter}, pulsa Enter…`} />
-              <button className="btn btn-primary">Añadir</button>
+            <form onSubmit={(e) => { e.preventDefault(); actions.createInline(inlineTitle, ui.filter); setInlineTitle(""); }} className="flex gap-2 border-b border-(--border-light) p-4">
+              <Input value={inlineTitle} onChange={(e) => setInlineTitle(e.target.value)} placeholder={`+ Añadir tarea a ${ui.filter}, pulsa Enter…`} className="flex-1" />
+              <Button variant="primary" type="submit">Añadir</Button>
             </form>
           ) : null}
 
           <TaskFilters view={ui.view} tags={store.tags} onChange={updateView} onReset={resetFilters} />
 
           {ui.filter !== "trash" ? (
-            <div className="sub-tabs">
-              <button className={ui.sub === "open" ? "active" : ""} onClick={() => setSub("open")}>Pendientes ({derived.openTasks.length})</button>
-              <button className={ui.sub === "done" ? "active" : ""} onClick={() => setSub("done")}>Completadas ({derived.doneT.length})</button>
-              <button className={ui.sub === "trash" ? "active" : ""} onClick={() => setSub("trash")}>Eliminadas ({derived.trash.length})</button>
+            <div className="flex gap-2 px-4 pt-3">
+              <button className={tabBtn(ui.sub === "open")} onClick={() => setSub("open")}>Pendientes ({derived.openTasks.length})</button>
+              <button className={tabBtn(ui.sub === "done")} onClick={() => setSub("done")}>Completadas ({derived.doneT.length})</button>
+              <button className={tabBtn(ui.sub === "trash")} onClick={() => setSub("trash")}>Eliminadas ({derived.trash.length})</button>
             </div>
-          ) : <h4 className="task-group-title">Eliminadas ({derived.trash.length})</h4>}
+          ) : <h4 className="px-5 py-3 text-xs font-semibold uppercase tracking-widest text-(--muted)">Eliminadas ({derived.trash.length})</h4>}
 
           {isBoard ? (
             <TaskBoard
@@ -111,7 +113,7 @@ export function TasksView({ onToast }: { onToast?: ToastFn }) {
               onCheck={(id) => actions.toggleDone(id)}
             />
           ) : (
-            <div className="task-list">
+            <div className="flex flex-col gap-2 p-3">
               {derived.shown.length ? derived.shown.map((t) => (
                 <TaskItem
                   key={t.id}
@@ -131,21 +133,22 @@ export function TasksView({ onToast }: { onToast?: ToastFn }) {
                   onRepeatToggle={(d) => actions.toggleRepeat(t.id, d)}
                   onMove={(lid) => actions.move(t.id, lid)}
                 />
-              )) : <p className="text-secondary text-sm" style={{ padding: 8 }}>Nada por aquí.</p>}
+              )) : <p className="p-2 text-sm text-(--muted)">Nada por aquí.</p>}
             </div>
           )}
 
           {(ui.filter === "trash" || ui.sub === "trash") && derived.trash.length ? (
-            <div className="form-actions" style={{ margin: "0 12px 12px" }}>
-              <button
-                className="btn btn-danger btn-sm"
+            <div className="flex justify-end gap-2 border-t border-(--border-light) bg-(--bg-secondary) p-3">
+              <Button
+                variant="danger"
+                size="sm"
                 onClick={() => {
                   if (!trashArmed) { setTrashArmed(true); setTimeout(() => setTrashArmed(false), 5000); toast("Clic de nuevo para vaciar del todo", "warning"); }
                   else { const st = db.load(); st.tasks = st.tasks.filter((x) => !x.deleted); db.save(st); refresh(); setTrashArmed(false); toast("Papelera vaciada", "warning"); }
                 }}
               >
                 {trashArmed ? "¿Seguro? Clic de nuevo para vaciar del todo" : "Vaciar papelera"}
-              </button>
+              </Button>
             </div>
           ) : null}
         </div>
