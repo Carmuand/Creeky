@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Icon } from "@/components/icons/Icon";
 import { TooltipSimple } from "@/components/ui/Tooltip";
+import { DeleteButton } from "@/components/ui/delete-button";
 
 type CountView = "upcoming" | "past" | "all";
 
@@ -106,9 +107,9 @@ export function CountdownView() {
               <TooltipSimple content={isEditing ? "Cancelar" : "Editar"} side="top">
                 <button onClick={() => { if (isEditing) setEditing(null); else { setEditing(c.id); setEditTitle(c.title); setEditDate(c.date); } }} className="absolute left-2 top-2 flex h-7 w-7 items-center justify-center rounded-md text-(--muted) hover:bg-(--bg-hover) hover:text-(--text)"><Icon name={isEditing ? "xcirc" : "pencil"} size={15} /></button>
               </TooltipSimple>
-              <TooltipSimple content="Eliminar" side="top">
-                <button onClick={() => handleDelete(c.id)} className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-md text-(--muted) hover:bg-(--bg-hover) hover:text-[#C62828]">✕</button>
-              </TooltipSimple>
+              <div className="absolute right-1 top-1 scale-[0.5] origin-top-right">
+                <DeleteButton onConfirm={() => handleDelete(c.id)} />
+              </div>
             </div>
           );
         }) : <p className="col-span-full py-4 text-center text-sm text-(--muted)">Nada en esta vista.</p>}
