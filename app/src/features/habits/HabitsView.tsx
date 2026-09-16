@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Icon } from "@/components/icons/Icon";
 import { TooltipSimple } from "@/components/ui/Tooltip";
+import { DeleteButton } from "@/components/ui/delete-button";
 
 export function HabitsView() {
   const { store, refresh } = useCreekyStore();
@@ -183,9 +184,9 @@ export function HabitsView() {
                   <div className="text-xs text-(--muted)">mejor {h.best || 0}</div>
                 </td>
                 <td className="whitespace-nowrap px-2 py-2">
-                  <span className="flex gap-1">
+                  <span className="flex gap-1 items-center">
                     <TooltipSimple content="Editar nombre" side="top"><button onClick={() => { setEditing(h.id); setEditVal(h.name); }} className="flex h-7 w-7 items-center justify-center rounded-md text-(--muted) hover:bg-(--bg-hover) hover:text-(--text)"><Icon name="pencil" size={14} /></button></TooltipSimple>
-                    <TooltipSimple content="Eliminar" side="top"><button onClick={() => remove(h.id)} className="flex h-7 w-7 items-center justify-center rounded-md text-(--muted) hover:bg-(--bg-hover) hover:text-[#C62828]">✕</button></TooltipSimple>
+                    <DeleteButton onConfirm={() => remove(h.id)} className="scale-[0.58] origin-right -my-2" />
                   </span>
                 </td>
               </tr>
