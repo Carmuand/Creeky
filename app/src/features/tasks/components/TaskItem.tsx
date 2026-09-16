@@ -4,6 +4,7 @@ import { PRIO_META } from "@/types/creeky";
 import { listColor } from "@/utils/task";
 import { Icon } from "@/components/icons/Icon";
 import { TooltipSimple } from "@/components/ui/Tooltip";
+import { DeleteButton } from "@/components/ui/delete-button";
 import { TaskDetailModal } from "./TaskDetailModal";
 import { navigateToCalendar } from "@/utils/navigation";
 
@@ -70,10 +71,10 @@ export function TaskItem({ task: t, store, focusId, isTrash, onCheck, onDelete, 
         {isTrash ? (
           <>
             <TooltipSimple content="Restaurar" side="top"><button className="flex h-7 w-7 items-center justify-center rounded-md text-(--muted) hover:bg-(--bg-hover) hover:text-(--text)" onClick={onRestore} aria-label="Restaurar"><Icon name="restore" size={16} /></button></TooltipSimple>
-            <TooltipSimple content="Eliminar definitivo" side="top"><button className="flex h-7 w-7 items-center justify-center rounded-md text-(--muted) hover:bg-(--bg-hover) hover:text-[#C62828]" onClick={onPermDelete} aria-label="Eliminar definitivo">✕</button></TooltipSimple>
+            <DeleteButton onConfirm={onPermDelete} className="scale-[0.58] origin-right -my-2" />
           </>
         ) : (
-          <TooltipSimple content="Eliminar" side="top"><button className="flex h-7 w-7 items-center justify-center rounded-md text-(--muted) hover:bg-(--bg-hover) hover:text-[#C62828]" onClick={onDelete} aria-label="Eliminar">✕</button></TooltipSimple>
+          <DeleteButton onConfirm={onDelete} className="scale-[0.58] origin-right -my-2" />
         )}
       </div>
     </article>
