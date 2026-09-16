@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Dropdown, DropdownItem } from "@/components/ui/Dropdown";
 import { TooltipSimple } from "@/components/ui/Tooltip";
+import { DeleteButton } from "@/components/ui/delete-button";
 import { db } from "@/services/storage";
 
 interface TagsPanelProps {
@@ -111,9 +112,7 @@ function InlineTag({ tag, activeTag, onSetActiveTag, onToast, onRefresh }: { tag
         <TooltipSimple content="Renombrar" side="top">
           <button className="flex h-6 w-6 items-center justify-center rounded-md text-(--muted) hover:bg-(--bg-primary) hover:text-(--text) transition-colors" onClick={() => { setVal(tag); setEditing(true); }} aria-label="Renombrar"><Icon name="pencil" size={14} /></button>
         </TooltipSimple>
-        <TooltipSimple content="Eliminar" side="top">
-          <button className="flex h-6 w-6 items-center justify-center rounded-md text-(--muted) hover:bg-(--bg-primary) hover:text-[#C62828] transition-colors" onClick={remove} aria-label="Eliminar">✕</button>
-        </TooltipSimple>
+        <DeleteButton onConfirm={remove} className="scale-[0.5] origin-right -my-2 -mr-1" />
       </span>
     </div>
   );
