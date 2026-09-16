@@ -54,7 +54,7 @@ export function AuthView({ onAuthed, onToast }: AuthViewProps) {
   };
 
   return (
-    <div className="flex h-full min-h-0 items-center justify-center bg-(--bg-secondary) p-6">
+    <div className="flex h-full w-full flex-1 min-h-0 items-center justify-center bg-(--bg-secondary) p-6">
       <div className="w-full max-w-110 rounded-2xl border border-(--border-light) bg-(--bg-primary) p-7 shadow-sm">
         <div className="mb-5 flex rounded-full bg-(--bg-tertiary) p-1">
           <button onClick={() => { setMode("signin"); setErr(""); }} className={`flex-1 rounded-full px-4 py-2 text-sm font-medium transition-colors ${mode === "signin" ? "bg-(--bg-primary) shadow-sm text-(--text)" : "text-(--muted) hover:text-(--text)"}`}>Sign In</button>
