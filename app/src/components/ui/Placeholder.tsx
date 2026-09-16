@@ -6,14 +6,14 @@ interface PlaceholderProps {
 
 export function Placeholder({ title, description, icon = "🚧" }: PlaceholderProps) {
   return (
-    <section className="page">
-      <div className="card card-pad" style={{ textAlign: "center", padding: "40px 24px" }}>
-        <div style={{ fontSize: 32, marginBottom: 12 }}>{icon}</div>
-        <h2 style={{ marginBottom: 8 }}>{title}</h2>
-        <p className="text-secondary" style={{ maxWidth: 520, margin: "0 auto" }}>
-          {description ?? "Esta sección está en migración a React + TS. La lógica vanilla de app/src/js/pages.js se portará aquí por feature."}
+    <section className="max-w-275 mx-auto">
+      <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-10 text-center shadow-sm">
+        <div className="mb-3 text-3xl">{icon}</div>
+        <h2 className="mb-2 text-xl font-semibold">{title}</h2>
+        <p className="mx-auto max-w-130 text-sm text-(--muted)">
+          {description ?? "Hola desde el placeholder :)"}
         </p>
-        <p className="text-xs" style={{ marginTop: 12, color: "var(--text-tertiary)" }}>
+        <p className="mt-3 text-xs text-(--muted)">
           Próximo paso: extraer template de `P.${title}Page` a este componente y conectar `useCreekyStore`.
         </p>
       </div>
