@@ -9,10 +9,7 @@ const PRIO_ORDER: Task["priority"][] = ["none", "low", "medium", "high"];
 
 type ToastFn = (msg: string, type?: "info" | "success" | "warning" | "error") => void;
 
-/**
- * useTaskActions — lógica de negocio pura, sin JSX.
- * Centraliza mutaciones de tasks para que los componentes solo llamen handlers.
- */
+
 export function createTaskActions(opts: {
   refresh: () => void;
   toast: ToastFn;
@@ -99,11 +96,11 @@ export function createTaskActions(opts: {
     },
 
     permDelete(id: string) {
-      if (!confirm("Eliminar definitivamente?")) return;
       const s = db.load();
       s.tasks = s.tasks.filter((x) => x.id !== id);
       db.save(s);
       refresh();
+      toast("Tarea eliminada definitivamente.", "info");
     },
 
     cyclePrio(id: string) {

@@ -5,6 +5,7 @@ import { listColor } from "@/utils/task";
 import { Icon } from "@/components/icons/Icon";
 import { TooltipSimple } from "@/components/ui/Tooltip";
 import { TaskDetailModal } from "./TaskDetailModal";
+import { navigateToCalendar } from "@/utils/navigation";
 
 interface TaskItemProps {
   task: Task;
@@ -49,7 +50,7 @@ export function TaskItem({ task: t, store, focusId, isTrash, onCheck, onDelete, 
           </button>
 
         <div className="flex flex-wrap gap-2 mt-2 text-xs text-(--muted)">
-          {t.due ? <a href="#calendar" className="rounded-full bg-(--bg-tertiary) border border-(--border-light) px-2 py-0.5">{t.due}{t.dueTime ? ` ${t.dueTime}` : ""}</a> : null}
+          {t.due ? <TooltipSimple content="Ver en Calendario" side="top"><button onClick={navigateToCalendar} className="rounded-full bg-(--bg-tertiary) border border-(--border-light) px-2 py-0.5 hover:border-(--accent) hover:text-(--accent) transition-colors">{t.due}{t.dueTime ? ` ${t.dueTime}` : ""}</button></TooltipSimple> : null}
           {(t.repeat || []).length ? <span className="rounded-full bg-(--bg-tertiary) border border-(--border-light) px-2 py-0.5">↻ <b>{(t.repeat || []).length}</b>d</span> : null}
           {(t.remindBefore ?? 0) > 0 && t.due ? <span className="rounded-full bg-(--bg-tertiary) border border-(--border-light) px-2 py-0.5">aviso −{t.remindBefore}m</span> : null}
           {t.reminder ? <span className="rounded-full bg-(--bg-tertiary) border border-(--border-light) px-2 py-0.5">{String(t.reminder).slice(0, 16).replace("T", " ")}</span> : null}
@@ -80,4 +81,3 @@ export function TaskItem({ task: t, store, focusId, isTrash, onCheck, onDelete, 
     </>
   );
 }
-

@@ -13,6 +13,7 @@ import { TaskBoard } from "./components/TaskBoard";
 import { QuickAddModal, ListModal, TagModal } from "./components/QuickAddModal";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { db } from "@/services/storage";
 import type { Task } from "@/types/creeky";
 
@@ -34,6 +35,7 @@ export function TasksView({ onToast }: { onToast?: ToastFn }) {
   const [listModal, setListModal] = useState<{ open: boolean; editId: string | null }>({ open: false, editId: null });
   const [tagModal, setTagModal] = useState(false);
   const [trashArmed, setTrashArmed] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const isBoard = ui.view.layout === "board" || ui.filter === "all";
   const columns =
@@ -124,7 +126,7 @@ export function TasksView({ onToast }: { onToast?: ToastFn }) {
                   onCheck={() => actions.toggleDone(t.id)}
                   onDelete={() => actions.softDelete(t.id)}
                   onRestore={() => actions.restore(t.id)}
-                  onPermDelete={() => actions.permDelete(t.id)}
+                  onPermDelete={() => setConfirmDeleteId(t.id)}
                   onCyclePrio={() => actions.cyclePrio(t.id)}
                   onFocus={() => actions.reservePomodoro(t.id)}
                   onSaveDetail={(patch) => actions.saveDetail(t.id, patch)}
@@ -155,6 +157,15 @@ export function TasksView({ onToast }: { onToast?: ToastFn }) {
       <QuickAddModal open={quick.open} onClose={() => setQuick({ open: false })} preset={quick.preset} onToast={toast} onCreated={refresh} />
       <ListModal open={listModal.open} onClose={() => setListModal({ open: false, editId: null })} editId={listModal.editId} onToast={toast} />
       <TagModal open={tagModal} onClose={() => setTagModal(false)} onToast={toast} />
+      <ConfirmDialog
+        open={!!confirmDeleteId}
+        title="Eliminar definitivamente"
+        description="Esta acción no se puede deshacer. La tarea se borrará para siempre."
+        confirmLabel="Eliminar"
+        cancelLabel="Cancelar"
+        onCancel={() => setConfirmDeleteId(null)}
+        onConfirm={() => { if (confirmDeleteId) actions.permDelete(confirmDeleteId); setConfirmDeleteId(null); }}
+      />
     </section>
   );
 }
