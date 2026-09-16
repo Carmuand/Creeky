@@ -14,6 +14,7 @@ from pathlib import Path
 # Third-party
 import webview
 from dotenv import load_dotenv
+from screeninfo import get_monitors
 
 APP_ROOT: Path = Path(__file__).resolve().parent.parent
 if str(APP_ROOT) not in sys.path:
@@ -54,6 +55,18 @@ def resolve_url() -> str:
     )
     return config.dev_url
 
+def get_centered_position(width: int, height: int) -> tuple[int, int]:
+    """Return (x, y) to center a window of the given size on the primary monitor."""
+    try:
+        monitor = get_monitors()[0]
+        x: int = max(0, (monitor.width - width) // 2)
+        y: int = max(0, (monitor.height - height) // 2)
+        return x, y
+    except Exception as e:
+        log("ERROR", Tags.WINDOW, f"Error calculating centered position: {e}")
+        return 0, 0
+
+
 def _on_loaded(window: webview.Window) -> None:
     """Called by pywebview once the page finishes loading — attaches bridge."""
     try:
@@ -69,6 +82,9 @@ def bootstrap() -> None:
     webview.settings["DRAG_REGION_DIRECT_TARGET_ONLY"] = True
 
     url: str = resolve_url()
+    window_x: int
+    window_y: int
+    window_x, window_y = get_centered_position(config.width, config.height)
 
     window: webview.Window = webview.create_window(
         title=config.app_name,
@@ -76,6 +92,8 @@ def bootstrap() -> None:
         js_api=api,
         width=config.width,
         height=config.height,
+        x=window_x,
+        y=window_y,
         resizable=config.resizable,
         frameless=config.frameless,
         easy_drag=config.easy_drag,
