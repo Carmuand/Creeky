@@ -152,16 +152,18 @@ export function Sidebar({ view, onSelect, badges, userInitial, onLogout, collaps
       </nav>
 
       <div className={`border-t border-(--border-light) p-3 ${collapsed ? "flex flex-col items-center" : ""}`}>
-        <button
-          className={navLink(view === "help")}
-          data-page="help"
-          onClick={() => onSelect("help")}
-        >
-          <span className="flex h-5.5 w-5.5 items-center justify-center" aria-hidden="true">
-            <Icon name="help" size={18} />
-          </span>
-          {!collapsed ? <span>Ayuda</span> : null}
-        </button>
+        {collapsed ? (
+          <TooltipSimple content="Ayuda" side="right" align="center" sideOffset={10}>
+            <button className={navLink(view === "help")} data-page="help" onClick={() => onSelect("help")}>
+              <span className="flex h-5.5 w-5.5 items-center justify-center" aria-hidden="true"><Icon name="help" size={18} /></span>
+            </button>
+          </TooltipSimple>
+        ) : (
+          <button className={navLink(view === "help")} data-page="help" onClick={() => onSelect("help")}>
+            <span className="flex h-5.5 w-5.5 items-center justify-center" aria-hidden="true"><Icon name="help" size={18} /></span>
+            <span>Ayuda</span>
+          </button>
+        )}
 
         <div className={`relative mt-3 ${collapsed ? "flex w-full justify-center" : ""}`}>
           <button
