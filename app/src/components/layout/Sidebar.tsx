@@ -49,6 +49,8 @@ function CollapsedBadge({ id, count }: { id: string; count?: number }) {
 
 export function Sidebar({ view, onSelect, badges, userInitial, onLogout, collapsed, onToggleCollapse, mobileOpen }: SidebarProps) {
   const [userOpen, setUserOpen] = React.useState(false);
+  const sidebarRef = React.useRef<HTMLElement>(null);
+  const prevView = React.useRef(view);
 
   React.useEffect(() => {
     if (!userOpen) return;
@@ -56,6 +58,20 @@ export function Sidebar({ view, onSelect, badges, userInitial, onLogout, collaps
     document.addEventListener("click", onDoc);
     return () => document.removeEventListener("click", onDoc);
   }, [userOpen]);
+
+  React.useEffect(() => {
+    if (collapsed || mobileOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (sidebarRef.current && !sidebarRef.current.contains(e.target as Node)) onToggleCollapse();
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [collapsed, mobileOpen, onToggleCollapse]);
+
+  React.useEffect(() => {
+    if (prevView.current !== view && !collapsed && !mobileOpen) onToggleCollapse();
+    prevView.current = view;
+  }, [view, collapsed, mobileOpen, onToggleCollapse]);
 
   const navLink = (active: boolean) =>
     `flex w-full items-center gap-3 rounded-lg text-[15px] transition-colors relative ${collapsed ? "justify-center p-3" : "px-4 py-3"} ${
@@ -89,13 +105,14 @@ export function Sidebar({ view, onSelect, badges, userInitial, onLogout, collaps
 
   return (
     <aside
+      ref={sidebarRef}
       className={`fixed left-0 top-10 flex h-[calc(100vh-40px)] flex-col border-r border-(--border-light) bg-(--bg-primary) transition-all duration-200 z-30 ${
         collapsed ? "w-18" : "w-70"
       } ${mobileOpen ? "translate-x-0 shadow-xl" : "-translate-x-full md:translate-x-0"} md:shadow-none`}
       role="navigation"
       aria-label="Navegación principal"
     >
-      <div className={`flex items-center border-b border-(--border-light) ${collapsed ? "justify-center px-2 py-4" : "justify-between pl-4 pr-5 py-4"}`} style={{ minHeight: 64 }}>
+      <div className={`flex items-center border-b border-(--border-light) ${collapsed ? "justify-center px-2 py-3" : "justify-between pl-4 pr-5 py-4"}`} style={{ minHeight: 64 }}>
         {!collapsed ? (
           <div className="flex items-center gap-3 text-(--accent)">
             <svg className="h-7 w-7 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
@@ -105,19 +122,28 @@ export function Sidebar({ view, onSelect, badges, userInitial, onLogout, collaps
             <span className="text-[20px] font-bold tracking-tight">Creeky</span>
           </div>
         ) : null}
-        <button
-          aria-label="Colapsar sidebar"
-          aria-expanded={!collapsed}
-          onClick={onToggleCollapse}
-          className={`flex items-center justify-center rounded-md text-(--muted) transition-colors hover:bg-(--bg-hover) hover:text-(--text) ${collapsed ? "h-10 w-10" : "h-8 w-8"}`}
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" className={`h-5 w-5 transition-transform ${collapsed ? "rotate-180" : ""}`}>
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-        </button>
+        <TooltipSimple content={collapsed ? "Expandir" : "Colapsar"} side={collapsed ? "right" : "bottom"} align="center" sideOffset={8}>
+          <button
+            aria-label={collapsed ? "Expandir sidebar" : "Colapsar sidebar"}
+            aria-expanded={!collapsed}
+            onClick={onToggleCollapse}
+            className={`flex items-center justify-center rounded-md text-(--muted) transition-colors hover:bg-(--bg-hover) hover:text-(--text) ${collapsed ? "h-10 w-10" : "h-8 w-8"}`}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" className={`h-5 w-5 transition-transform ${collapsed ? "rotate-180" : ""}`}>
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+        </TooltipSimple>
       </div>
 
-      <nav className={`flex-1 overflow-x-hidden p-3 scrollbar-gutter-stable ${collapsed ? "overflow-y-auto scrollbar-none [&::-webkit-scrollbar]:hidden hover:scrollbar-thin hover:[&::-webkit-scrollbar]:block hover:[&::-webkit-scrollbar]:w-1.5" : "overflow-y-auto"}`} aria-label="Secciones principales">
+      <nav
+        className={`flex-1 overflow-x-hidden overflow-y-auto p-3 scrollbar-gutter-stable ${
+          collapsed
+            ? "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-transparent hover:[&::-webkit-scrollbar-thumb]:bg-(--muted-3)"
+            : ""
+        }`}
+        aria-label="Secciones principales"
+      >
         <ul className="flex flex-col gap-6">
           <li>
             <span className={`mb-2 block px-3 text-[11px] font-semibold uppercase tracking-widest text-(--muted) ${collapsed ? "hidden" : ""}`}>Principal</span>
@@ -151,7 +177,7 @@ export function Sidebar({ view, onSelect, badges, userInitial, onLogout, collaps
         </ul>
       </nav>
 
-      <div className={`border-t border-(--border-light) p-3 ${collapsed ? "flex flex-col items-center" : ""}`}>
+      <div className="flex flex-col items-center border-t border-(--border-light) p-3">
         {collapsed ? (
           <TooltipSimple content="Ayuda" side="right" align="center" sideOffset={10}>
             <button className={navLink(view === "help")} data-page="help" onClick={() => onSelect("help")}>
@@ -165,7 +191,7 @@ export function Sidebar({ view, onSelect, badges, userInitial, onLogout, collaps
           </button>
         )}
 
-        <div className={`relative mt-3 ${collapsed ? "flex w-full justify-center" : ""}`}>
+        <div className="relative mt-3 flex w-full justify-center">
           <button
             className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-(--accent-border) bg-(--accent-light) text-[15px] font-semibold text-(--accent) transition-colors hover:bg-(--accent) hover:text-white"
             aria-expanded={userOpen}
@@ -175,7 +201,7 @@ export function Sidebar({ view, onSelect, badges, userInitial, onLogout, collaps
           >
             <span>{userInitial}</span>
           </button>
-          <div className={`${userOpen ? "flex" : "hidden"} absolute bottom-full left-0 right-0 mb-2 flex-col overflow-hidden rounded-lg border border-(--border-medium) bg-(--bg-primary) shadow-lg ${collapsed ? "left-[calc(100%+8px)] right-auto bottom-0 w-47.5" : ""}`} role="menu">
+          <div className={`${userOpen ? "flex" : "hidden"} absolute mb-2 flex-col overflow-hidden rounded-lg border border-(--border-medium) bg-(--bg-primary) shadow-lg ${collapsed ? "left-[calc(100%+8px)] right-auto bottom-0 w-47.5" : "bottom-full left-1/2 -translate-x-1/2 w-47.5"}`} role="menu">
             <button className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-(--text-soft) hover:bg-(--bg-hover) hover:text-(--text)" role="menuitem" onClick={() => { setUserOpen(false); onSelect("profile"); }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5 shrink-0"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
               <span>Perfil</span>
