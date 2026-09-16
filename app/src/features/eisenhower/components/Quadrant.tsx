@@ -4,6 +4,7 @@ import { listColor } from "@/utils/task";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { TooltipSimple } from "@/components/ui/Tooltip";
+import { DeleteButton } from "@/components/ui/delete-button";
 import { useState } from "react";
 
 interface QuadrantProps {
@@ -62,7 +63,7 @@ export function Quadrant({ id, title, desc, manual, auto, store, filterText, onA
           return (
             <div key={`${t}-${i}`} draggable onDragStart={(e) => { e.dataTransfer.setData("text/plain", `n:${id}:${origIdx}`); e.dataTransfer.effectAllowed = "move"; }} className="flex items-center gap-2 rounded-lg border border-(--border-light) bg-(--bg-secondary) px-3 py-2 text-sm">
               <span className="rounded-full bg-(--bg-tertiary) border border-(--border-light) px-1.5 py-0.5 text-xs">Manual</span> <span className="flex-1 truncate">{t}</span>
-              <button onClick={() => onDeleteManual(origIdx)} className="flex h-6 w-6 items-center justify-center rounded-md text-(--muted) hover:bg-(--bg-primary) hover:text-[#C62828]">✕</button>
+              <DeleteButton onConfirm={() => onDeleteManual(origIdx)} className="scale-[0.5] origin-right -my-2 -mr-1" />
             </div>
           );
         })}
