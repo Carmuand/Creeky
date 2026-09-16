@@ -14,6 +14,7 @@ import { QuickAddModal, ListModal, TagModal } from "./components/QuickAddModal";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { DeleteButton } from "@/components/ui/delete-button";
 import { db } from "@/services/storage";
 import type { Task } from "@/types/creeky";
 
@@ -34,7 +35,6 @@ export function TasksView({ onToast }: { onToast?: ToastFn }) {
   const [quick, setQuick] = useState<{ open: boolean; preset?: Partial<Pick<Task, "list" | "due">> }>({ open: false });
   const [listModal, setListModal] = useState<{ open: boolean; editId: string | null }>({ open: false, editId: null });
   const [tagModal, setTagModal] = useState(false);
-  const [trashArmed, setTrashArmed] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const isBoard = ui.view.layout === "board" || ui.filter === "all";
@@ -138,17 +138,17 @@ export function TasksView({ onToast }: { onToast?: ToastFn }) {
           )}
 
           {(ui.filter === "trash" || ui.sub === "trash") && derived.trash.length ? (
-            <div className="flex justify-end gap-2 border-t border-(--border-light) bg-(--bg-secondary) p-3">
-              <Button
-                variant="danger"
-                size="sm"
-                onClick={() => {
-                  if (!trashArmed) { setTrashArmed(true); setTimeout(() => setTrashArmed(false), 5000); toast("Clic de nuevo para vaciar del todo", "warning"); }
-                  else { const st = db.load(); st.tasks = st.tasks.filter((x) => !x.deleted); db.save(st); refresh(); setTrashArmed(false); toast("Papelera vaciada", "warning"); }
+            <div className="flex justify-end items-center gap-3 border-t border-(--border-light) bg-(--bg-secondary) p-3">
+              <span className="text-sm text-(--muted)">Vaciar papelera</span>
+              <DeleteButton
+                onConfirm={() => {
+                  const st = db.load();
+                  st.tasks = st.tasks.filter((x) => !x.deleted);
+                  db.save(st);
+                  refresh();
+                  toast("Papelera vaciada", "warning");
                 }}
-              >
-                {trashArmed ? "¿Seguro? Clic de nuevo para vaciar del todo" : "Vaciar papelera"}
-              </Button>
+              />
             </div>
           ) : null}
         </div>
