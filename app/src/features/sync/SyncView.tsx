@@ -5,6 +5,7 @@ import { todayISO } from "@/utils/date";
 import { occursOn } from "@/utils/task";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
+import { DeleteButton } from "@/components/ui/delete-button";
 import { APP_VERSION } from "@/types/creeky";
 
 export function SyncView() {
@@ -71,10 +72,8 @@ export function SyncView() {
   };
 
   const handleWipe = () => {
-    if (confirm("¿Borrar todo?")) {
-      localStorage.clear();
-      location.reload();
-    }
+    localStorage.clear();
+    location.reload();
   };
 
   const preview = useMemo(() => {
@@ -116,9 +115,10 @@ export function SyncView() {
         </div>
         <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 shadow-sm">
           <h3 className="font-semibold">Importar / Borrar</h3><p className="mt-1 text-xs text-(--muted)">Restaura desde un <code className="rounded bg-(--bg-tertiary) px-1 py-0.5 text-xs">creeky-backup.json</code> o limpia tu espacio.</p>
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="mt-3 flex flex-wrap gap-2 items-center">
             <label className="inline-flex cursor-pointer items-center justify-center rounded-md border border-(--border-medium) bg-(--bg-tertiary) px-3 py-1.5 text-xs font-medium hover:bg-(--bg-hover)"><input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={handleImport} />Importar</label>
-            <Button variant="danger" size="sm" onClick={handleWipe}>Borrar todo</Button>
+            <span className="text-xs text-(--muted)">Borrar todo</span>
+            <DeleteButton onConfirm={handleWipe} className="scale-[0.58] origin-left -my-2" />
           </div>
         </div>
       </div>
