@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { Select } from "@/components/ui/Select";
+import { DeleteButton } from "@/components/ui/delete-button";
 
 const PALETTE = ["#212121", "#616161", "#3949AB", "#00897B", "#2E7D32", "#B58900", "#C62828", "#6A1B9A", "#EF6C00", "#0277BD"];
 
@@ -294,7 +295,6 @@ export function ListModal({ open, onClose, editId, onToast }: { open: boolean; o
     const l = store.lists.find((x) => x.id === editing.id);
     if (!l) return;
     const count = store.tasks.filter((t) => t.list === l.id && !t.deleted).length;
-    if (!confirm(`¿Eliminar "${l.name}"? Sus ${count} tarea(s) irán a la papelera.`)) return;
     store.tasks.forEach((t) => { if (t.list === l.id && !t.deleted) { t.deleted = true; t.deletedAt = Date.now(); } });
     store.lists = store.lists.filter((x) => x.id !== l.id);
     db.save(store); refresh(); onClose(); onToast(`Lista "${l.name}" eliminada (${count} a papelera).`, "warning");
@@ -338,7 +338,7 @@ export function ListModal({ open, onClose, editId, onToast }: { open: boolean; o
           </div>
         </ModalBody>
         <ModalFooter>
-          {editing ? <Button type="button" variant="danger" onClick={handleDelete}>Eliminar</Button> : <span />}
+          {editing ? <div className="flex items-center gap-2"><span className="text-sm text-(--muted)">Eliminar</span><DeleteButton onConfirm={handleDelete} className="scale-[0.58] origin-left -my-2" /></div> : <span />}
           <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
           <Button type="submit" variant="primary">{editing ? "Guardar cambios" : "Crear lista"}</Button>
         </ModalFooter>
