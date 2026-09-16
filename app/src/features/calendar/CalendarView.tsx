@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { Icon } from "@/components/icons/Icon";
+import { navigateTo } from "@/utils/navigation";
 
 const CAL_MODES = [
   ["year", "Año"],
@@ -74,7 +75,7 @@ export function CalendarView() {
           <Button variant="secondary" size="sm" onClick={() => navigate(-1)}>←</Button>
           <Button variant="secondary" size="sm" onClick={() => navigate(0)}>Hoy</Button>
           <Button variant="secondary" size="sm" onClick={() => navigate(1)}>→</Button>
-          <a href="#tasks" className="inline-flex items-center justify-center rounded-md border border-(--border-medium) bg-(--bg-tertiary) px-3 py-1.5 text-xs font-medium hover:bg-(--bg-hover)">+ Programar</a>
+          <Button variant="secondary" size="sm" onClick={() => navigateTo("tasks")}>+ Programar</Button>
         </div>
       </div>
 
