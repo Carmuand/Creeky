@@ -4,5 +4,20 @@ Thumbs.db
 
 # deps si pruebas npx serve
 node_modules/
+package-lock.json
 
 .vscode/
+
+# Python
+venv/
+.venv/
+.env/
+__pycache__/
+
+# Enviroments
+.env.local
+.env
+
+# Vite build
+dist/
+build/
