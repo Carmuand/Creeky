@@ -6,6 +6,7 @@ import { todayISO } from "@/utils/date";
 import { occursOn, listColor } from "@/utils/task";
 import { db, uid } from "@/services/storage";
 import { Button } from "@/components/ui/Button";
+import { DeleteButton } from "@/components/ui/delete-button";
 
 export function PomodoroView() {
   const { store, refresh } = useCreekyStore();
@@ -67,6 +68,13 @@ export function PomodoroView() {
     });
   }, [store.pomoLog, historyRange, historyMode]);
 
+  const handleDeleteLog = (id: string) => {
+    const s = db.load();
+    s.pomoLog = s.pomoLog.filter((p) => p.id !== id);
+    db.save(s);
+    refresh();
+  };
+
   return (
     <section className="max-w-275 mx-auto flex flex-col gap-4" aria-label="Pomodoro">
       <div className="flex items-start justify-between gap-4">
@@ -121,9 +129,9 @@ export function PomodoroView() {
               <span className="text-xs text-(--muted)">La tarea ya no existe</span>
             )}
           </div>
-          <div className="flex shrink-0 gap-1.5">
+          <div className="flex shrink-0 gap-1.5 items-center">
             {focusTask && !focusTask.done ? <Button variant="primary" size="sm" onClick={handleFocusDone}>Completar tarea</Button> : null}
-            <Button variant="secondary" size="sm" onClick={clear}>Quitar</Button>
+            <DeleteButton onConfirm={clear} className="scale-[0.58] origin-right -my-2" />
           </div>
         </div>
       ) : null}
@@ -144,7 +152,8 @@ export function PomodoroView() {
           {filteredLog.length ? filteredLog.map((p) => (
             <div key={p.id} className="flex items-center gap-3 rounded-lg border border-(--border-light) bg-(--bg-secondary) px-3 py-2">
               <span className={`h-3 w-3 shrink-0 rounded-full ${p.mode === "focus" ? "bg-(--accent)" : "bg-(--muted)"}`} />
-              <div><b className="text-sm">{p.minutes} min — {p.mode === "focus" ? "Foco" : "Descanso"}</b><div className="text-xs text-(--muted)">{p.date}{p.task ? ` • ${p.task}` : ""}</div></div>
+              <div className="flex-1 min-w-0"><b className="text-sm">{p.minutes} min — {p.mode === "focus" ? "Foco" : "Descanso"}</b><div className="text-xs text-(--muted)">{p.date}{p.task ? ` • ${p.task}` : ""}</div></div>
+              <DeleteButton onConfirm={() => handleDeleteLog(p.id)} className="scale-[0.5] origin-right -my-2 -mr-1 shrink-0" />
             </div>
           )) : <p className="py-2 text-sm text-(--muted)">Sin sesiones aún. Completa tu primer pomodoro.</p>}
         </div>
