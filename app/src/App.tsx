@@ -146,9 +146,9 @@ export default function App() {
 
   if (!authed) {
     return (
-      <div style={{ display: "flex", flexDirection: "column", width: "100vw", height: "100vh", overflow: "hidden", background: "var(--bg-soft)" }}>
+      <div className="flex h-screen w-screen flex-col overflow-hidden bg-(--bg-secondary)">
         <TitleBar bridgeReady={bridgeReady} />
-        <div style={{ flex: 1, overflow: "auto" }}>
+        <div className="flex flex-1 min-h-0 overflow-hidden">
           <AuthView onAuthed={handleAuthed} onToast={push} />
         </div>
         <ToastContainer toasts={toasts} onDismiss={dismiss} />
