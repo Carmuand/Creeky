@@ -97,7 +97,8 @@ function InlineTag({ tag, activeTag, onSetActiveTag, onToast, onRefresh }: { tag
   if (editing) {
     return (
       <div className="flex items-center gap-1.5 rounded-md px-1 py-1">
-        <Input value={val} onChange={(e) => setVal(e.target.value)} className="flex-1 min-w-0" autoFocus onKeyDown={(e) => { if (e.key === "Enter") save(); }} />
+        <Input value={val} onChange={(e) => setVal(e.target.value)} className="flex-1 min-w-0" autoFocus onKeyDown={(e) => { if (e.key === "Enter") save(); if (e.key === "Escape") { setEditing(false); setVal(tag); } }} />
+        <Button variant="secondary" size="sm" onClick={() => { setEditing(false); setVal(tag); }}>Cancelar</Button>
         <Button variant="primary" size="sm" onClick={save}>OK</Button>
       </div>
     );
