@@ -82,13 +82,14 @@ export function EisenhowerView() {
         <Button variant="primary" size="sm" onClick={handleCopyAuto}><Icon name="zap" size={14} /> Copiar auto a manual</Button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-(--border-light) bg-(--bg-primary) p-3">
-        <span className="text-xs font-semibold uppercase tracking-widest text-(--muted)">Filtrar:</span>
+      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-(--border-light) bg-(--bg-primary) p-3 relative overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-(--accent) to-(--secondary)" />
+        <span className="text-xs font-semibold uppercase tracking-widest text-(--accent)">Filtrar:</span>
         <Input value={view.filterText} onChange={(e) => setFilterText(e.target.value)} placeholder="Texto…" className="max-w-50" />
         <div className="min-w-45">
           <Select value={view.list} onChange={setList} options={[{ value: "all", label: "Todas las listas" }, ...store.lists.map((l) => ({ value: l.id, label: `${l.icon} ${l.name}` }))]} />
         </div>
-        <button onClick={reset} className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-(--border-medium) bg-(--bg-primary) px-3 py-1 text-xs text-(--muted) hover:border-(--accent) hover:text-(--accent)"><Icon name="xcirc" size={13} /> Limpiar</button>
+        <button onClick={reset} className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-(--secondary-border) bg-(--secondary-light) px-3 py-1 text-xs text-(--secondary) hover:border-(--secondary) hover:text-(--secondary)"><Icon name="xcirc" size={13} /> Limpiar</button>
       </div>
 
       <div className="grid grid-cols-2 gap-4 max-[900px]:grid-cols-1">
