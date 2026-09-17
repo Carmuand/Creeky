@@ -64,6 +64,8 @@ export function usePomodoroTimer() {
   }, [globalState.running]);
 
   const setMode = useCallback((mode: number) => {
+    if (globalState.running) return;
+    if (globalState.mode === mode) return;
     globalState.mode = mode;
     globalState.total = mode * 60;
     globalState.left = mode * 60;
