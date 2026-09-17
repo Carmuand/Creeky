@@ -7,6 +7,7 @@ import { occursOn, listColor } from "@/utils/task";
 import { db, uid } from "@/services/storage";
 import { Button } from "@/components/ui/Button";
 import { DeleteButton } from "@/components/ui/delete-button";
+import type { Task } from "@/types/creeky";
 
 export function PomodoroView() {
   const { store, refresh } = useCreekyStore();
@@ -20,6 +21,16 @@ export function PomodoroView() {
 
   const focusTask = useMemo(() => (focus?.id ? store.tasks.find((t) => t.id === focus.id) : null), [focus, store.tasks]);
   const focusList = useMemo(() => (focusTask ? store.lists.find((l) => l.id === focusTask.list) : null), [focusTask, store.lists]);
+
+  const requiredSessions = useMemo(() => (focusTask?.pomodoroBlocks || []).filter((b) => b.type === "focus").length, [focusTask]);
+  const completedSessions = focusTask?.pomo ?? 0;
+  const isCompletable = requiredSessions === 0 ? true : completedSessions >= requiredSessions;
+
+  const handleStartSession = (task: Task) => {
+    if (focus?.id !== task.id) setFocus({ id: task.id, title: task.title });
+    if (mode !== 25) setMode(25);
+    if (!running) start();
+  };
 
   const todayCount = useMemo(() => store.pomoLog.filter((p) => p.date === todayISO() && p.mode === "focus").length, [store.pomoLog]);
   const totalMin = useMemo(() => store.pomoLog.filter((p) => p.mode === "focus").reduce((a, p) => a + (p.minutes || 0), 0), [store.pomoLog]);
@@ -49,13 +60,17 @@ export function PomodoroView() {
   }, [left, running, mode, focus, refresh]);
 
   const handleFocusDone = () => {
-    if (focusTask && !focusTask.done) {
-      const s = db.load();
-      const t = s.tasks.find((x) => x.id === focusTask.id);
-      if (t) t.done = true;
-      db.save(s);
-      refresh();
+    if (!focusTask || focusTask.done) return;
+    if (!isCompletable) {
+      const msg = `Faltan ${requiredSessions - completedSessions} sesión(es) Pomodoro para completar`;
+      window.__creeky_toast?.({ message: msg, type: "warning" });
+      return;
     }
+    const s = db.load();
+    const t = s.tasks.find((x) => x.id === focusTask.id);
+    if (t) t.done = true;
+    db.save(s);
+    refresh();
     clear();
   };
 
@@ -83,11 +98,16 @@ export function PomodoroView() {
 
       <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-8 text-center shadow-sm">
         <div className="mb-2 flex justify-center gap-2">
-          {[25, 5, 15].map((m) => (
-            <button key={m} onClick={() => setMode(m)} className={`rounded-full border px-4 py-2 text-xs font-semibold transition-colors ${mode === m ? "bg-(--accent) border-(--accent) text-white" : "border-(--border-medium) bg-(--bg-primary) text-(--muted) hover:border-(--accent) hover:text-(--accent)"}`}>
-              {m === 25 ? "Foco 25" : m === 5 ? "Descanso 5" : "Largo 15"}
-            </button>
-          ))}
+          {[25, 5, 15].map((m) => {
+            const isFocoRunning = running && mode === 25;
+            const isPausedFoco = !running && mode === 25 && left > 0 && left < 25 * 60;
+            const disabled = (m !== 25 && (isFocoRunning || isPausedFoco)) || (running && mode !== m);
+            return (
+              <button key={m} onClick={() => !disabled && setMode(m)} disabled={disabled} className={`rounded-full border px-4 py-2 text-xs font-semibold transition-colors ${mode === m ? "bg-(--accent) border-(--accent) text-white" : "border-(--border-medium) bg-(--bg-primary) text-(--muted) hover:border-(--accent) hover:text-(--accent)"} ${disabled ? "opacity-40 cursor-not-allowed hover:border-(--border-medium) hover:text-(--muted)" : ""}`}>
+                {m === 25 ? "Foco 25" : m === 5 ? "Descanso 5" : "Largo 15"}
+              </button>
+            );
+          })}
         </div>
 
         {(() => {
@@ -124,13 +144,18 @@ export function PomodoroView() {
           <div className="flex-1 min-w-0">
             <b className="block truncate text-sm font-semibold">Enfocando: {focusTask?.title ?? focus.title}</b>
             {focusTask ? (
-              <span className="text-xs text-(--muted)">{focusList ? `${focusList.icon} ${focusList.name} • ` : ""}{focusTask.due ? `vence ${focusTask.due}${focusTask.dueTime ? ` ${focusTask.dueTime}` : ""} • ` : ""}{focusTask.duration || 30} min • sesiones dedicadas: {focusTask.pomo || 0}</span>
+              <span className="text-xs text-(--muted)">{focusList ? `${focusList.icon} ${focusList.name} • ` : ""}{focusTask.due ? `vence ${focusTask.due}${focusTask.dueTime ? ` ${focusTask.dueTime}` : ""} • ` : ""}{focusTask.duration || 30} min • {completedSessions}/{requiredSessions || 1} sesiones • {isCompletable ? "lista para completar" : `faltan ${requiredSessions - completedSessions}`}</span>
             ) : (
               <span className="text-xs text-(--muted)">La tarea ya no existe</span>
             )}
           </div>
           <div className="flex shrink-0 gap-1.5 items-center">
-            {focusTask && !focusTask.done ? <Button variant="primary" size="sm" onClick={handleFocusDone}>Completar tarea</Button> : null}
+            {focusTask && !focusTask.done ? (
+              <>
+                <Button variant="secondary" size="sm" onClick={() => handleStartSession(focusTask)} disabled={running}>{running ? "En curso…" : "Iniciar sesión"}</Button>
+                <Button variant="primary" size="sm" onClick={handleFocusDone} disabled={!isCompletable} title={!isCompletable ? `Faltan ${requiredSessions - completedSessions} sesión(es)` : "Completar tarea"}>Completar tarea</Button>
+              </>
+            ) : null}
             <DeleteButton onConfirm={clear} className="scale-[0.58] origin-right -my-2" />
           </div>
         </div>
@@ -179,10 +204,10 @@ export function PomodoroView() {
                     <span className="absolute left-0 top-0 bottom-0 w-0.5" style={{ background: listColor(store, t.list) }} />
                     <div className="flex-1 min-w-0">
                       <div className="truncate text-sm font-semibold">{t.title}</div>
-                      <div className="flex flex-wrap items-center gap-1 text-xs text-(--muted)">{li ? <span className="truncate">{li.icon} {li.name} •</span> : null}<span>{f}×25 • {mins}′</span>{t.dueTime ? <><span>•</span><span>{t.dueTime}</span></> : null}</div>
-                      <div className="mt-1 flex gap-1">{blocks.map((b, i) => <span key={i} className={`h-1.5 w-1.5 rounded-full ${b.type === "focus" ? "bg-(--accent)" : b.type === "longBreak" ? "bg-(--muted)" : "bg-(--border-medium)"}`} />)}</div>
+                      <div className="flex flex-wrap items-center gap-1 text-xs text-(--muted)">{li ? <span className="truncate">{li.icon} {li.name} •</span> : null}<span>{f}×25 • {mins}′ • {t.pomo || 0}/{f}</span>{t.dueTime ? <><span>•</span><span>{t.dueTime}</span></> : null}</div>
+                      <div className="mt-1 flex gap-1">{blocks.map((b, i) => { const focusDone = (t.pomo || 0) > blocks.slice(0, i).filter((x) => x.type === "focus").length; return <span key={i} className={`h-1.5 w-1.5 rounded-full ${b.type === "focus" ? (focusDone ? "bg-(--secondary)" : "bg-(--border-medium)") : b.type === "longBreak" ? "bg-(--muted)" : "bg-(--border-medium)"}`} />; })}</div>
                     </div>
-                    {!isFocused ? <button onClick={() => setFocus({ id: t.id, title: t.title })} className="shrink-0 rounded-full border border-(--border-medium) bg-(--bg-primary) px-2.5 py-1 text-xs font-medium hover:bg-(--accent) hover:text-white hover:border-(--accent)">Enfocar</button> : <span className="shrink-0 rounded-full bg-(--accent) px-2.5 py-1 text-xs font-bold text-white">Enfocada</span>}
+                    {!isFocused ? <button onClick={() => handleStartSession(t)} className="shrink-0 rounded-full border border-(--secondary-border) bg-(--secondary-light) px-2.5 py-1 text-xs font-medium text-(--secondary) hover:bg-(--secondary) hover:text-white hover:border-(--secondary)">Iniciar sesión</button> : running ? <span className="shrink-0 rounded-full bg-(--secondary) px-2.5 py-1 text-xs font-bold text-white">En curso</span> : <span className="shrink-0 rounded-full bg-(--accent) px-2.5 py-1 text-xs font-bold text-white">Enfocada {t.pomo || 0}/{f}</span>}
                   </div>
                 );
               })}
