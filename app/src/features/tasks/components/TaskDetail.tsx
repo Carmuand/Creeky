@@ -17,7 +17,8 @@ interface TaskDetailProps {
   onMove: (listId: string) => void;
 }
 
-export function TaskDetail({ task, store, onSave, onRepeatToggle, onMove }: TaskDetailProps) {
+export function TaskDetail({ task, store, onSave, onRepeatToggle: _onRepeatToggle, onMove }: TaskDetailProps) {
+  void _onRepeatToggle;
   const [form, setForm] = useState({
     description: task.description,
     due: task.due || "",
@@ -26,6 +27,7 @@ export function TaskDetail({ task, store, onSave, onRepeatToggle, onMove }: Task
     remindBefore: String(task.remindBefore ?? 15),
     priority: (task.priority || "none") as Task["priority"],
     tags: (task.tags || []).join(", "),
+    repeat: [...(task.repeat || [])] as number[],
   });
 
   useEffect(() => {
@@ -37,8 +39,9 @@ export function TaskDetail({ task, store, onSave, onRepeatToggle, onMove }: Task
       remindBefore: String(task.remindBefore ?? 15),
       priority: (task.priority || "none") as Task["priority"],
       tags: (task.tags || []).join(", "),
+      repeat: [...(task.repeat || [])] as number[],
     });
-  }, [task]);
+  }, [task.id]);
 
   const handleSave = () => {
     const tags = form.tags.split(",").map((x) => x.trim().toLowerCase()).filter(Boolean);
@@ -50,6 +53,7 @@ export function TaskDetail({ task, store, onSave, onRepeatToggle, onMove }: Task
       remindBefore: Number(form.remindBefore) ?? 15,
       priority: form.priority,
       tags: [...new Set(tags)],
+      repeat: [...form.repeat],
     });
   };
 
@@ -79,7 +83,7 @@ export function TaskDetail({ task, store, onSave, onRepeatToggle, onMove }: Task
         <span className="font-semibold text-(--text-soft)">Repetir:</span>
         {WEEKDAYS.map((w) => (
           <TooltipSimple key={w.v} content={`Repetir ${w.label}`} side="top">
-            <button className={`flex h-7 w-7 items-center justify-center rounded-full border text-xs font-bold transition-colors ${(task.repeat || []).includes(w.v) ? "bg-(--accent) border-(--accent) text-white" : "border-(--border-medium) text-(--muted) hover:border-(--accent)"}`} onClick={() => onRepeatToggle(w.v)} aria-label={`Repetir ${w.label}`}>{w.label}</button>
+            <button className={`flex h-7 w-7 items-center justify-center rounded-full border text-xs font-bold transition-colors ${form.repeat.includes(w.v) ? "bg-(--accent) border-(--accent) text-white" : "border-(--border-medium) text-(--muted) hover:border-(--accent)"}`} onClick={() => setForm((p) => ({ ...p, repeat: p.repeat.includes(w.v) ? p.repeat.filter((x) => x !== w.v) : [...p.repeat, w.v] }))} aria-label={`Repetir ${w.label}`}>{w.label}</button>
           </TooltipSimple>
         ))}
       </div>
