@@ -34,7 +34,7 @@ export function TagsPanel({ tags, visTags, view, activeTag, onChangeView, onSetA
   return (
     <div className="flex flex-col gap-1">
       <div className="flex items-center gap-2 px-1 py-2">
-        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-(--bg-tertiary) text-(--accent)"><Icon name="tag" size={16} /></span>
+        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-(--secondary-light) text-(--secondary)"><Icon name="tag" size={16} /></span>
         <h3 className="flex-1 text-xs font-semibold uppercase tracking-widest text-(--muted)">Etiquetas <span className="font-normal">({tags.length})</span></h3>
         <Dropdown
           trigger={
@@ -107,7 +107,7 @@ function InlineTag({ tag, activeTag, onSetActiveTag, onToast, onRefresh }: { tag
 
   return (
     <div className="flex items-center gap-2 rounded-md px-2 py-1 hover:bg-(--bg-hover) transition-colors">
-      <span className="flex-1 rounded-full bg-(--bg-tertiary) border border-(--border-light) px-2 py-0.5 text-xs">#{tag}</span>
+      <span className={`flex-1 rounded-full border px-2 py-0.5 text-xs ${activeTag === tag ? "bg-(--secondary-light) border-(--secondary-border) text-(--secondary) font-medium" : "bg-(--bg-tertiary) border-(--border-light)"}`}>#{tag}</span>
       <span className="flex gap-1">
         <TooltipSimple content="Renombrar" side="top">
           <button className="flex h-6 w-6 items-center justify-center rounded-md text-(--muted) hover:bg-(--bg-primary) hover:text-(--text) transition-colors" onClick={() => { setVal(tag); setEditing(true); }} aria-label="Renombrar"><Icon name="pencil" size={14} /></button>
