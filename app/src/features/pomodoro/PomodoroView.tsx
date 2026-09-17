@@ -96,7 +96,8 @@ export function PomodoroView() {
         <p className="text-sm text-(--muted)">Técnica 25 / 5 • anillo progresivo</p>
       </div>
 
-      <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-8 text-center shadow-sm">
+      <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-8 text-center shadow-sm relative overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-(--accent) to-(--secondary)" />
         <div className="mb-2 flex justify-center gap-2">
           {[25, 5, 15].map((m) => {
             const isFocoRunning = running && mode === 25;
@@ -161,8 +162,9 @@ export function PomodoroView() {
         </div>
       ) : null}
 
-      <h3 className="mt-2 text-sm font-semibold">Historial de sesiones</h3>
-      <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 shadow-sm">
+      <h3 className="mt-2 text-sm font-semibold flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-(--secondary)" />Historial de sesiones</h3>
+      <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 shadow-sm relative overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-(--secondary)" />
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <span className="text-xs font-semibold uppercase tracking-widest text-(--muted)">Ver:</span>
           {(["all", "today", "week"] as const).map((v) => (
@@ -186,8 +188,9 @@ export function PomodoroView() {
 
       {pomoTasks.length > 0 ? (
         <>
-          <h3 className="mt-2 text-sm font-semibold">Sesiones Pomodoro del día <span className="text-xs font-normal text-(--muted)">({pomoToday.length} hoy • {pomoTasks.length} total)</span></h3>
-          <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 shadow-sm">
+          <h3 className="mt-2 text-sm font-semibold flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-(--accent)" />Sesiones Pomodoro del día <span className="text-xs font-normal text-(--muted)">({pomoToday.length} hoy • {pomoTasks.length} total)</span></h3>
+          <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 shadow-sm relative overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-0.5 bg-(--accent)" />
             <div className="mb-3 flex gap-2">
               <button onClick={() => setPomoTab("today")} className={`rounded-full border px-3 py-1 text-xs ${pomoTab === "today" ? "bg-(--accent) border-(--accent) text-white font-semibold" : "border-(--border-medium) text-(--muted)"}`}>Hoy ({pomoToday.length})</button>
               <button onClick={() => setPomoTab("all")} className={`rounded-full border px-3 py-1 text-xs ${pomoTab === "all" ? "bg-(--accent) border-(--accent) text-white font-semibold" : "border-(--border-medium) text-(--muted)"}`}>Todas ({pomoTasks.length})</button>
