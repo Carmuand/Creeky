@@ -79,29 +79,37 @@ export function CalendarView() {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-1 rounded-full bg-(--bg-tertiary) p-1 w-fit">
-        {CAL_MODES.map(([v, l]) => (
-          <button key={v} onClick={() => setMode(v as never)} className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${view.mode === v ? "bg-(--bg-primary) text-(--text) shadow-sm" : "text-(--muted) hover:text-(--text)"}`}>{l}</button>
-        ))}
+      <div className="flex flex-wrap gap-1 rounded-full bg-(--bg-tertiary) p-1 w-fit border border-(--border-light)">
+        {CAL_MODES.map(([v, l]) => {
+          const isSecondary = v === "week" || v === "day" || v === "mdays";
+          return (
+            <button key={v} onClick={() => setMode(v as never)} className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${view.mode === v ? (isSecondary ? "bg-(--secondary) text-white shadow-sm" : "bg-(--accent) text-white shadow-sm") : "text-(--muted) hover:text-(--text)"}`}>{l}</button>
+          );
+        })}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-(--border-light) bg-(--bg-primary) px-4 py-3">
-        <span className="text-xs font-semibold uppercase tracking-widest text-(--muted)">Ver:</span>
+      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-(--border-light) bg-(--bg-primary) px-4 py-3 relative overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-(--accent) to-(--secondary)" />
+        <span className="text-xs font-semibold uppercase tracking-widest text-(--accent)">Ver:</span>
         <div className="min-w-45">
           <Select value={view.list} onChange={setList} options={[{ value: "all", label: "Todas las listas" }, ...store.lists.map((l) => ({ value: l.id, label: `${l.icon} ${l.name}` }))]} />
         </div>
         <Checkbox checked={view.onlyTime} onChange={setOnlyTime} label="Solo con hora" />
-        <button onClick={reset} className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-(--border-medium) bg-(--bg-primary) px-3 py-1 text-xs text-(--muted) hover:border-(--accent) hover:text-(--accent)"><Icon name="xcirc" size={13} /> Limpiar</button>
+        <button onClick={reset} className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-(--secondary-border) bg-(--secondary-light) px-3 py-1 text-xs text-(--secondary) hover:border-(--secondary) hover:text-(--secondary)"><Icon name="xcirc" size={13} /> Limpiar</button>
       </div>
 
       <div className="flex flex-wrap gap-3 text-xs text-(--muted)">
         {store.lists.map((l) => <span key={l.id} className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-full" style={{ background: l.color }} />{l.icon}{l.name}</span>)}
       </div>
 
-      {body}
+      <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-3 shadow-sm relative overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-(--accent)" />
+        {body}
+      </div>
 
-      <h3 className="mt-2 text-sm font-semibold">Agenda — próximos 7 días</h3>
-      <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-4">
+      <h3 className="mt-2 text-sm font-semibold flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-(--secondary)" />Agenda — próximos 7 días</h3>
+      <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 relative overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-(--secondary)" />
         <Agenda today={today} dayEvents={dayEvents} store={store} />
       </div>
     </section>
