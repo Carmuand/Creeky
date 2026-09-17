@@ -17,7 +17,8 @@ export function TopBar({ title, onMenuToggle }: TopBarProps) {
   const { theme, toggleTheme } = useTheme();
 
   return (
-    <header className="sticky top-0 z-5 flex h-16 shrink-0 items-center justify-between border-b border-(--border-light) bg-(--bg-primary) px-6">
+    <header className="sticky top-0 z-5 flex h-16 shrink-0 items-center justify-between border-b border-(--border-light) bg-(--bg-primary) px-6 relative">
+      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-(--accent) via-(--secondary) to-(--accent) opacity-60" />
       <div className="flex items-center gap-4">
         <button
           className="hidden h-10 w-10 items-center justify-center rounded-md text-(--text-soft) transition-colors hover:bg-(--bg-hover) hover:text-(--text) max-[768px]:flex"
