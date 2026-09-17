@@ -22,7 +22,6 @@ interface QuadrantProps {
 }
 
 const QP = { q1: "high", q2: "medium", q3: "low", q4: "none" } as const;
-const badgeColor: Record<string, string> = { q1: "#000", q2: "#424242", q3: "#9E9E9E", q4: "#E0E0E0" };
 
 /**
  * Single quadrant with manual notes and auto tasks.
@@ -42,15 +41,18 @@ export function Quadrant({ id, title, desc, manual, auto, store, filterText, onA
   const visibleManual = manual.filter((t) => !q || t.toLowerCase().includes(q));
   const visibleAuto = auto.filter((t) => !q || t.title.toLowerCase().includes(q) || t.list.toLowerCase().includes(q));
 
+  const topAccent = id === "q1" || id === "q2" ? "bg-(--accent)" : "bg-(--secondary)";
+  const headerBg = id === "q1" || id === "q2" ? "bg-(--accent-light)" : "bg-(--secondary-light)";
   return (
     <div
-      className="flex min-h-65 flex-col overflow-hidden rounded-xl border border-(--border-light) bg-(--bg-primary) shadow-sm"
+      className="flex min-h-65 flex-col overflow-hidden rounded-xl border border-(--border-light) bg-(--bg-primary) shadow-sm relative"
       onDragOver={onDragOver}
       onDrop={onDrop}
       data-qdrop={id}
     >
-      <header className="flex items-center gap-2.5 border-b border-(--border-light) px-4 py-3">
-        <span className="flex h-7 w-7 items-center justify-center rounded-lg text-xs font-bold text-white" style={{ background: badgeColor[id], color: id === "q4" ? "#616161" : "#fff" }}>{id.toUpperCase()}</span>
+      <div className={`absolute top-0 left-0 right-0 h-0.5 ${topAccent}`} />
+      <header className={`flex items-center gap-2.5 border-b border-(--border-light) px-4 py-3 ${headerBg}`}>
+        <span className="flex h-7 w-7 items-center justify-center rounded-lg text-xs font-bold text-white" style={{ background: id === "q1" || id === "q2" ? "var(--accent)" : "var(--secondary)", color: "#fff" }}>{id.toUpperCase()}</span>
         <div className="flex-1 min-w-0">
           <b className="block text-sm">{title}</b><small className="block text-xs text-(--muted)">{desc} • {manual.length + auto.length}</small>
         </div>
