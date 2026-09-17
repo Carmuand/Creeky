@@ -58,7 +58,8 @@ export function TasksView({ onToast }: { onToast?: ToastFn }) {
       <Segments counts={derived.segments} onAdd={(preset) => setQuick({ open: true, preset })} todayISO={todayISO()} weekEndISO={weekEndISO()} />
 
       <div className="grid grid-cols-[280px_1fr] gap-4 items-start max-[900px]:grid-cols-1">
-        <aside className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-3 shadow-sm">
+        <aside className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-3 shadow-sm relative overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-(--accent) to-(--secondary)" />
           <ListsPanel
             lists={store.lists}
             visLists={derived.visLists}
@@ -87,7 +88,8 @@ export function TasksView({ onToast }: { onToast?: ToastFn }) {
           />
         </aside>
 
-        <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) shadow-sm overflow-hidden">
+        <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) shadow-sm overflow-hidden relative">
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-(--secondary) to-(--accent)" />
           {ui.filter !== "trash" ? (
             <form onSubmit={(e) => { e.preventDefault(); actions.createInline(inlineTitle, ui.filter); setInlineTitle(""); }} className="flex gap-2 border-b border-(--border-light) p-4">
               <Input value={inlineTitle} onChange={(e) => setInlineTitle(e.target.value)} placeholder={`+ Añadir tarea a ${ui.filter}, pulsa Enter…`} className="flex-1" />
