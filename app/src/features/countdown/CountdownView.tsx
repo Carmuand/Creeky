@@ -74,16 +74,20 @@ export function CountdownView() {
     <section className="max-w-275 mx-auto flex flex-col gap-4" aria-label="Cuenta regresiva">
       <p className="text-sm text-(--muted)">Eventos que te motivan: viajes, entregas, metas.</p>
 
-      <form onSubmit={handleAdd} className="flex flex-wrap gap-4 rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 shadow-sm">
+      <form onSubmit={handleAdd} className="flex flex-wrap gap-4 rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 shadow-sm relative overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-(--accent) to-(--secondary)" />
         <div className="flex flex-1 flex-col gap-1.5 min-w-50"><label className="text-xs font-medium text-(--text-soft)">Evento</label><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ej. Lanzar Creeky" required /></div>
         <div className="flex flex-col gap-1.5 min-w-40"><label className="text-xs font-medium text-(--text-soft)">Fecha</label><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} required /></div>
         <div className="flex items-end"><Button type="submit" variant="primary">Crear cuenta atrás</Button></div>
       </form>
 
       <div className="flex flex-wrap gap-1.5">
-        {(["upcoming", "past", "all"] as const).map((v) => (
-          <button key={v} onClick={() => setView(v)} className={`rounded-full border px-3 py-1 text-xs ${view === v ? "bg-(--accent) border-(--accent) text-white font-semibold" : "border-(--border-medium) bg-(--bg-primary) text-(--muted) hover:border-(--accent)"}`}>{v === "upcoming" ? "Próximos" : v === "past" ? "Pasados" : "Todos"}</button>
-        ))}
+        {(["upcoming", "past", "all"] as const).map((v) => {
+          const isSecondary = v === "past";
+          return (
+            <button key={v} onClick={() => setView(v)} className={`rounded-full border px-3 py-1 text-xs ${view === v ? (isSecondary ? "bg-(--secondary) border-(--secondary) text-white font-semibold" : "bg-(--accent) border-(--accent) text-white font-semibold") : "border-(--border-medium) bg-(--bg-primary) text-(--muted) hover:border-(--accent)"}`}>{v === "upcoming" ? "Próximos" : v === "past" ? "Pasados" : "Todos"}</button>
+          );
+        })}
       </div>
 
       <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">
@@ -93,10 +97,11 @@ export function CountdownView() {
           const done = Math.max(0, Math.min(1, 1 - (new Date(`${c.date}T23:59:00`).getTime() - Date.now()) / (total * 864e5)));
           const isEditing = editing === c.id;
           return (
-            <div key={c.id} className="relative flex flex-col items-center rounded-xl border border-(--border-light) bg-(--bg-primary) p-5 text-center shadow-sm">
+            <div key={c.id} className="relative flex flex-col items-center rounded-xl border border-(--border-light) bg-(--bg-primary) p-5 text-center shadow-sm overflow-hidden">
+              <div className={`absolute top-0 left-0 right-0 h-0.5 ${view === "past" ? "bg-(--secondary)" : view === "upcoming" ? "bg-(--accent)" : "bg-gradient-to-r from-(--accent) to-(--secondary)"}`} />
               <h4 className="font-semibold">{c.title}</h4><div className="text-xs text-(--muted)">Meta: {c.date}</div>
               {!isEditing ? nums(p) : null}
-              {!isEditing ? <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-(--bg-tertiary)"><div className="h-full bg-(--accent) transition-all" style={{ width: `${Math.round(done * 100)}%` }} /></div> : null}
+              {!isEditing ? <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-(--bg-tertiary)"><div className={`h-full transition-all ${view === "past" ? "bg-(--secondary)" : "bg-(--accent)"}`} style={{ width: `${Math.round(done * 100)}%` }} /></div> : null}
               {isEditing ? (
                 <div className="mt-3 flex w-full flex-col gap-2">
                   <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="Título" />
