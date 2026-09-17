@@ -90,8 +90,9 @@ export function SyncView() {
         <Button variant="primary" size="sm" onClick={handleSyncNow}>Sincronizar ahora</Button>
       </div>
 
-      <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 shadow-sm">
-        <h3 className="font-semibold">Estado real de tus datos</h3>
+      <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 shadow-sm relative overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-(--accent)" />
+        <h3 className="font-semibold text-(--accent)">Estado real de tus datos</h3>
         <div className="mt-3 flex flex-col divide-y divide-(--border-light) text-sm">
           <div className="flex justify-between py-2"><span className="text-(--muted)">Listas</span><b>{store.lists.length}</b></div>
           <div className="flex justify-between py-2"><span className="text-(--muted)">Tareas pendientes</span><b>{alive.filter((t) => !t.done).length}</b></div>
@@ -103,18 +104,21 @@ export function SyncView() {
         </div>
       </div>
 
-      <div className="flex items-center gap-4 rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 shadow-sm">
-        <span className="h-3.5 w-3.5 shrink-0 rounded-full bg-[#2E7D32] shadow-[0_0_0_6px_rgba(46,125,50,0.12)]" />
+      <div className="flex items-center gap-4 rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 shadow-sm relative overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-(--secondary)" />
+        <span className="h-3.5 w-3.5 shrink-0 rounded-full bg-(--secondary) shadow-[0_0_0_6px_var(--secondary-light)]" />
         <div><b className="text-sm">Al día</b><div className="text-xs text-(--muted)">Última copia: {syncTime} • Almacenamiento: localStorage</div></div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 max-[700px]:grid-cols-1">
-        <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 shadow-sm">
-          <h3 className="font-semibold">Exportar</h3><p className="mt-1 text-xs text-(--muted)">Descarga tus datos en JSON. Guárdalo en Descargas o en <code className="rounded bg-(--bg-tertiary) px-1 py-0.5 text-xs">Creeky/backups/</code>.</p>
+        <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 shadow-sm relative overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-(--accent)" />
+          <h3 className="font-semibold text-(--accent)">Exportar</h3><p className="mt-1 text-xs text-(--muted)">Descarga tus datos en JSON. Guárdalo en Descargas o en <code className="rounded bg-(--bg-tertiary) px-1 py-0.5 text-xs">Creeky/backups/</code>.</p>
           <div className="mt-3"><Button variant="secondary" size="sm" onClick={handleExport}>Descargar JSON</Button></div>
         </div>
-        <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 shadow-sm">
-          <h3 className="font-semibold">Importar / Borrar</h3><p className="mt-1 text-xs text-(--muted)">Restaura desde un <code className="rounded bg-(--bg-tertiary) px-1 py-0.5 text-xs">creeky-backup.json</code> o limpia tu espacio.</p>
+        <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 shadow-sm relative overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-(--secondary)" />
+          <h3 className="font-semibold text-(--secondary)">Importar / Borrar</h3><p className="mt-1 text-xs text-(--muted)">Restaura desde un <code className="rounded bg-(--bg-tertiary) px-1 py-0.5 text-xs">creeky-backup.json</code> o limpia tu espacio.</p>
           <div className="mt-3 flex flex-wrap gap-2 items-center">
             <label className="inline-flex cursor-pointer items-center justify-center rounded-md border border-(--border-medium) bg-(--bg-tertiary) px-3 py-1.5 text-xs font-medium hover:bg-(--bg-hover)"><input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={handleImport} />Importar</label>
             <span className="text-xs text-(--muted)">Borrar todo</span>
@@ -123,7 +127,8 @@ export function SyncView() {
         </div>
       </div>
 
-      <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 shadow-sm">
+      <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 shadow-sm relative overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-(--accent) to-(--secondary)" />
         <h3 className="font-semibold">Inspeccionar datos</h3>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <span className="text-xs font-semibold uppercase tracking-widest text-(--muted)">Ver:</span>
