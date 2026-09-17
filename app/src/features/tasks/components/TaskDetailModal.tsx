@@ -25,7 +25,8 @@ interface TaskDetailModalProps {
 /**
  * Modal with view and edit modes for a task.
  */
-export function TaskDetailModal({ open, onClose, task, store, onSave, onRepeatToggle, onMove }: TaskDetailModalProps) {
+export function TaskDetailModal({ open, onClose, task, store, onSave, onRepeatToggle: _onRepeatToggle, onMove }: TaskDetailModalProps) {
+  void _onRepeatToggle;
   const [mode, setMode] = useState<"view" | "edit">("view");
   const [form, setForm] = useState({
     description: task.description,
@@ -35,6 +36,7 @@ export function TaskDetailModal({ open, onClose, task, store, onSave, onRepeatTo
     remindBefore: String(task.remindBefore ?? 15),
     priority: (task.priority || "none") as Task["priority"],
     tags: (task.tags || []).join(", "),
+    repeat: [...(task.repeat || [])] as number[],
   });
 
   useEffect(() => {
@@ -48,9 +50,10 @@ export function TaskDetailModal({ open, onClose, task, store, onSave, onRepeatTo
         remindBefore: String(task.remindBefore ?? 15),
         priority: (task.priority || "none") as Task["priority"],
         tags: (task.tags || []).join(", "),
+        repeat: [...(task.repeat || [])] as number[],
       });
     }
-  }, [open, task]);
+  }, [open, task.id]);
 
   const handleSave = () => {
     const tags = form.tags.split(",").map((x) => x.trim().toLowerCase()).filter(Boolean);
@@ -62,6 +65,7 @@ export function TaskDetailModal({ open, onClose, task, store, onSave, onRepeatTo
       remindBefore: Number(form.remindBefore) ?? 15,
       priority: form.priority,
       tags: [...new Set(tags)],
+      repeat: [...form.repeat],
     });
     if (ok) setMode("view");
   };
@@ -142,7 +146,7 @@ export function TaskDetailModal({ open, onClose, task, store, onSave, onRepeatTo
             <div className="flex flex-wrap items-center gap-1.5">
               <span className="text-xs font-semibold text-(--muted)">Repetir:</span>
               {WEEKDAYS.map((w) => (
-                <button key={w.v} type="button" onClick={() => onRepeatToggle(w.v)} className={`flex h-7 w-7 items-center justify-center rounded-full border text-xs font-bold ${((task.repeat || []) as number[]).includes(w.v) ? "bg-(--accent) border-(--accent) text-white" : "border-(--border-medium) text-(--muted) hover:border-(--accent)"}`}>{w.label}</button>
+                <button key={w.v} type="button" onClick={() => setForm((p) => ({ ...p, repeat: p.repeat.includes(w.v) ? p.repeat.filter((x) => x !== w.v) : [...p.repeat, w.v] }))} className={`flex h-7 w-7 items-center justify-center rounded-full border text-xs font-bold ${form.repeat.includes(w.v) ? "bg-(--accent) border-(--accent) text-white" : "border-(--border-medium) text-(--muted) hover:border-(--accent)"}`}>{w.label}</button>
               ))}
             </div>
 
