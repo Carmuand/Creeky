@@ -37,7 +37,7 @@ export function TaskItem({ task: t, store, focusId, isTrash, onCheck, onDelete, 
         style={{ borderLeft: `4px solid ${listColor(store, t.list)}` }}
       >
         <button
-          className={`flex h-5.5 w-5.5 shrink-0 items-center justify-center rounded-full border-2 mt-0.5 text-sm ${t.done ? "bg-(--accent) border-(--accent) text-white" : "border-(--border-dark) text-transparent"}`}
+          className={`flex h-5.5 w-5.5 shrink-0 items-center justify-center rounded-full border-2 mt-0.5 text-sm ${t.done ? "bg-(--secondary) border-(--secondary) text-white" : "border-(--border-dark) text-transparent"}`}
           onClick={onCheck}
           aria-label="Casilla completar"
         >
