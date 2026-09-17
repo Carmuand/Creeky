@@ -120,10 +120,11 @@ export function HabitsView() {
         </form>
       </div>
 
-      <div className="flex flex-wrap items-center gap-5 rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 text-sm">
-        <span>Rachas activas <b className="text-base">{activeR}</b></span>
-        <span>Checks este mes <b className="text-base">{monthChecks}</b></span>
-        <span>Mejor racha <b className="text-base">{bestAll}</b></span>
+      <div className="flex flex-wrap items-center gap-5 rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 text-sm relative overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-(--accent) to-(--secondary)" />
+        <span className="flex items-center gap-1.5">Rachas activas <b className="text-base text-(--secondary)">{activeR}</b></span>
+        <span className="flex items-center gap-1.5">Checks este mes <b className="text-base text-(--accent)">{monthChecks}</b></span>
+        <span className="flex items-center gap-1.5">Mejor racha <b className="text-base text-(--secondary)">{bestAll}</b></span>
         <span className="ml-auto text-xs text-(--muted)">Semana del {fmtR(monday)} al {fmtR(sunday)}</span>
       </div>
 
@@ -131,23 +132,27 @@ export function HabitsView() {
 
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-xs font-semibold uppercase tracking-widest text-(--muted)">Ver:</span>
-        {(["all", "active", "hot", "fresh"] as const).map((v) => (
-          <button key={v} onClick={() => setFilter(v)} className={`rounded-full border px-3 py-1 text-xs ${filter === v ? "bg-(--accent) border-(--accent) text-white font-semibold" : "border-(--border-medium) bg-(--bg-primary) text-(--muted) hover:border-(--accent)"}`}>
-            {v === "all" ? `Todos (${store.habits.length})` : v === "active" ? "Activos" : v === "hot" ? "Racha ≥ 5" : "Sin empezar"}
-          </button>
-        ))}
+        {(["all", "active", "hot", "fresh"] as const).map((v) => {
+          const isSecondary = v === "active" || v === "hot";
+          return (
+            <button key={v} onClick={() => setFilter(v)} className={`rounded-full border px-3 py-1 text-xs ${filter === v ? (isSecondary ? "bg-(--secondary) border-(--secondary) text-white font-semibold" : "bg-(--accent) border-(--accent) text-white font-semibold") : "border-(--border-medium) bg-(--bg-primary) text-(--muted) hover:border-(--accent)"}`}>
+              {v === "all" ? `Todos (${store.habits.length})` : v === "active" ? "Activos" : v === "hot" ? "Racha ≥ 5" : "Sin empezar"}
+            </button>
+          );
+        })}
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 shadow-sm">
+      <div className="overflow-x-auto rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 shadow-sm relative overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-(--secondary) to-(--accent)" />
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-(--border-light) text-center">
-              <th className="px-2 py-2 text-left font-semibold">Hábito</th>
+              <th className="px-2 py-2 text-left font-semibold text-(--accent)">Hábito</th>
               {["L", "M", "X", "J", "V", "S", "D"].map((c, i) => {
                 const iso = addDaysISO(monday, i);
                 return <th key={c} title={iso} className="px-2 py-2 font-semibold">{c}<br /><small className="font-normal text-(--muted)">{Number(iso.slice(8))}</small></th>;
               })}
-              <th className="px-2 py-2 font-semibold">Racha</th>
+              <th className="px-2 py-2 font-semibold text-(--secondary)">Racha</th>
               <th className="px-2 py-2"></th>
             </tr>
           </thead>
@@ -168,13 +173,13 @@ export function HabitsView() {
                     <input type="time" value={h.notifyTime || "09:00"} onChange={(e) => changeTime(h.id, e.target.value)} className="rounded-md border border-(--border-medium) bg-(--bg-primary) px-1.5 py-1 text-xs" title="Hora del recordatorio" />
                   </span>
                 </td>
-                {h.days.map((d, i) => {
+                  {h.days.map((d, i) => {
                   const iso = addDaysISO(monday, i);
                   const future = iso > todayStr;
                   return (
                     <td key={i} className="px-1 py-2 text-center">
                       <TooltipSimple content={future ? "Este día aún no llega" : `Marcar ${iso}`} side="top">
-                        <button disabled={future} onClick={() => toggleDay(h.id, i)} className={`mx-auto inline-flex h-7 w-7 items-center justify-center rounded-full border-2 text-xs font-bold transition-colors ${d ? "bg-(--accent) border-(--accent) text-white" : "border-(--border-medium) bg-(--bg-primary) text-transparent hover:border-(--accent)"} ${future ? "opacity-25 cursor-not-allowed" : ""}`}>{d ? "✓" : ""}</button>
+                        <button disabled={future} onClick={() => toggleDay(h.id, i)} className={`mx-auto inline-flex h-7 w-7 items-center justify-center rounded-full border-2 text-xs font-bold transition-colors ${d ? "bg-(--secondary) border-(--secondary) text-white" : "border-(--border-medium) bg-(--bg-primary) text-transparent hover:border-(--secondary)"} ${future ? "opacity-25 cursor-not-allowed" : ""}`}>{d ? "✓" : ""}</button>
                       </TooltipSimple>
                     </td>
                   );
