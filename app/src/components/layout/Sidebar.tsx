@@ -26,26 +26,7 @@ interface SidebarProps {
   mobileOpen: boolean;
 }
 
-function Badge({ id, count }: { id: string; count?: number }) {
-  if (!count) return null;
-  return (
-    <span id={id} className="ml-auto min-w-4.5 rounded-full bg-(--accent) px-1.5 py-0.5 text-center text-[11px] font-semibold text-white">
-      {count}
-    </span>
-  );
-}
 
-function CollapsedBadge({ id, count }: { id: string; count?: number }) {
-  if (!count) return null;
-  return (
-    <span
-      id={id}
-      className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full border-2 border-(--bg-primary) bg-(--accent) px-1 text-[10px] font-bold text-white shadow-sm"
-    >
-      {count > 99 ? "99+" : count}
-    </span>
-  );
-}
 
 export function Sidebar({ view, onSelect, badges, userInitial, onLogout, collapsed, onToggleCollapse, mobileOpen }: SidebarProps) {
   const [userOpen, setUserOpen] = React.useState(false);
@@ -73,22 +54,24 @@ export function Sidebar({ view, onSelect, badges, userInitial, onLogout, collaps
     prevView.current = view;
   }, [view, collapsed, mobileOpen, onToggleCollapse]);
 
-  const navLink = (active: boolean) =>
+  const navLink = (active: boolean, variant: "accent" | "secondary" = "accent") =>
     `flex w-full items-center gap-3 rounded-lg text-[15px] transition-colors relative ${collapsed ? "justify-center p-3" : "px-4 py-3"} ${
-      active ? "bg-(--accent-light) font-medium text-(--accent)" : "text-(--text-soft) hover:bg-(--bg-hover) hover:text-(--text)"
+      active ? (variant === "secondary" ? "bg-(--secondary-light) font-medium text-(--secondary)" : "bg-(--accent-light) font-medium text-(--accent)") : "text-(--text-soft) hover:bg-(--bg-hover) hover:text-(--text)"
     }`;
 
-  const item = (v: CreekyView, label: string, icon: string, badgeKey?: string) => {
+  const badgeForVariant = (variant: "accent" | "secondary") => variant === "secondary" ? "bg-(--secondary)" : "bg-(--accent)";
+
+  const item = (v: CreekyView, label: string, icon: string, badgeKey?: string, variant: "accent" | "secondary" = "accent") => {
     const active = view === v;
     const button = (
-      <button className={navLink(active)} data-page={v} onClick={() => onSelect(v)}>
+      <button className={navLink(active, variant)} data-page={v} onClick={() => onSelect(v)}>
         <span className={`flex shrink-0 items-center justify-center ${collapsed ? "h-6 w-6" : "h-5.5 w-5.5"}`} aria-hidden="true">
           <Icon name={icon} size={collapsed ? 20 : 18} />
         </span>
         {!collapsed ? <span className="truncate">{label}</span> : null}
-        {!collapsed && badgeKey ? <Badge id={badgeKey} count={badges[badgeKey]} /> : null}
-        {collapsed && badgeKey ? <CollapsedBadge id={badgeKey} count={badges[badgeKey]} /> : null}
-        {active && !collapsed ? <span className="absolute left-0 top-1/2 h-6 w-0.5 -translate-y-1/2 rounded-r-full bg-(--accent)" /> : null}
+        {!collapsed && badgeKey ? <span id={badgeKey} className={`ml-auto min-w-4.5 rounded-full px-1.5 py-0.5 text-center text-[11px] font-semibold text-white ${badgeForVariant(variant)}`}>{badges[badgeKey] ? badges[badgeKey] : null}</span> : null}
+        {collapsed && badgeKey ? <span id={badgeKey} className={`absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full border-2 border-(--bg-primary) px-1 text-[10px] font-bold text-white shadow-sm ${badgeForVariant(variant)}`}>{badges[badgeKey] ? (badges[badgeKey]! > 99 ? "99+" : badges[badgeKey]) : null}</span> : null}
+        {active && !collapsed ? <span className={`absolute left-0 top-1/2 h-6 w-0.5 -translate-y-1/2 rounded-r-full ${variant === "secondary" ? "bg-(--secondary)" : "bg-(--accent)"}`} /> : null}
       </button>
     );
 
@@ -146,32 +129,32 @@ export function Sidebar({ view, onSelect, badges, userInitial, onLogout, collaps
       >
         <ul className="flex flex-col gap-6">
           <li>
-            <span className={`mb-2 block px-3 text-[11px] font-semibold uppercase tracking-widest text-(--muted) ${collapsed ? "hidden" : ""}`}>Principal</span>
+            <span className={`mb-2 block px-3 text-[11px] font-semibold uppercase tracking-widest ${collapsed ? "hidden" : "text-(--accent)"}`}>Principal</span>
             <ul className="flex flex-col gap-1">
-              {item("tasks", "Tareas", "tasks", "tasks-badge")}
-              {item("calendar", "Calendario", "calendar", "badge-calendar")}
+              {item("tasks", "Tareas", "tasks", "tasks-badge", "accent")}
+              {item("calendar", "Calendario", "calendar", "badge-calendar", "accent")}
             </ul>
           </li>
           <li>
-            <span className={`mb-2 block px-3 text-[11px] font-semibold uppercase tracking-widest text-(--muted) ${collapsed ? "hidden" : ""}`}>Productividad</span>
+            <span className={`mb-2 block px-3 text-[11px] font-semibold uppercase tracking-widest ${collapsed ? "hidden" : "text-(--secondary)"}`}>Productividad</span>
             <ul className="flex flex-col gap-1">
-              {item("pomodoro", "Pomodoro", "clock", "badge-pomodoro")}
-              {item("eisenhower", "Matriz Eisenhower", "eisenhower", "badge-eisenhower")}
-              {item("habits", "Hábitos", "users", "badge-habits")}
+              {item("pomodoro", "Pomodoro", "clock", "badge-pomodoro", "secondary")}
+              {item("eisenhower", "Matriz Eisenhower", "eisenhower", "badge-eisenhower", "secondary")}
+              {item("habits", "Hábitos", "users", "badge-habits", "secondary")}
             </ul>
           </li>
           <li>
-            <span className={`mb-2 block px-3 text-[11px] font-semibold uppercase tracking-widest text-(--muted) ${collapsed ? "hidden" : ""}`}>Herramientas</span>
+            <span className={`mb-2 block px-3 text-[11px] font-semibold uppercase tracking-widest ${collapsed ? "hidden" : "text-(--accent)"}`}>Herramientas</span>
             <ul className="flex flex-col gap-1">
-              {item("countdown", "Cuenta regresiva", "clock", "badge-countdown")}
-              {item("search", "Búsqueda", "search")}
+              {item("countdown", "Cuenta regresiva", "clock", "badge-countdown", "accent")}
+              {item("search", "Búsqueda", "search", undefined, "accent")}
             </ul>
           </li>
           <li>
-            <span className={`mb-2 block px-3 text-[11px] font-semibold uppercase tracking-widest text-(--muted) ${collapsed ? "hidden" : ""}`}>Sistema</span>
+            <span className={`mb-2 block px-3 text-[11px] font-semibold uppercase tracking-widest ${collapsed ? "hidden" : "text-(--secondary)"}`}>Sistema</span>
             <ul className="flex flex-col gap-1">
-              {item("sync", "Sincronización", "sync")}
-              {item("notifications", "Notificaciones", "bell", "notif-badge")}
+              {item("sync", "Sincronización", "sync", undefined, "secondary")}
+              {item("notifications", "Notificaciones", "bell", "notif-badge", "secondary")}
             </ul>
           </li>
         </ul>
