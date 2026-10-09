@@ -131,7 +131,7 @@ export function DeleteButton({
   const timing = (transition: Transition) => (reduced ? INSTANT : transition);
 
   const top = useMotionValue(WALL_TOP);
-  const wall = useTransform(top, (y) => WALL_BASE - y);
+  const wall = useTransform(top, (y: number) => WALL_BASE - y);
   const bin = useMotionTemplate`M19 ${top}v${wall}a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V${top}`;
   const settle = useMotionValue(1);
 
@@ -172,7 +172,7 @@ export function DeleteButton({
       className={cn("relative h-12 rounded-2xl", SURFACE, GLYPH, className)}
       animate={{ width: open ? TILE + PANEL : TILE }}
       transition={timing(WIDTH)}
-      onKeyDown={(event) => {
+      onKeyDown={(event: React.KeyboardEvent<HTMLDivElement>) => {
         if (event.key === "Escape" && open) resolve("kept");
       }}
       {...props}

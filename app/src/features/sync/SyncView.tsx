@@ -6,6 +6,7 @@ import { occursOn } from "@/utils/task";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
 import { DeleteButton } from "@/components/ui/delete-button";
+import { EmailSyncSection } from "@/features/sync/EmailSyncSection";
 import { APP_VERSION } from "@/types/creeky";
 
 export function SyncView() {
@@ -109,6 +110,8 @@ export function SyncView() {
         <span className="h-3.5 w-3.5 shrink-0 rounded-full bg-(--secondary) shadow-[0_0_0_6px_var(--secondary-light)]" />
         <div><b className="text-sm">Al día</b><div className="text-xs text-(--muted)">Última copia: {syncTime} • Almacenamiento: localStorage</div></div>
       </div>
+
+      <EmailSyncSection />
 
       <div className="grid grid-cols-2 gap-4 max-[700px]:grid-cols-1">
         <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 shadow-sm relative overflow-hidden">

@@ -63,14 +63,16 @@ export function Sidebar({ view, onSelect, badges, userInitial, onLogout, collaps
 
   const item = (v: CreekyView, label: string, icon: string, badgeKey?: string, variant: "accent" | "secondary" = "accent") => {
     const active = view === v;
+    const count = badgeKey ? (badges[badgeKey] ?? 0) : 0;
+    const showBadge = badgeKey !== undefined && count > 0;
     const button = (
       <button className={navLink(active, variant)} data-page={v} onClick={() => onSelect(v)}>
         <span className={`flex shrink-0 items-center justify-center ${collapsed ? "h-6 w-6" : "h-5.5 w-5.5"}`} aria-hidden="true">
           <Icon name={icon} size={collapsed ? 20 : 18} />
         </span>
         {!collapsed ? <span className="truncate">{label}</span> : null}
-        {!collapsed && badgeKey ? <span id={badgeKey} className={`ml-auto min-w-4.5 rounded-full px-1.5 py-0.5 text-center text-[11px] font-semibold text-white ${badgeForVariant(variant)}`}>{badges[badgeKey] ? badges[badgeKey] : null}</span> : null}
-        {collapsed && badgeKey ? <span id={badgeKey} className={`absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full border-2 border-(--bg-primary) px-1 text-[10px] font-bold text-white shadow-sm ${badgeForVariant(variant)}`}>{badges[badgeKey] ? (badges[badgeKey]! > 99 ? "99+" : badges[badgeKey]) : null}</span> : null}
+        {!collapsed && showBadge ? <span id={badgeKey} className={`ml-auto min-w-4.5 rounded-full px-1.5 py-0.5 text-center text-[11px] font-semibold text-white ${badgeForVariant(variant)}`}>{count}</span> : null}
+        {collapsed && showBadge ? <span id={badgeKey} className={`absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full border-2 border-(--bg-primary) px-1 text-[10px] font-bold text-white shadow-sm ${badgeForVariant(variant)}`}>{count > 99 ? "99+" : count}</span> : null}
         {active && !collapsed ? <span className={`absolute left-0 top-1/2 h-6 w-0.5 -translate-y-1/2 rounded-r-full ${variant === "secondary" ? "bg-(--secondary)" : "bg-(--accent)"}`} /> : null}
       </button>
     );

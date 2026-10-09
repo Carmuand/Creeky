@@ -5,12 +5,20 @@ import { PRIO_META } from "@/types/creeky";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { ProfileCard } from "@/features/profile/ProfileCard";
+import { ProfileEditModal } from "@/features/profile/ProfileEditModal";
+import { GoalBars } from "@/features/profile/GoalRings";
+import type { GoalBarDatum } from "@/features/profile/GoalRings";
+import { PulseCard } from "@/features/profile/PulseCard";
+import { ListDonut } from "@/features/profile/ListDonut";
+import type { DonutSegment } from "@/features/profile/ListDonut";
 
 export function ProfileView() {
   const { store, refresh } = useCreekyStore();
   const [range, setRange] = useState<"all" | "week">("all");
   const [name, setName] = useState("");
   const [isEditing, setIsEditing] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
   const user = useMemo(() => {
     if (!store.session) return null;
@@ -21,6 +29,27 @@ export function ProfileView() {
   const alive = useMemo(() => store.tasks.filter((t) => !t.deleted && (range === "all" || (t.createdAt || 0) >= weekAgo)), [store.tasks, range]);
   const done = useMemo(() => alive.filter((t) => t.done).length, [alive]);
   const focusMin = useMemo(() => store.pomoLog.filter((p) => p.mode === "focus" && (range === "all" || (p.ts || 0) >= weekAgo)).reduce((a, p) => a + (p.minutes || 0), 0), [store.pomoLog, range, weekAgo]);
+
+  const priorityRings: GoalBarDatum[] = Object.entries(PRIO_META).map(([value, meta]) => {
+    const group = alive.filter((t) => (t.priority || "none") === value);
+    const finished = group.filter((t) => t.done).length;
+    return {
+      id: value,
+      label: meta.label,
+      detail: `${finished} de ${group.length}`,
+      percent: group.length ? (finished / group.length) * 100 : 0,
+      color: meta.color,
+    };
+  });
+  const priorityBlended = priorityRings.length
+    ? `${(priorityRings.reduce((acc, ring) => acc + ring.percent, 0) / priorityRings.length).toFixed(1)}%`
+    : "0.0%";
+  const listSegments: DonutSegment[] = store.lists.map((l) => ({
+    id: l.id,
+    label: l.name,
+    value: alive.filter((t) => t.list === l.id).length,
+    color: l.color,
+  }));
 
   useEffect(() => {
     if (user) {
@@ -45,47 +74,64 @@ export function ProfileView() {
     setIsEditing(false);
   };
 
+  const handleAvatarUpload = (dataUrl: string) => {
+    if (!user || !dataUrl) return;
+    const s = db.load();
+    const full = s.users.find((x) => x.id === user.id);
+    if (!full) return;
+    full.avatar = dataUrl;
+    db.save(s);
+    refresh();
+  };
+
+  const handleAvatarRemove = () => {
+    if (!user) return;
+    const s = db.load();
+    const full = s.users.find((x) => x.id === user.id);
+    if (!full) return;
+    delete full.avatar;
+    db.save(s);
+    refresh();
+  };
+
   if (!user) return <div className="p-6 text-sm text-(--muted)">No hay sesión activa.</div>;
 
   return (
     <section className="max-w-275 mx-auto flex flex-col gap-4" aria-labelledby="h-profile">
-      <div className="flex items-center gap-5 rounded-xl border border-(--border-light) bg-(--bg-primary) p-6 shadow-sm">
-        <div className="flex h-21 w-21 items-center justify-center rounded-full bg-(--accent) text-3xl font-bold text-white">{(user.name || "U")[0].toUpperCase()}</div>
-        <div className="flex-1 min-w-0">
-          <h2 id="h-profile" className="text-xl font-semibold">{user.name || "Usuario"}</h2>
-          <p className="text-sm text-(--muted)">{user.email} • Miembro desde {new Date(user.created).toLocaleDateString()}</p>
-        </div>
-        <Button variant="secondary" size="sm" onClick={() => { setIsEditing(true); setTimeout(() => document.getElementById("pf-name")?.focus(), 0); }}>Editar</Button>
-      </div>
+      <ProfileCard
+        name={user.name || "Usuario"}
+        email={user.email}
+        memberSince={`Miembro desde ${new Date(user.created).toLocaleDateString()}`}
+        initial={(user.name || "U")[0].toUpperCase()}
+        avatarUrl={user.avatar}
+        onAvatarUpload={handleAvatarUpload}
+        onAvatarRemove={handleAvatarRemove}
+        stats={{ tasks: alive.length, completed: done, focusMinutes: focusMin, habits: store.habits.length }}
+        onEdit={() => setEditOpen(true)}
+      />
+      <ProfileEditModal
+        open={editOpen}
+        userId={user.id}
+        defaultName={user.name || ""}
+        defaultEmail={user.email}
+        onClose={() => setEditOpen(false)}
+        onSaved={refresh}
+      />
 
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="inline-flex h-7 items-center text-xs font-semibold uppercase tracking-widest text-(--muted)">Estadísticas:</span>
-        <button onClick={() => setRange("all")} className={`rounded-full border px-3 py-1 text-xs ${range === "all" ? "bg-(--accent) border-(--accent) text-white font-semibold" : "border-(--border-medium) bg-(--bg-primary) text-(--muted) hover:border-(--accent)"}`}>Todo</button>
-        <button onClick={() => setRange("week")} className={`rounded-full border px-3 py-1 text-xs ${range === "week" ? "bg-(--accent) border-(--accent) text-white font-semibold" : "border-(--border-medium) bg-(--bg-primary) text-(--muted) hover:border-(--accent)"}`}>Últimos 7 días</button>
-      </div>
-
-      <div className="grid grid-cols-4 gap-3 max-[900px]:grid-cols-2">
-        <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 text-center shadow-sm"><b className="block text-xl">{alive.length}</b><span className="text-xs text-(--muted)">Tareas</span></div>
-        <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 text-center shadow-sm"><b className="block text-xl">{done}</b><span className="text-xs text-(--muted)">Completadas</span></div>
-        <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 text-center shadow-sm"><b className="block text-xl">{focusMin}</b><span className="text-xs text-(--muted)">Min. de foco</span></div>
-        <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 text-center shadow-sm"><b className="block text-xl">{store.habits.length}</b><span className="text-xs text-(--muted)">Hábitos</span></div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4 max-[900px]:grid-cols-1">
-        <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 shadow-sm">
-          <h3 className="mb-3 font-semibold">Por lista</h3>
-          {store.lists.map((l) => {
-            const lt = alive.filter((t) => t.list === l.id);
-            return <div key={l.id} className="flex items-center gap-2 border-b border-(--border-light) py-2 text-sm last:border-0"><span className="h-3 w-3 rounded" style={{ background: l.color }} /><span className="flex-1 truncate">{l.name}</span><b className="text-sm">{lt.filter((t) => t.done).length}/{lt.length}</b></div>;
-          })}
+      <div className="grid grid-cols-2 gap-3 max-[1000px]:grid-cols-1">
+        <div className="col-span-2 max-[1000px]:col-span-1">
+          <PulseCard />
         </div>
-        <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 shadow-sm">
-          <h3 className="mb-3 font-semibold">Por prioridad</h3>
-          {Object.entries(PRIO_META).map(([v, m]) => {
-            const n = alive.filter((t) => (t.priority || "none") === v).length;
-            return <div key={v} className="flex items-center gap-2 border-b border-(--border-light) py-2 text-sm last:border-0"><span className="flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white" style={{ background: m.color }}>{m.mark}</span><span className="flex-1">{m.label}</span><b>{n}</b></div>;
-          })}
-        </div>
+        <ListDonut range={range} onRangeChange={setRange} segments={listSegments} />
+        <GoalBars
+          range={range}
+          onRangeChange={setRange}
+          bars={priorityRings}
+          footerValue={priorityBlended}
+          title="Por prioridad"
+          subtitle="Tareas completadas por nivel de prioridad."
+          footerLabel="Promedio de completadas"
+        />
       </div>
 
       <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 shadow-sm">

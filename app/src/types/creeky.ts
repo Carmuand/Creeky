@@ -87,6 +87,7 @@ export interface User {
   email: string;
   pass: string; // btoa
   created: number;
+  avatar?: string;
 }
 
 export interface CreekyDB {

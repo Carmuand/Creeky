@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 /**
  * Properties for the {@link Dropdown} component.
@@ -18,29 +19,43 @@ interface DropdownProps {
 export function Dropdown({ trigger, children, align = "right" }: DropdownProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const [coords, setCoords] = useState<{ top: number; left: number; width: number } | null>(null);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || !rootRef.current) return;
+    const rect = rootRef.current.getBoundingClientRect();
+    setCoords({ top: rect.bottom + 4, left: align === "right" ? rect.right - 192 : rect.left, width: rect.width });
     const onDown = (e: MouseEvent) => {
       if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
     };
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    const onScroll = () => setOpen(false);
     document.addEventListener("mousedown", onDown);
     document.addEventListener("keydown", onKey);
+    window.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", onScroll);
     return () => {
       document.removeEventListener("mousedown", onDown);
       document.removeEventListener("keydown", onKey);
+      window.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", onScroll);
     };
-  }, [open]);
+  }, [open, align]);
 
   return (
     <div ref={rootRef} className="relative" onClick={(e) => e.stopPropagation()}>
       <div onClick={() => setOpen((o) => !o)}>{trigger}</div>
-      {open ? (
-        <div className={`absolute top-full z-20 mt-1 flex w-48 flex-col rounded-lg border border-(--border-medium) bg-(--bg-primary) p-1 shadow-lg ${align === "right" ? "right-0" : "left-0"}`}>
-          {children}
-        </div>
-      ) : null}
+      {open && coords
+        ? createPortal(
+            <div
+              style={{ top: coords.top, left: coords.left, width: 192 }}
+              className="fixed z-50 flex flex-col rounded-lg border border-(--border-medium) bg-(--bg-primary) p-1 shadow-xl"
+            >
+              {children}
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }
