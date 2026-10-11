@@ -16,6 +16,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 # Project imports
+from desktop.config import config
 from desktop.core import credentials
 from desktop.core.errors import ApiError
 from desktop.database.engine import session_scope
@@ -121,14 +122,6 @@ def update_profile(name: str, email: str, password: str | None = None) -> dict[s
         return serialize_user(user)
 
 
-def set_avatar(data_url: str | None) -> dict[str, Any]:
-    """Set or remove the signed-in user's profile photo."""
-    with session_scope() as session:
-        user: User = require_user(session)
-        user.avatar = data_url or None
-        return serialize_user(user)
-
-
 def set_onboarded(onboarded: bool) -> dict[str, Any]:
     """Record whether the signed-in user finished or skipped the guided tour."""
     with session_scope() as session:
@@ -142,7 +135,10 @@ def delete_account() -> None:
     with session_scope() as session:
         user: User = require_user(session)
         user_id: str = user.id
+        avatar: str | None = user.avatar
         session.delete(user)
+    if avatar:
+        (config.avatars_dir / avatar).unlink(missing_ok=True)
     credentials.delete_password(user_id)
     credentials.delete_unad_password(user_id)
     credentials.clear_session()
