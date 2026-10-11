@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { ComponentType } from "react";
 import { ES, US } from "country-flag-icons/react/3x2";
-import { Check, Languages, Monitor } from "lucide-react";
+import { BellRing, Check, GraduationCap, Languages, Monitor, Power } from "lucide-react";
 import { useCreekyStore } from "@/hooks/useCreekyStore";
 import { pushToast } from "@/hooks/useToast";
 import { applyLanguage, errorMessage, t as translate, useI18n } from "@/i18n";
@@ -10,11 +10,14 @@ import { settingsApi } from "@/services/api";
 import { cn } from "@/lib/utils";
 import type { Language } from "@/types/creeky";
 import { WindowSizeSection } from "@/features/settings/WindowSizeSection";
+import { StartupSection } from "@/features/settings/StartupSection";
+import { NotificationSettingsSection } from "@/features/settings/NotificationSettingsSection";
+import { UnadSection } from "@/features/settings/UnadSection";
 
 /**
  * Tabs available in the settings view.
  */
-type SettingsTab = "language" | "window";
+type SettingsTab = "language" | "window" | "startup" | "notifications" | "unad";
 
 /**
  * Language option shown in the language tab.
@@ -69,13 +72,16 @@ export function SettingsView() {
   const tabs: { id: SettingsTab; label: string; icon: ComponentType<{ className?: string }> }[] = [
     { id: "language", label: t("settings.tab.language"), icon: Languages },
     { id: "window", label: t("settings.tab.window"), icon: Monitor },
+    { id: "startup", label: t("settings.tab.startup"), icon: Power },
+    { id: "notifications", label: t("nav.notifications"), icon: BellRing },
+    { id: "unad", label: t("settings.tab.unad"), icon: GraduationCap },
   ];
 
   return (
     <section className="max-w-275 mx-auto flex flex-col gap-4" aria-label={t("nav.settings")}>
       <p className="text-sm text-(--muted)">{t("settings.intro")}</p>
 
-      <div className="flex gap-1 rounded-lg bg-(--bg-tertiary) p-1 w-fit" role="tablist" aria-label={t("nav.settings")}>
+      <div className="flex flex-wrap gap-1 rounded-lg bg-(--bg-tertiary) p-1 w-fit" role="tablist" aria-label={t("nav.settings")}>
         {tabs.map((item) => {
           const Icon = item.icon;
           return (
@@ -126,8 +132,14 @@ export function SettingsView() {
             })}
           </div>
         </div>
-      ) : (
+      ) : tab === "window" ? (
         <WindowSizeSection />
+      ) : tab === "startup" ? (
+        <StartupSection />
+      ) : tab === "notifications" ? (
+        <NotificationSettingsSection />
+      ) : (
+        <UnadSection />
       )}
     </section>
   );
