@@ -53,6 +53,7 @@ class Tags(StrEnum):
     EVENTS = "EVENTS"
     NOTIFIER = "NOTIFIER"
     SCHEDULER = "SCHEDULER"
+    UNAD = "UNAD"
 
 
 def log(level: LogLevel, tag: Tags | str, message: str) -> None:
@@ -87,5 +88,5 @@ def log(level: LogLevel, tag: Tags | str, message: str) -> None:
                 f"[{Fore.WHITE}{Style.BRIGHT}{tag_text}{Style.RESET_ALL}] "
                 f"{message}"
             )
-        except (OSError, ValueError):
+        except (AttributeError, OSError, ValueError):
             return
