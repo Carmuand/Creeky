@@ -1,3 +1,5 @@
+import { useI18n } from "@/i18n";
+
 /**
  * Shared range type for the profile statistic charts.
  */
@@ -15,10 +17,14 @@ export interface StatTabsProps {
 
 /**
  * Segmented range control rendered in the chart headers.
+ *
+ * @param props - Component properties.
+ * @returns The range tabs.
  */
 export function StatTabs({ value, onChange }: StatTabsProps) {
+  const { t } = useI18n();
   return (
-    <div className="flex gap-1 rounded-lg bg-(--bg-tertiary) p-1" role="tablist" aria-label="Rango de estadísticas">
+    <div className="flex gap-1 rounded-lg bg-(--bg-tertiary) p-1" role="tablist" aria-label={t("stats.aria.range")}>
       <button
         type="button"
         role="tab"
@@ -26,7 +32,7 @@ export function StatTabs({ value, onChange }: StatTabsProps) {
         onClick={() => onChange("all")}
         className={`rounded-md px-3 py-1 text-xs transition-colors ${value === "all" ? "bg-(--bg-primary) font-semibold text-(--text) shadow-sm" : "text-(--muted) hover:text-(--text)"}`}
       >
-        Todo
+        {t("stats.all")}
       </button>
       <button
         type="button"
@@ -35,7 +41,7 @@ export function StatTabs({ value, onChange }: StatTabsProps) {
         onClick={() => onChange("week")}
         className={`rounded-md px-3 py-1 text-xs transition-colors ${value === "week" ? "bg-(--bg-primary) font-semibold text-(--text) shadow-sm" : "text-(--muted) hover:text-(--text)"}`}
       >
-        Últimos 7 días
+        {t("stats.week")}
       </button>
     </div>
   );
