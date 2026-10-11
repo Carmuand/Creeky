@@ -1,4 +1,5 @@
 import { motion, useReducedMotion } from "motion/react";
+import { useI18n } from "@/i18n";
 import { StatTabs } from "@/features/profile/StatTabs";
 import type { StatRange } from "@/features/profile/StatTabs";
 import { cn } from "@/lib/utils";
@@ -30,7 +31,10 @@ export interface TaskFunnelProps {
 }
 
 /**
- * Formats a percent with one decimal.
+ * Formats a percentage with one decimal place.
+ *
+ * @param value - Percentage value.
+ * @returns Formatted percentage.
  */
 function formatPercent(value: number): string {
   return `${value.toFixed(1)}%`;
@@ -41,8 +45,12 @@ function formatPercent(value: number): string {
  *
  * Renders decreasing stage bars with drop annotations, steepest-fall
  * highlight, hover tooltips and a total conversion footer.
+ *
+ * @param props - Component properties.
+ * @returns The task funnel card.
  */
 export function TaskFunnel({ range, onRangeChange, stages, footerValue }: TaskFunnelProps) {
+  const { t } = useI18n();
   const reduceMotion = useReducedMotion() ?? false;
   const top = stages[0]?.value ?? 0;
 
@@ -63,8 +71,8 @@ export function TaskFunnel({ range, onRangeChange, stages, footerValue }: TaskFu
     <div className="flex h-full flex-col rounded-xl border border-(--border-light) bg-(--bg-primary) shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-2 p-3">
         <div>
-          <h3 className="text-sm font-semibold text-(--text-primary)">Embudo de tareas</h3>
-          <p className="mt-0.5 text-[11px] text-(--muted)">De creadas a completadas.</p>
+          <h3 className="text-sm font-semibold text-(--text-primary)">{t("profile.funnel.title")}</h3>
+          <p className="mt-0.5 text-[11px] text-(--muted)">{t("profile.funnel.subtitle")}</p>
         </div>
         <StatTabs value={range} onChange={onRangeChange} />
       </div>
@@ -81,8 +89,8 @@ export function TaskFunnel({ range, onRangeChange, stages, footerValue }: TaskFu
               <div className="flex items-baseline justify-between gap-2 text-xs">
                 <span className="font-medium text-(--text-primary)">{stage.label}</span>
                 <span className="text-(--text-primary)">
-                  {stage.value.toLocaleString()}
-                  <span className="text-(--muted)">{` · ${formatPercent(fromTop)}`}</span>
+                  {t("profile.funnel.tasksCount", { count: stage.value.toLocaleString() })}
+                  <span className="text-(--muted)">{` · ${t("profile.funnel.totalShare", { percent: formatPercent(fromTop) })}`}</span>
                 </span>
               </div>
               <div className="mt-1 h-6 rounded-md bg-(--bg-tertiary)">
@@ -97,15 +105,29 @@ export function TaskFunnel({ range, onRangeChange, stages, footerValue }: TaskFu
                 <p className={cn("mt-0.5 flex items-center gap-1.5 text-[11px]", steepest ? "font-medium text-(--secondary)" : "text-(--muted)")}>
                   {steepest ? <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-(--secondary)" /> : null}
                   {previous <= 0 || lost <= 0
-                    ? `${formatPercent(fromPrevious)} vs anterior`
-                    : `−${lost.toLocaleString()} tareas · ${formatPercent(100 - fromPrevious)} menos${steepest ? " · mayor caída" : ""}`}
+                    ? t("profile.funnel.previousComparison", { percent: formatPercent(fromPrevious) })
+                    : steepest
+                      ? t("profile.funnel.tasksLostBiggest", {
+                          count: lost.toLocaleString(),
+                          percent: formatPercent(100 - fromPrevious),
+                          drop: t("profile.funnel.biggestDrop"),
+                        })
+                      : t("profile.funnel.tasksLost", {
+                          count: lost.toLocaleString(),
+                          percent: formatPercent(100 - fromPrevious),
+                        })}
                 </p>
               ) : null}
               <div className="pointer-events-none absolute right-0 top-0 z-10 hidden w-56 -translate-y-full rounded-lg border border-(--border-medium) bg-(--bg-primary) p-3 shadow-xl group-hover:block group-focus-within:block">
                 <p className="text-xs text-(--muted)">{stage.label}</p>
-                <p className="mt-0.5 text-sm font-bold text-(--text-primary)">{`${stage.value.toLocaleString()} tareas`}</p>
+                <p className="mt-0.5 text-sm font-bold text-(--text-primary)">{t("profile.funnel.tasksCount", { count: stage.value.toLocaleString() })}</p>
                 <p className="mt-0.5 text-xs text-(--muted)">
-                  {index === 0 ? `${formatPercent(fromTop)} del total` : `${formatPercent(fromPrevious)} vs anterior · ${formatPercent(fromTop)} del total`}
+                  {index === 0
+                    ? t("profile.funnel.totalShare", { percent: formatPercent(fromTop) })
+                    : t("profile.funnel.previousAndTotal", {
+                        previous: formatPercent(fromPrevious),
+                        total: formatPercent(fromTop),
+                      })}
                 </p>
               </div>
             </div>
@@ -113,7 +135,7 @@ export function TaskFunnel({ range, onRangeChange, stages, footerValue }: TaskFu
         })}
       </div>
       <div className="flex items-center justify-between border-t border-(--border-light) px-3 py-2">
-        <span className="text-[11px] text-(--muted)">Conversión a completadas</span>
+        <span className="text-[11px] text-(--muted)">{t("profile.funnel.conversion")}</span>
         <b className="text-xs text-(--text-primary)">{footerValue}</b>
       </div>
     </div>
