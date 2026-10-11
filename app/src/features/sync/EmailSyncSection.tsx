@@ -4,7 +4,7 @@ import { SiApple, SiGmail } from "react-icons/si";
 import { Link2, Mail, Send, Unlink } from "lucide-react";
 import { useCreekyStore } from "@/hooks/useCreekyStore";
 import { errorMessage, useI18n } from "@/i18n";
-import { emailLinksApi } from "@/services/api";
+import { dataApi, emailLinksApi } from "@/services/api";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Modal, ModalBody, ModalFooter, ModalHeader } from "@/components/ui/Modal";
@@ -31,8 +31,9 @@ const PROVIDER_ICONS: Record<EmailProviderId, ComponentType<{ className?: string
  * Email-based backup linking section for the Sync view.
  *
  * Each provider card links the user's own address and sends a backup
- * by downloading the JSON file and opening the provider's compose flow
- * with subject and body prefilled. Links are stored by the backend.
+ * by saving the encrypted file and opening the provider's compose flow
+ * with subject and body prefilled, including the recovery key of that
+ * backup. Links are stored by the backend.
  *
  * @returns The email backup section.
  */
@@ -45,13 +46,12 @@ export function EmailSyncSection() {
   const [formError, setFormError] = useState("");
   const [notice, setNotice] = useState("");
 
-  const summary = useMemo<BackupSummary>(() => {
+  const summary = useMemo<Omit<BackupSummary, "sizeKb" | "recoveryKey">>(() => {
     const alive = store.tasks.filter((task) => !task.deleted);
     return {
       pending: alive.filter((task) => !task.done).length,
       completed: alive.filter((task) => task.done).length,
       habits: store.habits.length,
-      sizeKb: (JSON.stringify(store).length / 1024).toFixed(1),
       dateLabel: new Date().toLocaleString(locale),
     };
   }, [store, locale]);
@@ -94,27 +94,23 @@ export function EmailSyncSection() {
       .catch((error: unknown) => setNotice(errorMessage(error)));
   };
 
-  const downloadBackup = () => {
-    const blob = new Blob([JSON.stringify(store, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = "creeky-backup.json";
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 2000);
-  };
-
-  const sendBackup = (provider: EmailProviderId) => {
+  const sendBackup = async (provider: EmailProviderId) => {
     const link = links.find((item) => item.provider === provider);
     if (!link) {
       openLink(provider);
       return;
     }
-    downloadBackup();
-    const subject = buildBackupSubject(t, summary);
-    const body = buildBackupBody(t, summary);
+    let details: BackupSummary;
+    try {
+      const result = await dataApi.exportBackup();
+      if (result.cancelled) return;
+      details = { ...summary, sizeKb: (result.size / 1024).toFixed(1), recoveryKey: result.key };
+    } catch (error) {
+      setNotice(errorMessage(error));
+      return;
+    }
+    const subject = buildBackupSubject(t, details);
+    const body = buildBackupBody(t, details);
     const url = buildComposeUrl(provider, link.email, subject, body);
     if (provider === "apple") {
       window.location.href = url;
@@ -186,7 +182,7 @@ export function EmailSyncSection() {
               <div className="mt-auto flex flex-wrap gap-2">
                 {linked ? (
                   <>
-                    <Button variant="secondary" size="sm" onClick={() => sendBackup(provider.id)}>
+                    <Button variant="secondary" size="sm" onClick={() => { void sendBackup(provider.id); }}>
                       <Send className="h-3.5 w-3.5" aria-hidden />
                       {t("email.send")}
                     </Button>
