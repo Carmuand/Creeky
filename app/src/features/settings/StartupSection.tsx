@@ -51,6 +51,7 @@ export function StartupSection() {
   };
 
   const handleReplay = () => {
+    window.location.hash = "tasks";
     authApi.setOnboarded(false).catch((error: unknown) => pushToast(errorMessage(error), "error"));
   };
 
