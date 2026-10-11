@@ -1,28 +1,44 @@
 import { useEffect, useState } from "react";
 import type { CreekyView } from "@/components/layout/Sidebar";
+import type { MessageKey } from "@/i18n";
 
-const TITLES: Record<CreekyView, string> = {
-  tasks: "Tareas",
-  calendar: "Calendario",
-  pomodoro: "Pomodoro",
-  eisenhower: "Matriz Eisenhower",
-  habits: "Hábitos",
-  countdown: "Cuenta regresiva",
-  search: "Búsqueda",
-  sync: "Sincronización",
-  notifications: "Notificaciones",
-  help: "Ayuda",
-  profile: "Perfil",
+/**
+ * Message key of the page title for each view.
+ */
+export const VIEW_TITLE_KEYS: Record<CreekyView, MessageKey> = {
+  tasks: "nav.tasks",
+  calendar: "nav.calendar",
+  pomodoro: "nav.pomodoro",
+  eisenhower: "nav.eisenhower",
+  habits: "nav.habits",
+  countdown: "nav.countdown",
+  search: "nav.search",
+  sync: "nav.sync",
+  notifications: "nav.notifications",
+  settings: "nav.settings",
+  help: "nav.help",
+  profile: "nav.profile",
 };
 
 /**
- * Manages the current view and hash synchronization.
+ * Tells whether a string names an existing view.
+ *
+ * @param value - Candidate view name.
+ * @returns True when the value is a known view.
  */
-export function useAppView() {
+export function isCreekyView(value: string): value is CreekyView {
+  return value in VIEW_TITLE_KEYS;
+}
+
+/**
+ * Manages the current view and keeps it in sync with the URL hash.
+ *
+ * @returns The active view and its setter.
+ */
+export function useAppView(): { view: CreekyView; setView: (view: CreekyView) => void } {
   const getInitial = (): CreekyView => {
-    const hash = window.location.hash.slice(1) as CreekyView;
-    if (hash && hash in TITLES) return hash;
-    return "tasks";
+    const hash = window.location.hash.slice(1);
+    return isCreekyView(hash) ? hash : "tasks";
   };
 
   const [view, setView] = useState<CreekyView>(getInitial);
@@ -31,8 +47,8 @@ export function useAppView() {
 
   useEffect(() => {
     const onHash = () => {
-      const h = window.location.hash.slice(1) as CreekyView;
-      if (h && h in TITLES) setView(h);
+      const hash = window.location.hash.slice(1);
+      if (isCreekyView(hash)) setView(hash);
     };
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
@@ -49,5 +65,5 @@ export function useAppView() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  return { view, setView, TITLES };
+  return { view, setView };
 }
