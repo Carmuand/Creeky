@@ -18,7 +18,9 @@ const EMPTY_STORE: CreekyDB = {
   notifications: [],
   emailLinks: [],
   focus: null,
-  settings: { theme: "light", language: "es" },
+  unad: { connected: false, account: null, profile: null, agendas: [] },
+  notificationPrefs: { desktop: true, tasks: true, habits: true, pomodoro: true, unad_changes: true, unad_opening: true, unad_deadline: true },
+  settings: { theme: "light", language: "es", sidebarCollapsed: true },
 };
 
 let snapshot: CreekyDB = EMPTY_STORE;
