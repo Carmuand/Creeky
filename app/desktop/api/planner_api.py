@@ -1,5 +1,6 @@
 """
-Eisenhower matrix notes, countdowns and Pomodoro sessions API.
+Eisenhower matrix notes, countdowns and Pomodoro sessions API. Every call
+works on the data of the signed-in user.
 """
 
 # Standard library
@@ -11,7 +12,12 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 # Project imports
+from desktop.api.auth_api import require_user
+from desktop.api.notification_api import desktop_enabled
+from desktop.api.settings_api import read_language
 from desktop.core.errors import ApiError
+from desktop.core.messages import translate
+from desktop.core.notices import send_desktop_notice
 from desktop.database.engine import session_scope
 from desktop.database.models import Countdown, MatrixNote, PomodoroSession, Task
 from desktop.database.serializers import (
@@ -25,13 +31,16 @@ POMODORO_MODES: tuple[str, ...] = ("focus", "break")
 
 
 def _quadrant_notes(session: Session, quadrant: str) -> list[MatrixNote]:
-    """Return the notes of a quadrant in display order."""
+    """Return the signed-in user's notes of a quadrant in display order."""
     if quadrant not in QUADRANTS:
         raise ApiError("invalid_quadrant")
     return list(
         session.scalars(
             select(MatrixNote)
-            .where(MatrixNote.quadrant == quadrant)
+            .where(
+                MatrixNote.user_id == require_user(session).id,
+                MatrixNote.quadrant == quadrant,
+            )
             .order_by(MatrixNote.position, MatrixNote.id)
         )
     )
@@ -48,7 +57,9 @@ def _note_at(session: Session, quadrant: str, index: int) -> MatrixNote:
 def _next_note_position(session: Session, quadrant: str) -> int:
     """Return the position that places a note last in a quadrant."""
     last: int | None = session.scalar(
-        select(func.max(MatrixNote.position)).where(MatrixNote.quadrant == quadrant)
+        select(func.max(MatrixNote.position)).where(
+            MatrixNote.user_id == require_user(session).id, MatrixNote.quadrant == quadrant
+        )
     )
     return (last if last is not None else -1) + 1
 
@@ -76,6 +87,7 @@ def add_matrix_notes(notes: list[dict[str, Any]], skip_existing: bool = False) -
                 continue
             session.add(
                 MatrixNote(
+                    user_id=require_user(session).id,
                     quadrant=quadrant,
                     text=text,
                     position=_next_note_position(session, quadrant),
@@ -102,6 +114,18 @@ def move_matrix_note(quadrant: str, index: int, target: str) -> None:
         note.quadrant = target
 
 
+def _get_countdown(session: Session, countdown_id: str) -> Countdown:
+    """Return one of the signed-in user's countdowns or fail when it is missing."""
+    countdown: Countdown | None = session.scalar(
+        select(Countdown).where(
+            Countdown.user_id == require_user(session).id, Countdown.id == countdown_id
+        )
+    )
+    if countdown is None:
+        raise ApiError("countdown_not_found")
+    return countdown
+
+
 def create_countdown(title: str, date: str) -> dict[str, Any]:
     """Create a countdown towards a target date."""
     clean: str = (title or "").strip()
@@ -109,7 +133,11 @@ def create_countdown(title: str, date: str) -> dict[str, Any]:
         raise ApiError("title_required")
     with session_scope() as session:
         countdown: Countdown = Countdown(
-            id=new_id("c"), title=clean, date=date, created_at=now_ms()
+            id=new_id("c"),
+            user_id=require_user(session).id,
+            title=clean,
+            date=date,
+            created_at=now_ms(),
         )
         session.add(countdown)
         session.flush()
@@ -122,9 +150,7 @@ def update_countdown(countdown_id: str, title: str, date: str) -> dict[str, Any]
     if not clean or not date:
         raise ApiError("title_required")
     with session_scope() as session:
-        countdown: Countdown | None = session.get(Countdown, countdown_id)
-        if countdown is None:
-            raise ApiError("countdown_not_found")
+        countdown: Countdown = _get_countdown(session, countdown_id)
         countdown.title = clean
         countdown.date = date
         return serialize_countdown(countdown)
@@ -133,10 +159,7 @@ def update_countdown(countdown_id: str, title: str, date: str) -> dict[str, Any]
 def delete_countdown(countdown_id: str) -> None:
     """Delete a countdown."""
     with session_scope() as session:
-        countdown: Countdown | None = session.get(Countdown, countdown_id)
-        if countdown is None:
-            raise ApiError("countdown_not_found")
-        session.delete(countdown)
+        session.delete(_get_countdown(session, countdown_id))
 
 
 def log_pomodoro_session(
@@ -146,7 +169,8 @@ def log_pomodoro_session(
     Record a finished Pomodoro session.
 
     A focus session linked to an existing task also increases that task's
-    completed session count.
+    completed session count. A desktop notification announces the end of
+    the session when the user enabled that category.
 
     Returns:
         The stored session and, when a task was credited, its title and count.
@@ -154,11 +178,17 @@ def log_pomodoro_session(
     if mode not in POMODORO_MODES:
         raise ApiError("invalid_mode")
     with session_scope() as session:
-        task: Task | None = session.get(Task, task_id) if task_id else None
+        user_id: str = require_user(session).id
+        task: Task | None = (
+            session.scalar(select(Task).where(Task.user_id == user_id, Task.id == task_id))
+            if task_id
+            else None
+        )
         if task is not None and task.deleted:
             task = None
         entry: PomodoroSession = PomodoroSession(
             id=new_id("p"),
+            user_id=user_id,
             date=today_iso(),
             timestamp=now_ms(),
             mode=mode,
@@ -172,13 +202,29 @@ def log_pomodoro_session(
         if mode == "focus" and task is not None:
             task.pomodoro_count += 1
             credited = {"id": task.id, "title": task.title, "pomo": task.pomodoro_count}
-        return {"session": serialize_pomodoro_session(entry), "task": credited}
+        result: dict[str, Any] = {"session": serialize_pomodoro_session(entry), "task": credited}
+        notify: bool = desktop_enabled(session, user_id, "pomodoro")
+        language: str = read_language(session)
+        focused_title: str | None = entry.task_title
+    if notify:
+        send_desktop_notice(
+            translate(language, "pomodoro_focus_title" if mode == "focus" else "pomodoro_break_title"),
+            translate(language, "pomodoro_task_text", minutes=int(minutes), title=focused_title)
+            if focused_title
+            else translate(language, "pomodoro_text", minutes=int(minutes)),
+        )
+    return result
 
 
 def delete_pomodoro_session(session_id: str) -> None:
     """Delete a Pomodoro session from the history."""
     with session_scope() as session:
-        entry: PomodoroSession | None = session.get(PomodoroSession, session_id)
+        entry: PomodoroSession | None = session.scalar(
+            select(PomodoroSession).where(
+                PomodoroSession.user_id == require_user(session).id,
+                PomodoroSession.id == session_id,
+            )
+        )
         if entry is None:
             raise ApiError("session_not_found")
         session.delete(entry)
