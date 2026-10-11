@@ -120,7 +120,9 @@ export interface CreekyBridgeApi {
   sign_in(email: string, password: string): Promise<BridgeResult<User>>;
   sign_out(): Promise<BridgeResult<null>>;
   update_profile(name: string, email: string, password: string | null): Promise<BridgeResult<User>>;
-  set_avatar(dataUrl: string | null): Promise<BridgeResult<User>>;
+  pick_avatar(): Promise<BridgeResult<{ cancelled: true } | { cancelled: false; user: User }>>;
+  get_avatar(): Promise<BridgeResult<{ dataUrl: string | null }>>;
+  remove_avatar(): Promise<BridgeResult<User>>;
   create_task(payload: TaskPatch): Promise<BridgeResult<Task>>;
   update_task(taskId: string, patch: TaskPatch): Promise<BridgeResult<Task>>;
   delete_task(taskId: string): Promise<BridgeResult<null>>;
