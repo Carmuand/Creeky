@@ -2,6 +2,8 @@ import { useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { Pencil, Trash2, Upload } from "lucide-react";
 import { Dropdown, DropdownItem } from "@/components/ui/Dropdown";
+import { TooltipSimple } from "@/components/ui/Tooltip";
+import { useI18n } from "@/i18n";
 import { cn } from "@/lib/utils";
 
 /**
@@ -32,8 +34,12 @@ export interface ProfileAvatarProps {
  *
  * Renders a rounded photo with an online dot. Opening it reveals
  * the photo actions: edit entry, upload a new photo or remove it.
+ *
+ * @param props - Component properties.
+ * @returns The avatar with its actions menu.
  */
 export function ProfileAvatar({ name, initial, imageUrl, onUpload, onRemove, className = "" }: ProfileAvatarProps) {
+  const { t } = useI18n();
   const fileRef = useRef<HTMLInputElement>(null);
   const [fileError, setFileError] = useState("");
 
@@ -44,11 +50,11 @@ export function ProfileAvatar({ name, initial, imageUrl, onUpload, onRemove, cla
     event.target.value = "";
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      setFileError("El archivo debe ser una imagen.");
+      setFileError(t("avatar.error.type"));
       return;
     }
     if (file.size > MAX_AVATAR_BYTES) {
-      setFileError("La imagen no puede superar 2 MB.");
+      setFileError(t("avatar.error.size"));
       return;
     }
     setFileError("");
@@ -61,10 +67,10 @@ export function ProfileAvatar({ name, initial, imageUrl, onUpload, onRemove, cla
     <div className={cn("relative shrink-0", className)}>
       <Dropdown
         trigger={
+          <TooltipSimple content={t("avatar.edit")} side="right">
           <button
             type="button"
-            aria-label="Editar foto de perfil"
-            title="Editar foto de perfil"
+            aria-label={t("avatar.edit")}
             className="relative block h-21 w-21 overflow-hidden rounded-lg border border-(--accent-border) bg-(--bg-tertiary) transition-shadow hover:shadow-md focus-visible:outline-2 focus-visible:outline-(--border-focus)"
           >
             {imageUrl ? (
@@ -83,28 +89,29 @@ export function ProfileAvatar({ name, initial, imageUrl, onUpload, onRemove, cla
               className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 bg-black/55 py-1 text-[10px] font-medium text-white opacity-0 transition-opacity hover:opacity-100 focus-visible:opacity-100"
             >
               <Pencil className="h-3 w-3" aria-hidden />
-              Editar
+              {t("common.edit")}
             </span>
           </button>
+          </TooltipSimple>
         }
       >
         <DropdownItem onClick={openPicker}>
           <span className="inline-flex items-center gap-2">
             <Upload className="h-4 w-4" aria-hidden />
-            {imageUrl ? "Cambiar foto" : "Subir foto"}
+            {imageUrl ? t("avatar.change") : t("avatar.upload")}
           </span>
         </DropdownItem>
         {imageUrl ? (
           <DropdownItem danger onClick={onRemove}>
             <span className="inline-flex items-center gap-2">
               <Trash2 className="h-4 w-4" aria-hidden />
-              Eliminar foto
+              {t("avatar.remove")}
             </span>
           </DropdownItem>
         ) : null}
       </Dropdown>
-      <span aria-hidden className="absolute -end-1 -top-1 size-3 rounded-full border-2 border-(--bg-primary) bg-emerald-500" />
-      <span className="sr-only">En línea</span>
+      <span aria-hidden className="absolute -inset-e-1 -top-1 size-3 rounded-full border-2 border-(--bg-primary) bg-emerald-500" />
+      <span className="sr-only">{t("avatar.online")}</span>
       <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile} aria-hidden tabIndex={-1} />
       {fileError ? (
         <p role="alert" className="absolute left-0 top-full z-10 mt-1 w-44 rounded-md border border-[rgba(198,40,40,0.25)] bg-(--bg-primary) px-2 py-1 text-[11px] text-[#C62828]">
