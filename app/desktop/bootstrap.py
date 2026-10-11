@@ -29,6 +29,7 @@ from desktop.core.api import Api
 from desktop.core.events import events
 from desktop.core.notifier import notifier
 from desktop.core.scheduler import scheduler
+from desktop.core.unad_service import unad_service
 from desktop.database.engine import init_database, session_scope
 from desktop.utills.logger import log, Tags
 from desktop.utills.window_sizes import (
@@ -114,6 +115,7 @@ def _on_loaded(window: webview.Window) -> None:
     events.attach(window)
     window_api.center_window(window)
     scheduler.start()
+    unad_service.start()
 
 
 def bootstrap() -> None:
@@ -167,4 +169,5 @@ def bootstrap() -> None:
     log("SUCCESS", Tags.MAIN, "Window created - starting webview loop")
     webview.start(debug=config.debug)
     scheduler.stop()
+    unad_service.stop()
     log("INFO", Tags.MAIN, "Webview loop exited - bye!")
