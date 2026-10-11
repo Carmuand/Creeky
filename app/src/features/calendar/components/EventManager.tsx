@@ -7,6 +7,7 @@ import { Modal, ModalBody, ModalFooter, ModalHeader } from "@/components/ui/Moda
 import { Dropdown, DropdownItem } from "@/components/ui/Dropdown";
 import { useI18n } from "@/i18n";
 import type { MessageKey } from "@/i18n";
+import { GraduationCap } from "lucide-react";
 import { ChevronLeft, ChevronRight, Plus, Calendar, Clock, Grid3x3, List, Search, Filter, X } from "lucide-react";
 
 /**
@@ -25,6 +26,12 @@ export interface Event {
   _bgColor?: string;
   _taskId?: string;
   _iso?: string;
+  /** Whether the event comes from an external source and cannot be edited or moved. */
+  readOnly?: boolean;
+  /** Short label of the external source, shown as a badge. */
+  sourceLabel?: string;
+  /** Extra lines shown in the details of a read-only event. */
+  details?: { label: string; value: string }[];
 }
 
 /**
@@ -64,6 +71,39 @@ const defaultColors: EventColor[] = [
   { nameKey: "color.pink", value: "pink", bg: "bg-[#ec4899]", text: "text-white" },
   { nameKey: "color.red", value: "red", bg: "bg-[#ef4444]", text: "text-white" },
 ];
+
+/**
+ * CSS color of each named event color.
+ */
+const COLOR_VALUES: Record<string, string> = {
+  purple: "var(--accent)",
+  green: "var(--secondary)",
+  blue: "#3b82f6",
+  orange: "#f59e0b",
+  pink: "#ec4899",
+  red: "#ef4444",
+};
+
+/**
+ * Returns the CSS color that identifies an event.
+ *
+ * @param event - Event to color.
+ * @returns The list or agenda color when the event has one, otherwise its named color.
+ */
+function eventColor(event: Event): string {
+  return event._bgColor || COLOR_VALUES[event.color] || "var(--accent)";
+}
+
+/**
+ * Tells whether two dates fall on the same calendar day.
+ *
+ * @param a - First date.
+ * @param b - Second date.
+ * @returns True when both dates share year, month and day.
+ */
+function isSameDay(a: Date, b: Date): boolean {
+  return a.getDate() === b.getDate() && a.getMonth() === b.getMonth() && a.getFullYear() === b.getFullYear();
+}
 
 /**
  * Message key of the short name of each weekday, Sunday first.
@@ -176,6 +216,8 @@ export function EventManager({
     });
   }, [events, searchQuery, selectedColors, selectedTags, selectedCategories]);
 
+  const readOnlyEvent = !isCreating && selectedEvent?.readOnly ? selectedEvent : null;
+
   const hasActiveFilters = selectedColors.length > 0 || selectedTags.length > 0 || selectedCategories.length > 0;
 
   const clearFilters = () => {
@@ -223,7 +265,7 @@ export function EventManager({
     [onEventDelete],
   );
 
-  const handleDragStart = useCallback((event: Event) => setDraggedEvent(event), []);
+  const handleDragStart = useCallback((event: Event) => { if (!event.readOnly) setDraggedEvent(event); }, []);
   const handleDragEnd = useCallback(() => setDraggedEvent(null), []);
 
   const handleDrop = useCallback(
@@ -362,6 +404,7 @@ export function EventManager({
       <Modal open={isDialogOpen} onClose={() => { setIsDialogOpen(false); setIsCreating(false); setSelectedEvent(null); }} className="w-full max-w-md max-h-[90vh]">
         <ModalHeader title={isCreating ? t("calendar.dialog.create") : t("calendar.dialog.details")} onClose={() => { setIsDialogOpen(false); setIsCreating(false); setSelectedEvent(null); }} />
         <ModalBody className="gap-4">
+          {readOnlyEvent ? <EventDetails event={readOnlyEvent} /> : (<>
           <div className="flex flex-col gap-1.5"><Label htmlFor="title">{t("calendar.field.title")}</Label><Input id="title" value={isCreating ? newEvent.title : selectedEvent?.title || ""} onChange={(e) => isCreating ? setNewEvent((prev) => ({ ...prev, title: e.target.value })) : setSelectedEvent((prev) => (prev ? { ...prev, title: e.target.value } : null))} placeholder={t("calendar.field.title.placeholder")} /></div>
           <div className="flex flex-col gap-1.5"><Label htmlFor="description">{t("task.description")}</Label><Textarea id="description" value={isCreating ? newEvent.description : selectedEvent?.description || ""} onChange={(e) => isCreating ? setNewEvent((prev) => ({ ...prev, description: e.target.value })) : setSelectedEvent((prev) => (prev ? { ...prev, description: e.target.value } : null))} placeholder={t("task.description")} rows={3} /></div>
           <div className="grid grid-cols-2 gap-4">
@@ -373,11 +416,12 @@ export function EventManager({
             <div className="flex flex-col gap-1.5"><Label>{t("calendar.field.color")}</Label><Select value={isCreating ? (newEvent.color || "") : (selectedEvent?.color || "")} onChange={(v) => isCreating ? setNewEvent((prev) => ({ ...prev, color: v })) : setSelectedEvent((prev) => (prev ? { ...prev, color: v } : null))} options={colors.map((c) => ({ value: c.value, label: t(c.nameKey) }))} /></div>
           </div>
           <div className="flex flex-col gap-1.5"><Label>{t("task.tags")}</Label><div className="flex flex-wrap gap-2">{availableTags.map((tag) => { const isSelected = isCreating ? newEvent.tags?.includes(tag) : selectedEvent?.tags?.includes(tag); return <Badge key={tag} variant={isSelected ? "default" : "outline"} className={`cursor-pointer hover:scale-105 ${isSelected ? "bg-(--accent) text-white border-(--accent)" : ""}`} onClick={() => toggleTag(tag, isCreating)}>{tag}</Badge>; })}</div></div>
+          </>)}
         </ModalBody>
         <ModalFooter>
-          {!isCreating && <Button variant="danger" onClick={() => selectedEvent && handleDeleteEvent(selectedEvent.id)}>{t("common.delete")}</Button>}
-          <Button variant="secondary" onClick={() => { setIsDialogOpen(false); setIsCreating(false); setSelectedEvent(null); }}>{t("common.cancel")}</Button>
-          <Button variant="primary" onClick={isCreating ? handleCreateEvent : handleUpdateEvent}>{isCreating ? t("common.create") : t("common.save")}</Button>
+          {!isCreating && !readOnlyEvent && <Button variant="danger" onClick={() => selectedEvent && handleDeleteEvent(selectedEvent.id)}>{t("common.delete")}</Button>}
+          <Button variant="secondary" onClick={() => { setIsDialogOpen(false); setIsCreating(false); setSelectedEvent(null); }}>{readOnlyEvent ? t("common.close") : t("common.cancel")}</Button>
+          {!readOnlyEvent && <Button variant="primary" onClick={isCreating ? handleCreateEvent : handleUpdateEvent}>{isCreating ? t("common.create") : t("common.save")}</Button>}
         </ModalFooter>
       </Modal>
     </div>
@@ -385,17 +429,53 @@ export function EventManager({
 }
 
 /**
- * Draggable event chip with a hover card.
+ * Read-only description of an event that comes from an external source.
+ *
+ * @param props - Component properties.
+ * @param props.event - Event to describe.
+ * @returns The event details.
+ */
+function EventDetails({ event }: { event: Event }) {
+  const { locale } = useI18n();
+  const color = eventColor(event);
+  const formatMoment = (date: Date) => date.toLocaleString(locale, { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-start gap-3 rounded-lg border border-(--border-light) p-3" style={{ borderLeft: `4px solid ${color}`, background: `color-mix(in srgb, ${color} 8%, transparent)` }}>
+        <div className="min-w-0 flex-1">
+          <h4 className="text-sm font-semibold leading-snug text-(--text)">{event.title}</h4>
+          <p className="mt-1 flex items-center gap-1.5 text-xs text-(--muted)"><Clock className="h-3.5 w-3.5 shrink-0" aria-hidden />{formatMoment(event.endTime)}</p>
+        </div>
+        {event.sourceLabel ? <Badge className="shrink-0 gap-1"><GraduationCap className="h-3 w-3" aria-hidden />{event.sourceLabel}</Badge> : null}
+      </div>
+      {event.category ? <p className="text-xs font-medium text-(--text-soft)">{event.category}</p> : null}
+      {event.details?.length ? (
+        <dl className="grid grid-cols-2 gap-2 max-[480px]:grid-cols-1">
+          {event.details.map((item) => (
+            <div key={item.label} className="rounded-lg border border-(--border-light) bg-(--bg-secondary) px-3 py-2">
+              <dt className="text-[11px] font-medium uppercase tracking-wide text-(--muted)">{item.label}</dt>
+              <dd className="mt-0.5 text-sm text-(--text)">{item.value}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
+      {event.description ? <p className="max-h-45 overflow-y-auto whitespace-pre-wrap rounded-lg border border-(--border-light) bg-(--bg-secondary) p-3 text-xs leading-relaxed text-(--text-soft)">{event.description}</p> : null}
+    </div>
+  );
+}
+
+/**
+ * Event chip with a hover card. Chips use a soft tint of the event color
+ * with a solid edge so several events stay readable in the same day.
+ * Events from external sources are not draggable.
  *
  * @param props - Event, callbacks and visual variant.
  * @returns The event card.
  */
-function EventCard({ event, onEventClick, onDragStart, onDragEnd, getColorClasses, variant = "default" }: { event: Event; onEventClick: (event: Event) => void; onDragStart: (event: Event) => void; onDragEnd: () => void; getColorClasses: (color: string) => { bg: string; text: string }; variant?: "default" | "compact" | "detailed" }) {
+function EventCard({ event, onEventClick, onDragStart, onDragEnd, variant = "default" }: { event: Event; onEventClick: (event: Event) => void; onDragStart: (event: Event) => void; onDragEnd: () => void; getColorClasses: (color: string) => { bg: string; text: string }; variant?: "default" | "compact" | "detailed" }) {
   const { locale } = useI18n();
   const [isHovered, setIsHovered] = useState(false);
-  const colorClasses = getColorClasses(event.color);
-  const bgStyle = (event as unknown as { _bgColor?: string })._bgColor ? { backgroundColor: (event as unknown as { _bgColor: string })._bgColor } : undefined;
-  const bgClass = bgStyle ? "" : colorClasses.bg;
+  const color = eventColor(event);
   const formatTime = (date: Date) => date.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
   const getDuration = () => {
     const diff = event.endTime.getTime() - event.startTime.getTime();
@@ -404,59 +484,64 @@ function EventCard({ event, onEventClick, onDragStart, onDragEnd, getColorClasse
     if (hours > 0) return `${hours}h ${minutes}m`;
     return `${minutes}m`;
   };
+  const tint = { background: `color-mix(in srgb, ${color} ${isHovered ? 26 : 15}%, var(--bg-primary))`, borderLeft: `3px solid ${color}` };
+  const sourceIcon = event.sourceLabel ? <GraduationCap className="h-3 w-3 shrink-0" style={{ color }} aria-hidden /> : null;
+  const dragProps = {
+    draggable: !event.readOnly,
+    onDragStart: () => onDragStart(event),
+    onDragEnd,
+    onClick: () => onEventClick(event),
+    onMouseEnter: () => setIsHovered(true),
+    onMouseLeave: () => setIsHovered(false),
+  };
+  const hoverCard = (width: string) => (
+    <div className={`absolute left-0 top-full z-50 mt-1 ${width}`}>
+      <Card className="p-3 shadow-xl" style={{ borderTop: `3px solid ${color}` }}>
+        <div className="space-y-2">
+          <div className="flex items-start justify-between gap-2">
+            <h4 className="text-sm font-semibold leading-tight text-(--text)">{event.title}</h4>
+            {event.sourceLabel ? <Badge className="shrink-0">{event.sourceLabel}</Badge> : <span className="mt-0.5 h-3 w-3 shrink-0 rounded-full" style={{ background: color }} />}
+          </div>
+          {event.description && <p className="line-clamp-2 text-xs text-(--muted)">{event.description}</p>}
+          <div className="flex items-center gap-1 text-xs text-(--muted)"><Clock className="h-3 w-3" /><span>{formatTime(event.startTime)} - {formatTime(event.endTime)}</span>{event.readOnly ? null : <span className="text-[10px]">({getDuration()})</span>}</div>
+          <div className="flex flex-wrap gap-1">{event.category && <Badge>{event.category}</Badge>}{event.tags?.map((tag) => <Badge key={tag} variant="outline">{tag}</Badge>)}</div>
+        </div>
+      </Card>
+    </div>
+  );
 
   if (variant === "compact") {
     return (
-      <div draggable onDragStart={() => onDragStart(event)} onDragEnd={onDragEnd} onClick={() => onEventClick(event)} onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)} className="relative cursor-pointer">
-        <div style={bgStyle} className={`rounded px-1.5 py-0.5 text-xs font-medium truncate ${bgClass} text-white ${isHovered ? "scale-105 shadow-lg z-10" : ""}`}>{event.title}</div>
-        {isHovered && (
-          <div className="absolute left-0 top-full z-50 mt-1 w-64">
-            <Card className="border-2 p-3 shadow-xl">
-              <div className="space-y-2">
-                <div className="flex items-start justify-between gap-2"><h4 className="font-semibold text-sm leading-tight text-(--text)">{event.title}</h4><div className={`h-3 w-3 rounded-full shrink-0 ${colorClasses.bg}`} /></div>
-                {event.description && <p className="text-xs text-(--muted) line-clamp-2">{event.description}</p>}
-                <div className="flex items-center gap-1 text-xs text-(--muted)"><Clock className="h-3 w-3" /><span>{formatTime(event.startTime)} - {formatTime(event.endTime)}</span><span className="text-[10px]">({getDuration()})</span></div>
-                <div className="flex flex-wrap gap-1">{event.category && <Badge>{event.category}</Badge>}{event.tags?.map((tag) => <Badge key={tag} variant="outline">{tag}</Badge>)}</div>
-              </div>
-            </Card>
-          </div>
-        )}
+      <div {...dragProps} className={`relative ${event.readOnly ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"}`}>
+        <div style={tint} className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] leading-4 text-(--text) transition-colors">
+          {sourceIcon}
+          <span className="shrink-0 font-semibold tabular-nums text-(--text-soft)">{formatTime(event.startTime)}</span>
+          <span className="truncate font-medium">{event.title}</span>
+        </div>
+        {isHovered && hoverCard("w-64")}
       </div>
     );
   }
   if (variant === "detailed") {
     return (
-      <div draggable onDragStart={() => onDragStart(event)} onDragEnd={onDragEnd} onClick={() => onEventClick(event)} onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)} style={bgStyle} className={`cursor-pointer rounded-lg p-3 ${bgClass} text-white ${isHovered ? "scale-[1.03] shadow-2xl ring-2 ring-white/50" : ""}`}>
-        <div className="font-semibold">{event.title}</div>
-        {event.description && <div className="mt-1 text-sm opacity-90 line-clamp-2">{event.description}</div>}
-        <div className="mt-2 flex items-center gap-2 text-xs opacity-80"><Clock className="h-3 w-3" />{formatTime(event.startTime)} - {formatTime(event.endTime)}</div>
-        {isHovered && <div className="mt-2 flex flex-wrap gap-1">{event.category && <Badge>{event.category}</Badge>}{event.tags?.map((tag) => <Badge key={tag} variant="outline">{tag}</Badge>)}</div>}
+      <div {...dragProps} style={tint} className={`cursor-pointer rounded-lg p-3 text-(--text) transition-shadow ${isHovered ? "shadow-md" : ""}`}>
+        <div className="flex items-center gap-1.5 font-semibold">{sourceIcon}<span className="min-w-0 truncate">{event.title}</span></div>
+        {event.description && <div className="mt-1 line-clamp-2 text-sm text-(--text-soft)">{event.description}</div>}
+        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-(--muted)"><Clock className="h-3 w-3" />{formatTime(event.startTime)} - {formatTime(event.endTime)}{event.category && <Badge>{event.category}</Badge>}{event.tags?.map((tag) => <Badge key={tag} variant="outline">{tag}</Badge>)}</div>
       </div>
     );
   }
   return (
-    <div draggable onDragStart={() => onDragStart(event)} onDragEnd={onDragEnd} onClick={() => onEventClick(event)} onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)} className="relative">
-      <div style={bgStyle} className={`cursor-pointer rounded px-2 py-1 text-xs font-medium ${bgClass} text-white ${isHovered ? "scale-105 shadow-lg z-10" : ""}`}><div className="truncate">{event.title}</div></div>
-      {isHovered && (
-        <div className="absolute left-0 top-full z-50 mt-1 w-72">
-          <Card className="border-2 p-4 shadow-xl">
-            <div className="space-y-3">
-              <div className="flex items-start justify-between gap-2"><h4 className="font-semibold leading-tight text-(--text)">{event.title}</h4><div className={`h-4 w-4 rounded-full shrink-0 ${colorClasses.bg}`} /></div>
-              {event.description && <p className="text-sm text-(--muted)">{event.description}</p>}
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-2 text-xs text-(--muted)"><Clock className="h-3.5 w-3.5" /><span>{formatTime(event.startTime)} - {formatTime(event.endTime)}</span><span className="text-[10px]">({getDuration()})</span></div>
-                <div className="flex flex-wrap gap-1">{event.category && <Badge>{event.category}</Badge>}{event.tags?.map((tag) => <Badge key={tag} variant="outline">{tag}</Badge>)}</div>
-              </div>
-            </div>
-          </Card>
-        </div>
-      )}
+    <div {...dragProps} className="relative cursor-pointer">
+      <div style={tint} className="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-(--text) transition-colors">{sourceIcon}<span className="truncate">{event.title}</span></div>
+      {isHovered && hoverCard("w-72")}
     </div>
   );
 }
 
 /**
- * Month grid with up to three events per day.
+ * Month grid with up to three events per day, sorted by time, a counter
+ * for busy days and a panel that lists every event of a day.
  *
  * @param props - Displayed date, events and callbacks.
  * @returns The month layout.
@@ -470,7 +555,7 @@ function MonthView({ currentDate, events, onEventClick, onDragStart, onDragEnd, 
   const days = [];
   const currentDay = new Date(startDate);
   for (let i = 0; i < 42; i++) { days.push(new Date(currentDay)); currentDay.setDate(currentDay.getDate() + 1); }
-  const getEventsForDay = (date: Date) => events.filter((event) => { const d = new Date(event.startTime); return d.getDate() === date.getDate() && d.getMonth() === date.getMonth() && d.getFullYear() === date.getFullYear(); });
+  const getEventsForDay = (date: Date) => events.filter((event) => isSameDay(event.startTime, date)).sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
   return (
     <>
       <Card className="overflow-hidden">
@@ -482,10 +567,17 @@ function MonthView({ currentDate, events, onEventClick, onDragStart, onDragEnd, 
             const dayEvents = getEventsForDay(day);
             const isCurrentMonth = day.getMonth() === currentDate.getMonth();
             const isToday = day.toDateString() === new Date().toDateString();
+            const isWeekend = day.getDay() === 0 || day.getDay() === 6;
             return (
-              <div key={index} className={`min-h-20 border-b border-r border-(--border-light) p-1 sm:min-h-24 sm:p-2 ${!isCurrentMonth ? "bg-(--bg-secondary)" : "bg-(--bg-primary)"} hover:bg-(--bg-hover)`} onDragOver={(e) => e.preventDefault()} onDrop={() => onDrop(day)}>
-                <div className={`mb-1 flex h-5 w-5 items-center justify-center rounded-full text-xs sm:h-6 sm:w-6 sm:text-sm ${isToday ? "bg-(--accent) text-white font-semibold" : "text-(--muted)"}`}>{day.getDate()}</div>
-                <div className="space-y-1">{dayEvents.slice(0, 3).map((event) => <EventCard key={event.id} event={event} onEventClick={onEventClick} onDragStart={onDragStart} onDragEnd={onDragEnd} getColorClasses={getColorClasses} variant="compact" />)}{dayEvents.length > 3 && <button onClick={() => setExpandedDay(day)} className="text-[10px] font-medium text-(--secondary) hover:underline hover:text-(--secondary-hover)">{t("calendar.more", { count: dayEvents.length - 3 })}</button>}</div>
+              <div key={index} className={`group/day flex min-h-24 flex-col gap-1 border-b border-r border-(--border-light) p-1.5 transition-colors sm:min-h-28 ${!isCurrentMonth ? "bg-(--bg-secondary) opacity-60" : isWeekend ? "bg-(--bg-secondary)" : "bg-(--bg-primary)"} ${isToday ? "ring-1 ring-inset ring-(--accent)" : ""} hover:bg-(--bg-hover)`} onDragOver={(e) => e.preventDefault()} onDrop={() => onDrop(day)}>
+                <div className="flex items-center justify-between">
+                  <span className={`flex h-6 min-w-6 items-center justify-center rounded-full px-1 text-xs ${isToday ? "bg-(--accent) font-semibold text-white" : "text-(--text-soft)"}`}>{day.getDate()}</span>
+                  {dayEvents.length > 1 ? <button type="button" onClick={() => setExpandedDay(day)} className="rounded-full bg-(--bg-tertiary) px-1.5 text-[10px] font-semibold text-(--muted) hover:bg-(--accent-light) hover:text-(--accent)">{dayEvents.length}</button> : null}
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  {dayEvents.slice(0, 3).map((event) => <EventCard key={event.id} event={event} onEventClick={onEventClick} onDragStart={onDragStart} onDragEnd={onDragEnd} getColorClasses={getColorClasses} variant="compact" />)}
+                  {dayEvents.length > 3 && <button type="button" onClick={() => setExpandedDay(day)} className="rounded-md px-1.5 py-0.5 text-left text-[10px] font-semibold text-(--accent) hover:bg-(--accent-light)">{t("calendar.more", { count: dayEvents.length - 3 })}</button>}
+                </div>
               </div>
             );
           })}
@@ -493,19 +585,19 @@ function MonthView({ currentDate, events, onEventClick, onDragStart, onDragEnd, 
       </Card>
       {expandedDay && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/30 p-4" onClick={() => setExpandedDay(null)}>
-          <div className="w-full max-w-sm rounded-xl border border-(--border-light) bg-(--bg-primary) shadow-xl max-h-[70vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-md rounded-xl border border-(--border-light) bg-(--bg-primary) shadow-xl max-h-[70vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between border-b border-(--border-light) px-4 py-3">
               <h4 className="font-semibold text-sm text-(--text)">{expandedDay.toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long" })}</h4>
               <button onClick={() => setExpandedDay(null)} className="flex h-7 w-7 items-center justify-center rounded-md hover:bg-(--bg-hover)"><X className="h-4 w-4" /></button>
             </div>
             <div className="flex-1 overflow-y-auto p-3 space-y-2">
               {getEventsForDay(expandedDay).map((event) => {
-                const bg = (event as unknown as { _bgColor?: string })._bgColor || getColorClasses(event.color).bg;
-                const isHex = bg.startsWith("#");
+                const color = eventColor(event);
                 return (
-                  <div key={event.id} onClick={() => { setExpandedDay(null); onEventClick(event); }} className="flex items-center gap-2 rounded-lg border border-(--border-light) bg-(--bg-secondary) p-2.5 hover:border-(--accent) cursor-pointer">
-                    <span className="h-3 w-3 rounded-full shrink-0" style={isHex ? { backgroundColor: bg } : undefined} />
-                    <div className="flex-1 min-w-0"><div className="truncate text-sm font-medium text-(--text)">{event.title}</div><div className="text-xs text-(--muted)">{event.startTime.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })} • {event.category}</div></div>
+                  <div key={event.id} onClick={() => { setExpandedDay(null); onEventClick(event); }} className="flex cursor-pointer items-center gap-2 rounded-lg border border-(--border-light) p-2.5 hover:border-(--accent)" style={{ borderLeft: `4px solid ${color}`, background: `color-mix(in srgb, ${color} 8%, var(--bg-primary))` }}>
+                    <span className="w-11 shrink-0 text-xs font-semibold tabular-nums text-(--text-soft)">{event.startTime.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}</span>
+                    <div className="min-w-0 flex-1"><div className="truncate text-sm font-medium text-(--text)">{event.title}</div><div className="truncate text-xs text-(--muted)">{event.category}</div></div>
+                    {event.sourceLabel ? <Badge className="shrink-0">{event.sourceLabel}</Badge> : null}
                   </div>
                 );
               })}
@@ -621,7 +713,7 @@ function YearView({ currentDate, events, onEventClick: _onEventClick, onMonthCli
  * @param props - Events and callbacks.
  * @returns The list layout.
  */
-function ListView({ events, onEventClick, getColorClasses }: { events: Event[]; onEventClick: (event: Event) => void; getColorClasses: (color: string) => { bg: string; text: string } }) {
+function ListView({ events, onEventClick }: { events: Event[]; onEventClick: (event: Event) => void; getColorClasses: (color: string) => { bg: string; text: string } }) {
   const { t, locale } = useI18n();
   const sortedEvents = [...events].sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
   const groupedEvents = sortedEvents.reduce((acc, event) => {
@@ -638,15 +730,14 @@ function ListView({ events, onEventClick, getColorClasses }: { events: Event[]; 
             <h3 className="text-xs font-semibold text-(--muted) sm:text-sm">{date}</h3>
             <div className="space-y-2">
               {dateEvents.map((event) => {
-                const colorClasses = getColorClasses(event.color);
                 return (
                   <div key={event.id} onClick={() => onEventClick(event)} className="group cursor-pointer rounded-lg border border-(--border-light) bg-(--bg-primary) p-3 sm:p-4 hover:shadow-md hover:border-(--accent) hover:scale-[1.01] transition-all">
                     <div className="flex items-start gap-2 sm:gap-3">
-                      <div className={`mt-1 h-2.5 w-2.5 rounded-full sm:h-3 sm:w-3 ${colorClasses.bg}`} />
+                      <div className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full sm:h-3 sm:w-3" style={{ background: eventColor(event) }} />
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                           <div className="min-w-0"><h4 className="font-semibold text-sm group-hover:text-(--accent) sm:text-base truncate">{event.title}</h4>{event.description && <p className="mt-1 text-xs text-(--muted) sm:text-sm line-clamp-2">{event.description}</p>}</div>
-                          <div className="flex flex-wrap gap-1">{event.category && <Badge>{event.category}</Badge>}</div>
+                          <div className="flex flex-wrap gap-1">{event.sourceLabel && <Badge className="gap-1"><GraduationCap className="h-3 w-3" aria-hidden />{event.sourceLabel}</Badge>}{event.category && <Badge>{event.category}</Badge>}</div>
                         </div>
                         <div className="mt-2 flex flex-wrap items-center gap-2 text-[10px] text-(--muted) sm:gap-4 sm:text-xs">
                           <div className="flex items-center gap-1"><Clock className="h-3 w-3" />{event.startTime.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })} - {event.endTime.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}</div>
