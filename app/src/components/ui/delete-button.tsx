@@ -12,6 +12,7 @@ import {
   useTransform,
   type Transition,
 } from "motion/react";
+import { useI18n } from "@/i18n";
 import { cn } from "@/lib/utils";
 
 const HINGE = "3px 6px";
@@ -125,6 +126,7 @@ export function DeleteButton({
   ...props
 }: DeleteButtonProps) {
   const reduced = useReducedMotion() ?? false;
+  const { t: translate } = useI18n();
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<Status>("idle");
   const trigger = useRef<HTMLButtonElement>(null);
@@ -180,7 +182,7 @@ export function DeleteButton({
       <motion.button
         ref={trigger}
         type="button"
-        aria-label="Delete"
+        aria-label={translate("common.delete")}
         aria-expanded={open}
         onClick={() => {
           if (open) return resolve("kept");
@@ -245,7 +247,7 @@ export function DeleteButton({
       </motion.button>
 
       <span role="status" aria-live="polite" className="sr-only">
-        {status === "deleted" ? "Deleted" : status === "kept" ? "Kept" : ""}
+        {status === "deleted" ? translate("delete.deleted") : status === "kept" ? translate("delete.kept") : ""}
       </span>
 
       <AnimatePresence>
@@ -269,10 +271,10 @@ export function DeleteButton({
                 RECESS,
               )}
             />
-            <Circle label="Confirm delete" onClick={() => resolve("deleted")}>
+            <Circle label={translate("delete.confirm")} onClick={() => resolve("deleted")}>
               <path d="M4 12.5 9.5 18 20 7" stroke={ACCENT} />
             </Circle>
-            <Circle label="Cancel" onClick={() => resolve("kept")}>
+            <Circle label={translate("common.cancel")} onClick={() => resolve("kept")}>
               <path d="M6 6 18 18M18 6 6 18" />
             </Circle>
           </motion.div>
