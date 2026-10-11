@@ -13,14 +13,17 @@ import { GoalBars } from "@/features/profile/GoalRings";
 import type { GoalBarDatum } from "@/features/profile/GoalRings";
 import { PulseCard } from "@/features/profile/PulseCard";
 import { ListDonut } from "@/features/profile/ListDonut";
+import { UnadProfileTab } from "@/features/profile/UnadProfileTab";
 import type { DonutSegment } from "@/features/profile/ListDonut";
 
 /**
- * Profile view with the account card, statistics and preferences.
+ * Profile view with the account card, a summary tab with statistics and
+ * preferences, and a tab with the data of the linked UNAD account.
  *
  * @returns The profile view.
  */
 export function ProfileView() {
+  const [tab, setTab] = useState<"summary" | "unad">("summary");
   const { store } = useCreekyStore();
   const { t, locale } = useI18n();
   const PRIO_META = usePrioMeta();
@@ -108,6 +111,15 @@ export function ProfileView() {
         onClose={() => setEditOpen(false)}
       />
 
+      <div className="flex w-fit gap-1 rounded-lg bg-(--bg-tertiary) p-1" role="tablist" aria-label={t("nav.profile")}>
+        {(["summary", "unad"] as const).map((id) => (
+          <button key={id} type="button" role="tab" aria-selected={tab === id} onClick={() => setTab(id)} className={`rounded-md px-3 py-1.5 text-xs transition-colors ${tab === id ? "bg-(--bg-primary) font-semibold text-(--text) shadow-sm" : "text-(--muted) hover:text-(--text)"}`}>
+            {id === "summary" ? t("profile.tab.summary") : t("profile.tab.unad")}
+          </button>
+        ))}
+      </div>
+
+      {tab === "unad" ? <UnadProfileTab /> : (<>
       <div className="grid grid-cols-2 gap-3 max-[1000px]:grid-cols-1">
         <div className="col-span-2 max-[1000px]:col-span-1">
           <PulseCard />
@@ -138,6 +150,7 @@ export function ProfileView() {
           </div>
         ) : null}
       </div>
+      </>)}
     </section>
   );
 }
