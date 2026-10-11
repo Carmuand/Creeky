@@ -33,8 +33,8 @@ export interface ProfileCardProps {
   initial: string;
   /** Photo data URL rendered in the avatar. When undefined the initial is shown. */
   avatarUrl?: string;
-  /** Called with the new photo data URL picked from the avatar menu. */
-  onAvatarUpload?: (dataUrl: string) => void;
+  /** Called when the user asks to choose a new photo from the avatar menu. */
+  onAvatarUpload?: () => void;
   /** Called when the photo is removed from the avatar menu. */
   onAvatarRemove?: () => void;
   /** Stats rendered in the footer grid. */
