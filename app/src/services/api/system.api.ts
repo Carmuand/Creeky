@@ -1,6 +1,6 @@
 import { bridge, mutate, query } from "./bridge";
-import type { CreekyDB, EmailLink, FocusPayload, Language, Theme } from "@/types/creeky";
-import type { NotificationInput } from "@/types/pywebview";
+import type { CreekyDB, EmailLink, FocusPayload, Language, NotificationCategory, Theme } from "@/types/creeky";
+import type { BackupExportResult, BackupImportResult, NotificationInput } from "@/types/pywebview";
 
 /**
  * Snapshot, backup and wipe calls.
@@ -14,17 +14,24 @@ export const dataApi = {
   getSnapshot(): Promise<CreekyDB> { return query(bridge().get_snapshot()); },
 
   /**
-   * Replaces the stored collections with a JSON backup.
+   * Saves an encrypted backup through a native dialog.
    *
-   * @param data - Parsed backup file.
-   * @returns Promise resolved once the backup is imported.
+   * @returns The file path with its one-time recovery key, or a cancelled result.
    */
-  importBackup(data: unknown): Promise<null> { return mutate(bridge().import_backup(data)); },
+  exportBackup(): Promise<BackupExportResult> { return query(bridge().export_backup()); },
 
   /**
-   * Deletes every account, credential and record.
+   * Restores an encrypted backup chosen through a native dialog.
    *
-   * @returns Promise resolved once the data is wiped.
+   * @param recoveryKey - Key received when the backup was exported.
+   * @returns The number of imported tasks, or a cancelled result.
+   */
+  importBackup(recoveryKey: string): Promise<BackupImportResult> { return mutate(bridge().import_backup(recoveryKey)); },
+
+  /**
+   * Deletes the signed-in account with its data and credentials.
+   *
+   * @returns Promise resolved once the account is deleted.
    */
   wipe(): Promise<null> { return mutate(bridge().wipe_data()); },
 };
@@ -50,6 +57,29 @@ export const settingsApi = {
   setLanguage(language: Language): Promise<{ language: Language }> { return mutate(bridge().set_language(language)); },
 
   /**
+   * Persists whether the sidebar is collapsed.
+   *
+   * @param collapsed - Sidebar state to store.
+   * @returns The stored state.
+   */
+  setSidebarCollapsed(collapsed: boolean): Promise<{ collapsed: boolean }> { return query(bridge().set_sidebar_collapsed(collapsed)); },
+
+  /**
+   * Tells whether the application starts with Windows.
+   *
+   * @returns The current state.
+   */
+  getAutostart(): Promise<{ enabled: boolean }> { return query(bridge().get_autostart()); },
+
+  /**
+   * Registers or unregisters the application to start with Windows.
+   *
+   * @param enabled - Whether it should start at sign-in.
+   * @returns The resulting state.
+   */
+  setAutostart(enabled: boolean): Promise<{ enabled: boolean }> { return query(bridge().set_autostart(enabled)); },
+
+  /**
    * Persists or clears the Pomodoro focus task.
    *
    * @param focus - Task to focus, or null to clear it.
@@ -69,6 +99,15 @@ export const notificationsApi = {
    * @returns Number of notifications stored.
    */
   create(items: NotificationInput[]): Promise<number> { return mutate(bridge().create_notifications(items)); },
+
+  /**
+   * Turns the desktop notifications of a category on or off.
+   *
+   * @param category - Category to change; `desktop` is the master switch.
+   * @param enabled - Whether desktop notifications are shown.
+   * @returns Every switch after the change.
+   */
+  setPreference(category: NotificationCategory, enabled: boolean): Promise<Record<NotificationCategory, boolean>> { return mutate(bridge().set_notification_preference(category, enabled)); },
 
   /**
    * Marks one notification as read.
