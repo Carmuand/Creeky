@@ -153,7 +153,7 @@ export interface PomoLogEntry {
 /**
  * Category of an in-app notification.
  */
-export type NotificationKind = "system" | "calendar" | "reminder";
+export type NotificationKind = "system" | "calendar" | "reminder" | "unad";
 
 /**
  * In-app notification.
@@ -187,6 +187,8 @@ export interface User {
   created: number;
   /** Profile photo as a data URL. */
   avatar?: string | null;
+  /** Whether the guided tour was finished or skipped. */
+  onboarded: boolean;
 }
 
 /**
@@ -214,7 +216,129 @@ export interface FocusPayload {
 }
 
 /**
- * Full application state served by the backend.
+ * Category of desktop notifications the user can switch on or off.
+ * `desktop` is the master switch.
+ */
+export type NotificationCategory = "desktop" | "tasks" | "habits" | "pomodoro" | "unad_changes" | "unad_opening" | "unad_deadline";
+
+/**
+ * Activity of a followed UNAD course agenda.
+ */
+export interface UnadActivity {
+  /** Stable identifier. */
+  id: number;
+  /** Section that groups the activity. */
+  section: string;
+  /** Evaluation moment. */
+  moment: string;
+  /** Learning outcome of the course. */
+  rac: string;
+  /** Activity name. */
+  name: string;
+  /** Activity description. */
+  description: string;
+  /** Activity type. */
+  type: string;
+  /** Evaluative weight in points. */
+  weight: string;
+  /** Start as YYYY-MM-DDTHH:mm, or empty. */
+  startsAt: string;
+  /** End as YYYY-MM-DDTHH:mm, or empty. */
+  endsAt: string;
+  /** Start date as written in the agenda. */
+  startRaw: string;
+  /** End date as written in the agenda. */
+  endRaw: string;
+  /** Closing alert text. */
+  alert: string;
+  /** Feedback delivery date range. */
+  feedback: string;
+}
+
+/**
+ * UNAD course agenda followed by the user.
+ */
+export interface UnadAgenda {
+  /** Stable identifier. */
+  id: string;
+  /** Numeric agenda code. */
+  code: string;
+  /** Agenda page URL. */
+  url: string;
+  /** Course name. */
+  name: string;
+  /** Credits text. */
+  credits: string;
+  /** Academic period. */
+  period: string;
+  /** Color that identifies the course in the calendar. */
+  color: string;
+  /** Epoch millis of the last successful download. */
+  syncedAt: number | null;
+  /** Activities in agenda order. */
+  activities: UnadActivity[];
+}
+
+/**
+ * Settings and status of the linked UNAD Campus account.
+ */
+export interface UnadAccount {
+  /** Document type code. */
+  documentType: string;
+  /** Document number used to sign in. */
+  document: string;
+  /** Whether the synchronization service runs. */
+  enabled: boolean;
+  /** Minutes between synchronizations. */
+  intervalMinutes: number;
+  /** Days before a deadline at which to remind. */
+  deadlineDays: number;
+  /** Epoch millis of the last synchronization. */
+  lastSyncAt: number | null;
+  /** Error code of the last synchronization, empty on success. */
+  lastError: string;
+}
+
+/**
+ * Profile read from the UNAD Campus portal.
+ */
+export interface UnadProfile {
+  campusUserId: number;
+  fullName: string;
+  firstName: string;
+  secondName: string;
+  firstSurname: string;
+  secondSurname: string;
+  institutionalEmail: string;
+  notificationEmail: string;
+  personalEmail: string;
+  phone: string;
+  birthDate: string;
+  maritalStatus: string;
+  bloodType: string;
+  zone: string;
+  stratum: string;
+  address: string;
+  /** Epoch millis when the profile was last read. */
+  updatedAt: number | null;
+}
+
+/**
+ * UNAD integration state of the signed-in user.
+ */
+export interface UnadState {
+  /** Whether a campus account is linked. */
+  connected: boolean;
+  /** Linked account, when any. */
+  account: UnadAccount | null;
+  /** Campus profile, when an account is linked. */
+  profile: UnadProfile | null;
+  /** Followed agendas. */
+  agendas: UnadAgenda[];
+}
+
+/**
+ * Application state of the signed-in user served by the backend.
  */
 export interface CreekyDB {
   /** Signed-in user, when any. */
@@ -239,8 +363,12 @@ export interface CreekyDB {
   emailLinks: EmailLink[];
   /** Task focused in the Pomodoro view. */
   focus: FocusPayload | null;
+  /** UNAD Campus integration. */
+  unad: UnadState;
+  /** Desktop notification switches per category. */
+  notificationPrefs: Record<NotificationCategory, boolean>;
   /** Stored preferences. */
-  settings: { theme: Theme; language: Language };
+  settings: { theme: Theme; language: Language; sidebarCollapsed: boolean };
 }
 
 /**
