@@ -15,8 +15,10 @@ const COLOR_PRIORITY: Record<string, Priority> = { red: "high", orange: "medium"
 import { todayISO, addDaysISO, weekdayOfISO } from "@/utils/date";
 
 /**
- * Calendar view that shows Creeky tasks as events, with drag and drop,
- * filters and create, update and delete actions.
+ * Calendar view that shows Creeky tasks as editable events, with drag and
+ * drop, filters and create, update and delete actions, together with the
+ * opening and closing dates of the followed UNAD activities as read-only
+ * events.
  *
  * @returns The calendar view.
  */
@@ -28,7 +30,7 @@ export function CalendarView() {
   const timeOf = (date: Date) => date.toTimeString().slice(0, 5);
 
   const events: Event[] = useMemo(() => {
-    const result: (Event & { _taskId: string; _iso: string; _bgColor: string })[] = [];
+    const result: Event[] = [];
     const today = todayISO();
     const rangeStart = addDaysISO(today, -30);
     const rangeEnd = addDaysISO(today, 180);
@@ -82,8 +84,31 @@ export function CalendarView() {
         if (ev) result.push(ev);
       }
     }
+    const unadLabel = t("unad.calendar.badge");
+    for (const agenda of store.unad.agendas) {
+      const course = agenda.name || agenda.code;
+      for (const activity of agenda.activities) {
+        const details = [
+          { label: t("unad.activity.moment"), value: activity.moment },
+          { label: t("unad.activity.type"), value: activity.type },
+          { label: t("unad.activity.weight"), value: activity.weight ? t("unad.activity.points", { points: activity.weight }) : "" },
+          { label: t("unad.activity.opens"), value: activity.startRaw },
+          { label: t("unad.activity.closes"), value: activity.endRaw },
+          { label: t("unad.activity.feedback"), value: activity.feedback },
+        ].filter((item) => item.value);
+        const base = { color: "blue", category: course, tags: [], _bgColor: agenda.color, readOnly: true, sourceLabel: unadLabel, description: activity.description, details };
+        if (activity.startsAt) {
+          const opens = new Date(activity.startsAt);
+          result.push({ ...base, id: `unad-${activity.id}-open`, title: t("unad.calendar.opens", { name: activity.name }), startTime: opens, endTime: opens });
+        }
+        if (activity.endsAt) {
+          const closes = new Date(activity.endsAt);
+          result.push({ ...base, id: `unad-${activity.id}-close`, title: t("unad.calendar.closes", { name: activity.name }), startTime: closes, endTime: closes });
+        }
+      }
+    }
     return result;
-  }, [store.tasks, store.lists]);
+  }, [store.tasks, store.lists, store.unad.agendas, t]);
 
   const handleCreate = (event: Omit<Event, "id">) => {
     const list = store.lists.find((l) => l.name === event.category) ?? store.lists[0];
@@ -102,6 +127,7 @@ export function CalendarView() {
   };
 
   const handleUpdate = (id: string, patch: Partial<Event & { _taskId: string }>) => {
+    if (patch.readOnly) return;
     const target = store.tasks.find((x) => x.id === patch._taskId) ?? store.tasks.find((x) => x.id === id) ?? store.tasks.find((x) => id.startsWith(x.id));
     if (!target) return;
     const changes: TaskPatch = {};
