@@ -12,6 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 # Project imports
+from desktop.config import config
 from desktop.database.models import (
     Countdown,
     EmailLink,
@@ -42,14 +43,24 @@ def habit_streak(dates: set[str]) -> int:
     return streak
 
 
+def avatar_version(user: User) -> int | None:
+    """Return a number that changes whenever the photo file of a user changes."""
+    if not user.avatar:
+        return None
+    try:
+        return (config.avatars_dir / user.avatar).stat().st_mtime_ns
+    except OSError:
+        return None
+
+
 def serialize_user(user: User) -> dict[str, Any]:
-    """Return the public profile of a user."""
+    """Return the public profile of a user. The photo itself is served separately."""
     return {
         "id": user.id,
         "name": user.name,
         "email": user.email,
         "created": user.created_at,
-        "avatar": user.avatar,
+        "avatarVersion": avatar_version(user),
         "onboarded": user.onboarded,
     }
 
