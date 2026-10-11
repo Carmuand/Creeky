@@ -46,6 +46,8 @@ export interface BackupSummary {
   sizeKb: string;
   /** Backup date label. */
   dateLabel: string;
+  /** Recovery key that decrypts the attached backup. */
+  recoveryKey: string;
 }
 
 /**
@@ -122,6 +124,8 @@ export function buildBackupBody(t: Translate, summary: BackupSummary): string {
     t("email.backup.completed", { count: summary.completed }),
     t("email.backup.habits", { count: summary.habits }),
     t("email.backup.size", { size: summary.sizeKb }),
+    "",
+    t("email.backup.key", { key: summary.recoveryKey }),
     "",
     t("email.backup.attach"),
     t("email.backup.restore"),
