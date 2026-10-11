@@ -1,6 +1,7 @@
 import { motion, useReducedMotion } from "motion/react";
 import { StatTabs } from "@/features/profile/StatTabs";
 import type { StatRange } from "@/features/profile/StatTabs";
+import { useI18n } from "@/i18n";
 
 /**
  * Single goal rendered as a compact progress bar.
@@ -34,7 +35,7 @@ export interface GoalBarsProps {
   title?: string;
   /** Card subtitle. @default "Avance contra tu plan personal." */
   subtitle?: string;
-  /** Footer label. @default "Promedio general" */
+  /** Footer label. Defaults to the translated general average label. */
   footerLabel?: string;
 }
 
@@ -42,25 +43,29 @@ export interface GoalBarsProps {
  * Compact goals card with slim animated bars.
  *
  * Shares row height with its grid siblings through a full-height column layout.
+ *
+ * @param props - Component properties.
+ * @returns The goals card.
  */
 export function GoalBars({
   range,
   onRangeChange,
   bars,
   footerValue,
-  title = "Metas del período",
-  subtitle = "Avance contra tu plan personal.",
-  footerLabel = "Promedio general",
+  title,
+  subtitle,
+  footerLabel,
 }: GoalBarsProps) {
+  const { t } = useI18n();
   const reduceMotion = useReducedMotion() ?? false;
 
   return (
     <div className="relative flex h-full flex-col overflow-hidden rounded-xl border border-(--border-light) bg-(--bg-primary) shadow-sm">
-      <div aria-hidden className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-(--accent) via-(--secondary) to-(--accent)" />
+      <div aria-hidden className="absolute inset-x-0 top-0 h-0.5 bg-linear-to-r from-(--accent) via-(--secondary) to-(--accent)" />
       <div className="flex flex-wrap items-center justify-between gap-2 p-3">
         <div>
-          <h3 className="text-sm font-semibold text-(--text-primary)">{title}</h3>
-          <p className="mt-0.5 text-[11px] text-(--muted)">{subtitle}</p>
+          <h3 className="text-sm font-semibold text-(--text-primary)">{title ?? t("goals.title")}</h3>
+          <p className="mt-0.5 text-[11px] text-(--muted)">{subtitle ?? t("goals.subtitle")}</p>
         </div>
         <StatTabs value={range} onChange={onRangeChange} />
       </div>
@@ -87,7 +92,7 @@ export function GoalBars({
         ))}
       </div>
       <div className="flex items-center justify-between border-t border-(--border-light) px-3 py-2">
-        <span className="text-[11px] text-(--muted)">{footerLabel}</span>
+        <span className="text-[11px] text-(--muted)">{footerLabel ?? t("goals.footer")}</span>
         <b className="text-xs text-(--text-primary)">{footerValue}</b>
       </div>
     </div>
