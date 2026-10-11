@@ -1,6 +1,7 @@
 import * as React from "react";
 import { Icon } from "@/components/icons/Icon";
 import { TooltipSimple } from "@/components/ui/Tooltip";
+import { useAvatar } from "@/hooks/useAvatar";
 import { useI18n } from "@/i18n";
 
 /**
@@ -30,7 +31,7 @@ interface SidebarProps {
   onSelect: (v: CreekyView) => void;
   /** Counters shown next to each entry, keyed by badge id. */
   badges: Record<string, number>;
-  /** Initial rendered in the user button. */
+  /** Initial rendered in the user button when the user has no photo. */
   userInitial: string;
   /** Called when the user signs out. */
   onLogout?: () => void;
@@ -50,6 +51,7 @@ interface SidebarProps {
  */
 export function Sidebar({ view, onSelect, badges, userInitial, onLogout, collapsed, onToggleCollapse, mobileOpen }: SidebarProps) {
   const { t } = useI18n();
+  const avatarUrl = useAvatar();
   const [userOpen, setUserOpen] = React.useState(false);
   const sidebarRef = React.useRef<HTMLElement>(null);
   const prevView = React.useRef(view);
@@ -200,14 +202,14 @@ export function Sidebar({ view, onSelect, badges, userInitial, onLogout, collaps
 
         <div className="relative mt-3 flex w-full justify-center">
           <button
-            className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-(--accent-border) bg-(--accent-light) text-[15px] font-semibold text-(--accent) transition-colors hover:bg-(--accent) hover:text-white"
+            className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-(--accent-border) bg-(--accent-light) text-[15px] font-semibold text-(--accent) transition-colors hover:bg-(--accent) hover:text-white"
             aria-expanded={userOpen}
             aria-haspopup="true"
             aria-label={t("nav.userMenu")}
             data-tour="user-menu"
             onClick={(e) => { e.stopPropagation(); setUserOpen((o) => !o); }}
           >
-            <span>{userInitial}</span>
+            {avatarUrl ? <img src={avatarUrl} alt="" draggable={false} className="h-full w-full object-cover" /> : <span>{userInitial}</span>}
           </button>
           <div className={`${userOpen ? "flex" : "hidden"} absolute mb-2 flex-col overflow-hidden rounded-lg border border-(--border-medium) bg-(--bg-primary) shadow-lg ${collapsed ? "left-[calc(100%+8px)] right-auto bottom-0 w-47.5" : "bottom-full left-1/2 -translate-x-1/2 w-47.5"}`} role="menu">
             <button className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-(--text-soft) hover:bg-(--bg-hover) hover:text-(--text)" role="menuitem" onClick={() => { setUserOpen(false); onSelect("profile"); }}>
