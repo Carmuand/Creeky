@@ -1,44 +1,58 @@
 """
-Custom logger with tag and level support.
-Thread-safe, filterable by tag and level.
+Thread-safe console logger filterable by tag and level.
 """
 
 # Standard library
+from __future__ import annotations
 import threading
-from enum import StrEnum, unique
-from typing import Literal, Final, Set, Dict
 from datetime import datetime
+from enum import StrEnum, unique
+from typing import Final, Literal
 
 # Third-party
 from colorama import Fore, Style, init
 
 init(autoreset=True)
 
-# Global lock — prevents interleaved output in multithreaded contexts.
-_log_lock = threading.Lock()
+_log_lock: threading.Lock = threading.Lock()
 
-# If non-empty, only these tags will be printed.
-ENABLED_TAGS: Final[Set[str]] = set()
+ENABLED_TAGS: Final[set[str]] = set()
+"""When non-empty, only these tags are printed."""
 
-# Levels silenced globally across all tags.
-DISABLED_LEVELS: Final[Set[str]] = set()
+DISABLED_LEVELS: Final[set[str]] = set()
+"""Levels silenced for every tag."""
 
-# Per-tag level silencing rules.
-# Example: "LOADER": {"DEBUG"} → suppresses DEBUG only for LOADER.
-TAG_LEVEL_RULES: Dict[str, Set[str]] = {
+TAG_LEVEL_RULES: dict[str, set[str]] = {
     "LOADER": {"DEBUG"},
     "WINDOW_CONTROLLER": {"DEBUG"},
 }
+"""Levels silenced for a specific tag."""
 
 LogLevel = Literal["INFO", "SUCCESS", "WARNING", "ERROR", "DEBUG", "CRITICAL"]
+
+_LEVEL_COLORS: Final[dict[str, str]] = {
+    "INFO": Fore.CYAN,
+    "SUCCESS": Fore.GREEN,
+    "WARNING": Fore.YELLOW,
+    "ERROR": Fore.RED,
+    "DEBUG": Fore.MAGENTA,
+    "CRITICAL": Fore.RED + Style.BRIGHT,
+}
 
 
 @unique
 class Tags(StrEnum):
-    MAIN             = "MAIN"
-    LOADER           = "LOADER"
-    WINDOW           = "WINDOW"
-    BRIDGE           = "BRIDGE"
+    """Module identifiers used to group log messages."""
+
+    MAIN = "MAIN"
+    LOADER = "LOADER"
+    WINDOW = "WINDOW"
+    BRIDGE = "BRIDGE"
+    DATABASE = "DATABASE"
+    AUTH = "AUTH"
+    EVENTS = "EVENTS"
+    NOTIFIER = "NOTIFIER"
+    SCHEDULER = "SCHEDULER"
 
 
 def log(level: LogLevel, tag: Tags | str, message: str) -> None:
@@ -46,8 +60,8 @@ def log(level: LogLevel, tag: Tags | str, message: str) -> None:
     Print a filtered log message with timestamp, level and tag.
 
     Args:
-        level:   Log level (INFO, SUCCESS, WARNING, ERROR, DEBUG, CRITICAL).
-        tag:     Module tag identifier.
+        level: Log level (INFO, SUCCESS, WARNING, ERROR, DEBUG, CRITICAL).
+        tag: Module tag identifier.
         message: Human-readable message.
     """
     level_up: str = level.upper()
@@ -61,24 +75,17 @@ def log(level: LogLevel, tag: Tags | str, message: str) -> None:
         return
 
     timestamp: str = datetime.now().strftime("%H:%M:%S")
-
-    colors: Final[Dict[str, str]] = {
-        "INFO":     Fore.CYAN,
-        "SUCCESS":  Fore.GREEN,
-        "WARNING":  Fore.YELLOW,
-        "ERROR":    Fore.RED,
-        "DEBUG":    Fore.MAGENTA,
-        "CRITICAL": Fore.RED + Style.BRIGHT,
-    }
-
-    color: str  = colors.get(level_up, Fore.WHITE)
-    lvl_fmt: str = f"{level_up:^9}"
-    tag_fmt: str = f"{tag_up:^22}"
+    color: str = _LEVEL_COLORS.get(level_up, Fore.WHITE)
+    level_text: str = f"{level_up:^9}"
+    tag_text: str = f"{tag_up:^22}"
 
     with _log_lock:
-        print(
-            f"{Style.DIM}{timestamp}{Style.RESET_ALL} "
-            f"[{color}{lvl_fmt}{Style.RESET_ALL}] "
-            f"[{Fore.WHITE}{Style.BRIGHT}{tag_fmt}{Style.RESET_ALL}] "
-            f"{message}"
-        )
+        try:
+            print(
+                f"{Style.DIM}{timestamp}{Style.RESET_ALL} "
+                f"[{color}{level_text}{Style.RESET_ALL}] "
+                f"[{Fore.WHITE}{Style.BRIGHT}{tag_text}{Style.RESET_ALL}] "
+                f"{message}"
+            )
+        except (OSError, ValueError):
+            return
