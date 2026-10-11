@@ -110,3 +110,23 @@ def read_session() -> str | None:
 def clear_session() -> None:
     """Forget the signed-in user."""
     _delete(_SESSION_ENTRY)
+
+
+def _unad_entry(user_id: str) -> str:
+    """Return the credential entry name that stores the UNAD Campus password of a user."""
+    return f"unad:{user_id}"
+
+
+def store_unad_password(user_id: str, password: str) -> None:
+    """Store the UNAD Campus password of a user. The portal needs it in clear to sign in."""
+    _write(_unad_entry(user_id), password)
+
+
+def read_unad_password(user_id: str) -> str | None:
+    """Return the UNAD Campus password stored for a user, when any."""
+    return _read(_unad_entry(user_id))
+
+
+def delete_unad_password(user_id: str) -> None:
+    """Remove the UNAD Campus password stored for a user."""
+    _delete(_unad_entry(user_id))
