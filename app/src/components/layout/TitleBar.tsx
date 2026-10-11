@@ -1,5 +1,6 @@
 import { VscChromeMinimize, VscChromeClose } from "react-icons/vsc";
 import { windowApi } from "@/services/api";
+import { useI18n } from "@/i18n";
 
 /**
  * Properties for the {@link TitleBar} component.
@@ -12,12 +13,16 @@ interface TitleBarProps {
 }
 
 /**
- * Custom frameless window title bar
+ * Custom frameless window title bar.
+ *
+ * @param props - Component properties.
+ * @returns The draggable title bar with window controls.
  */
 export function TitleBar({
   title = "Creeky",
   bridgeReady = false,
 }: TitleBarProps) {
+  const { t } = useI18n();
   const handleMinimize = () => {
     if (bridgeReady) void windowApi.minimizeWindow().catch(() => {});
   };
@@ -27,7 +32,6 @@ export function TitleBar({
 
   return (
     <header className="pywebview-drag-region h-10 px-3.5 flex items-center justify-between bg-(--bg) border-b border-(--border) select-none shrink-0" style={{ zIndex: 50, position: "relative" }}>
-      {/* Left: logo + name */}
       <div className="flex items-center gap-2">
         <img
           src="/assets/app/DevLogo.ico"
@@ -42,11 +46,10 @@ export function TitleBar({
         </span>
       </div>
 
-      {/* Right: window controls (excluded from drag region) */}
       <div className="flex items-center gap-0.5">
         <button
           className="flex h-7 w-7 items-center justify-center rounded text-(--text-tertiary) hover:bg-(--bg-hover) hover:text-(--text-primary) disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
-          aria-label="Minimize"
+          aria-label={t("window.minimize")}
           disabled={!bridgeReady}
           onClick={handleMinimize}
         >
@@ -55,7 +58,7 @@ export function TitleBar({
 
         <button
           className="flex h-7 w-7 items-center justify-center rounded text-(--text-tertiary) hover:bg-red-500 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
-          aria-label="Close"
+          aria-label={t("window.close")}
           disabled={!bridgeReady}
           onClick={handleClose}
         >
