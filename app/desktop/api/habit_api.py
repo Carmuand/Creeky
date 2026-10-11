@@ -1,5 +1,5 @@
 """
-Habits API.
+Habits API. Every call works on the data of the signed-in user.
 """
 
 # Standard library
@@ -12,6 +12,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 # Project imports
+from desktop.api.auth_api import require_user
 from desktop.core.errors import ApiError
 from desktop.database.engine import session_scope
 from desktop.database.models import Habit, HabitCheck
@@ -20,9 +21,11 @@ from desktop.utills.dates import new_id, today_iso
 
 
 def _get_habit(session: Session, habit_id: str) -> Habit:
-    """Return a habit with its checks or fail when it does not exist."""
+    """Return one of the signed-in user's habits with its checks, or fail when it is missing."""
     habit: Habit | None = session.scalar(
-        select(Habit).options(selectinload(Habit.checks)).where(Habit.id == habit_id)
+        select(Habit)
+        .options(selectinload(Habit.checks))
+        .where(Habit.user_id == require_user(session).id, Habit.id == habit_id)
     )
     if habit is None:
         raise ApiError("habit_not_found")
@@ -35,8 +38,13 @@ def create_habit(name: str) -> dict[str, Any]:
     if not clean:
         raise ApiError("name_required")
     with session_scope() as session:
-        last_position: int = session.scalar(select(func.max(Habit.position))) or 0
-        habit: Habit = Habit(id=new_id("h"), name=clean, position=last_position + 1, checks=[])
+        user_id: str = require_user(session).id
+        last_position: int = (
+            session.scalar(select(func.max(Habit.position)).where(Habit.user_id == user_id)) or 0
+        )
+        habit: Habit = Habit(
+            id=new_id("h"), user_id=user_id, name=clean, position=last_position + 1, checks=[]
+        )
         session.add(habit)
         session.flush()
         return serialize_habit(habit)
