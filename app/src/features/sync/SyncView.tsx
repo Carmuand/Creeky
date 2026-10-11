@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useCreekyStore } from "@/hooks/useCreekyStore";
 import { pushToast } from "@/hooks/useToast";
 import { errorMessage, useI18n } from "@/i18n";
@@ -9,11 +9,13 @@ import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { EmailSyncSection } from "@/features/sync/EmailSyncSection";
+import { BackupKeyModal, ImportKeyModal } from "@/features/sync/BackupDialogs";
 import { APP_VERSION } from "@/types/creeky";
 
 /**
- * Sync view with data status, JSON export and import, wipe and a raw
- * inspector. Data lives in the SQLite database managed by the backend.
+ * Sync view with data status, encrypted backup export and import, account
+ * wipe and a raw inspector. Data lives in the SQLite database managed by
+ * the backend and backups are files encrypted with a one-time recovery key.
  *
  * @returns The sync view.
  */
@@ -22,7 +24,9 @@ export function SyncView() {
   const { t, locale } = useI18n();
   const [inspect, setInspect] = useState("tasks");
   const [syncTime, setSyncTime] = useState<string | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
+  const [exported, setExported] = useState<{ key: string; path: string } | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   const alive = useMemo(() => store.tasks.filter((t) => !t.deleted), [store.tasks]);
   const bytes = useMemo(() => JSON.stringify(store).length, [store]);
@@ -32,39 +36,27 @@ export function SyncView() {
   };
 
   const handleExport = () => {
-    try {
-      const blob = new Blob([JSON.stringify(store, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "creeky-backup.json";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 2000);
-    } catch (e) {
-      pushToast(t("sync.toast.exportFailed"), "error");
-      console.error(e);
-    }
+    if (busy) return;
+    setBusy(true);
+    dataApi
+      .exportBackup()
+      .then((result) => { if (!result.cancelled) setExported({ key: result.key, path: result.path }); })
+      .catch((error: unknown) => pushToast(errorMessage(error), "error"))
+      .finally(() => setBusy(false));
   };
 
-  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    const r = new FileReader();
-    r.onload = () => {
-      try {
-        const data: unknown = JSON.parse(String(r.result));
-        dataApi
-          .importBackup(data)
-          .then(() => pushToast(t("sync.toast.imported"), "success"))
-          .catch((error: unknown) => pushToast(errorMessage(error), "error"));
-      } catch {
-        pushToast(t("error.invalid_backup"), "error");
-      }
-    };
-    r.readAsText(f);
-    if (fileRef.current) fileRef.current.value = "";
+  const handleImport = (recoveryKey: string) => {
+    if (busy) return;
+    setBusy(true);
+    dataApi
+      .importBackup(recoveryKey)
+      .then((result) => {
+        if (result.cancelled) return;
+        setImportOpen(false);
+        pushToast(t("sync.toast.imported", { count: result.tasks }), "success");
+      })
+      .catch((error: unknown) => pushToast(errorMessage(error), "error"))
+      .finally(() => setBusy(false));
   };
 
   const handleWipe = () => {
@@ -110,14 +102,14 @@ export function SyncView() {
       <div className="grid grid-cols-2 gap-4 max-[700px]:grid-cols-1">
         <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 shadow-sm relative overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-0.5 bg-(--accent)" />
-          <h3 className="font-semibold text-(--accent)">{t("sync.export.title")}</h3><p className="mt-1 text-xs text-(--muted)">{t("sync.export.text")} <code className="rounded bg-(--bg-tertiary) px-1 py-0.5 text-xs">Creeky/backups/</code>.</p>
-          <div className="mt-3"><Button variant="secondary" size="sm" onClick={handleExport}>{t("sync.export.button")}</Button></div>
+          <h3 className="font-semibold text-(--accent)">{t("sync.export.title")}</h3><p className="mt-1 text-xs text-(--muted)">{t("sync.export.text")}</p>
+          <div className="mt-3"><Button variant="secondary" size="sm" onClick={handleExport} disabled={busy}>{t("sync.export.button")}</Button></div>
         </div>
         <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 shadow-sm relative overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-0.5 bg-(--secondary)" />
-          <h3 className="font-semibold text-(--secondary)">{t("sync.import.title")}</h3><p className="mt-1 text-xs text-(--muted)">{t("sync.import.text")} <code className="rounded bg-(--bg-tertiary) px-1 py-0.5 text-xs">creeky-backup.json</code> {t("sync.import.textAfter")}</p>
+          <h3 className="font-semibold text-(--secondary)">{t("sync.import.title")}</h3><p className="mt-1 text-xs text-(--muted)">{t("sync.import.text")} <code className="rounded bg-(--bg-tertiary) px-1 py-0.5 text-xs">creeky-backup.dat</code> {t("sync.import.textAfter")}</p>
           <div className="mt-3 flex flex-wrap gap-2 items-center">
-            <label className="inline-flex cursor-pointer items-center justify-center rounded-md border border-(--border-medium) bg-(--bg-tertiary) px-3 py-1.5 text-xs font-medium hover:bg-(--bg-hover)"><input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={handleImport} />{t("sync.import.button")}</label>
+            <Button variant="secondary" size="sm" onClick={() => setImportOpen(true)} disabled={busy}>{t("sync.import.button")}</Button>
             <span className="text-xs text-(--muted)">{t("sync.wipe")}</span>
             <DeleteButton onConfirm={handleWipe} className="scale-[0.58] origin-left -my-2" />
           </div>
@@ -134,6 +126,8 @@ export function SyncView() {
         </div>
         <pre className="mt-3 max-h-55 overflow-auto rounded-lg border border-(--border-light) bg-(--bg-secondary) p-3 text-xs whitespace-pre-wrap wrap-break-word">{preview.text}</pre>
       </div>
+      <BackupKeyModal recoveryKey={exported?.key ?? null} path={exported?.path ?? ""} onClose={() => setExported(null)} />
+      <ImportKeyModal open={importOpen} busy={busy} onClose={() => setImportOpen(false)} onSubmit={handleImport} />
     </section>
   );
 }
