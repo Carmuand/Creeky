@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useCreekyStore } from "@/hooks/useCreekyStore";
+import { useAvatar } from "@/hooks/useAvatar";
 import { pushToast } from "@/hooks/useToast";
 import { errorMessage, useI18n } from "@/i18n";
 import { usePrioMeta } from "@/i18n/labels";
@@ -33,6 +34,7 @@ export function ProfileView() {
   const [editOpen, setEditOpen] = useState(false);
 
   const user = store.user;
+  const avatarUrl = useAvatar();
   const report = (error: unknown) => pushToast(errorMessage(error), "error");
 
   const weekAgo = Date.now() - 7 * 864e5;
@@ -79,14 +81,12 @@ export function ProfileView() {
     setIsEditing(false);
   };
 
-  const handleAvatarUpload = (dataUrl: string) => {
-    if (!user || !dataUrl) return;
-    authApi.setAvatar(dataUrl).catch(report);
+  const handleAvatarUpload = () => {
+    authApi.pickAvatar().then((stored) => { if (stored) pushToast(t("avatar.toast.updated"), "success"); }).catch(report);
   };
 
   const handleAvatarRemove = () => {
-    if (!user) return;
-    authApi.setAvatar(null).catch(report);
+    authApi.removeAvatar().catch(report);
   };
 
   if (!user) return <div className="p-6 text-sm text-(--muted)">{t("profile.noSession")}</div>;
@@ -98,7 +98,7 @@ export function ProfileView() {
         email={user.email}
         memberSince={t("profile.memberSince", { date: new Date(user.created).toLocaleDateString(locale) })}
         initial={(user.name || "U")[0].toUpperCase()}
-        avatarUrl={user.avatar ?? undefined}
+        avatarUrl={avatarUrl}
         onAvatarUpload={handleAvatarUpload}
         onAvatarRemove={handleAvatarRemove}
         stats={{ tasks: alive.length, completed: done, focusMinutes: focusMin, habits: store.habits.length }}
