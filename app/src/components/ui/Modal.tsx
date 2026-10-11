@@ -1,5 +1,6 @@
 import { useEffect, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { useI18n } from "@/i18n";
 
 /**
  * Properties for the {@link Modal} component.
@@ -19,6 +20,9 @@ interface ModalProps {
 
 /**
  * Portal-based modal shell rendered directly into `document.body`.
+ *
+ * @param props - Component properties.
+ * @returns The modal portal, or null while closed.
  */
 export function Modal({ open, onClose, className = "w-full max-w-lg max-h-[88vh]", children, closeOnBackdropClick = true }: ModalProps) {
   useEffect(() => {
@@ -64,8 +68,12 @@ interface ModalHeaderProps {
 
 /**
  * Standard modal header with title, optional icon/subtitle, and close button.
+ *
+ * @param props - Component properties.
+ * @returns The modal header.
  */
 export function ModalHeader({ icon, title, subtitle, onClose }: ModalHeaderProps) {
+  const { t } = useI18n();
   return (
     <div className="flex shrink-0 items-center justify-between border-b border-(--border-light) px-6 py-4">
       <div className="flex items-center gap-3">
@@ -82,7 +90,7 @@ export function ModalHeader({ icon, title, subtitle, onClose }: ModalHeaderProps
       <button
         className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-(--border-medium) bg-(--bg-primary) text-(--text-tertiary) transition-colors hover:bg-(--bg-hover) hover:text-(--text-primary) cursor-pointer"
         onClick={onClose}
-        aria-label="Cerrar"
+        aria-label={t("common.close")}
       >
         ×
       </button>
@@ -102,6 +110,9 @@ interface ModalBodyProps {
 
 /**
  * Scrollable modal body container.
+ *
+ * @param props - Component properties.
+ * @returns The modal body.
  */
 export function ModalBody({ children, className = "" }: ModalBodyProps) {
   return <div className={`flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-6 py-5 ${className}`}>{children}</div>;
@@ -117,6 +128,9 @@ interface ModalFooterProps {
 
 /**
  * Right-aligned footer container for modal actions.
+ *
+ * @param props - Component properties.
+ * @returns The modal footer.
  */
 export function ModalFooter({ children }: ModalFooterProps) {
   return <div className="flex shrink-0 items-center justify-end gap-2 border-t border-(--border-light) bg-(--bg-secondary) px-6 py-4">{children}</div>;

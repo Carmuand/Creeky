@@ -1,7 +1,11 @@
 import type { CreekyDB, Task } from "@/types/creeky";
 import { PRIO_META } from "@/types/creeky";
 import { listColor } from "@/utils/task";
+import { useI18n } from "@/i18n";
 
+/**
+ * Properties for the {@link TaskBoard} component.
+ */
 interface TaskBoardProps {
   columns: { id: string; name: string; color: string; icon: string; description: string }[];
   tasks: Task[];
@@ -11,7 +15,14 @@ interface TaskBoardProps {
   onCheck: (id: string) => void;
 }
 
+/**
+ * Kanban board with one column per list and draggable task cards.
+ *
+ * @param props - Component properties.
+ * @returns The task board.
+ */
 export function TaskBoard({ columns, tasks, store, onDrop, onDragStart, onCheck }: TaskBoardProps) {
+  const { t: tr } = useI18n();
   return (
     <>
       <div className="grid grid-cols-[repeat(auto-fit,minmax(230px,1fr))] gap-3 p-4 items-start">
@@ -41,13 +52,13 @@ export function TaskBoard({ columns, tasks, store, onDrop, onDragStart, onCheck 
                     </div>
                   </div>
                 ))}
-                {!cards.length ? <p className="rounded-lg border border-dashed border-(--border-medium) px-3 py-4 text-center text-xs text-(--muted)">Arrastra tareas aquí</p> : null}
+                {!cards.length ? <p className="rounded-lg border border-dashed border-(--border-medium) px-3 py-4 text-center text-xs text-(--muted)">{tr("board.dropHere")}</p> : null}
               </div>
             </div>
           );
         })}
       </div>
-      <p className="px-4 pb-3 text-xs text-(--muted)">Arrastra una tarjeta a otra columna para cambiarla de lista.</p>
+      <p className="px-4 pb-3 text-xs text-(--muted)">{tr("board.hint")}</p>
     </>
   );
 }

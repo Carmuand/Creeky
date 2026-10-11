@@ -1,6 +1,6 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 
-type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
+type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "gradient";
 type ButtonSize = "sm" | "md" | "lg";
 
 /**
@@ -25,7 +25,8 @@ export function Button({ variant = "primary", size = "md", block = false, classN
 
   const variants: Record<ButtonVariant, string> = {
     primary: "bg-(--accent) text-white border border-(--accent) hover:bg-(--accent-hover) hover:border-(--accent-hover)",
-    secondary: "bg-(--bg-tertiary) text-(--text-primary) border border-(--border-medium) hover:bg-(--bg-hover) hover:border-(--border-dark)",
+    gradient: "bg-gradient-to-r from-(--accent) to-(--secondary) text-white border border-transparent hover:opacity-90",
+    secondary: "bg-(--secondary-light) text-(--secondary) border border-(--secondary-border) hover:bg-(--secondary) hover:text-white hover:border-(--secondary)",
     ghost: "bg-transparent text-(--text-soft) hover:bg-(--bg-hover) hover:text-(--text)",
     danger: "bg-(--bg-tertiary) text-[#C62828] border border-[rgba(198,40,40,0.2)] hover:bg-[rgba(198,40,40,0.08)] hover:border-[#C62828]",
   };

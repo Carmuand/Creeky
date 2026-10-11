@@ -1,31 +1,90 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useSyncExternalStore } from "react";
 
+/**
+ * Visual variant of a toast.
+ */
 export type ToastType = "info" | "success" | "warning" | "error";
-export interface ToastItem { id: string; message: string; type: ToastType; }
 
-let _id = 0;
+/**
+ * Toast shown in the bottom-right corner.
+ */
+export interface ToastItem {
+  /** Stable identifier. */
+  id: string;
+  /** Text shown to the user. */
+  message: string;
+  /** Visual variant. */
+  type: ToastType;
+}
 
-export function useToast() {
-  const [toasts, setToasts] = useState<ToastItem[]>([]);
-  const timers = useRef<Map<string, number>>(new Map());
+/**
+ * Function that shows a toast.
+ */
+export type ToastFn = (message: string, type?: ToastType) => void;
 
-  const dismiss = useCallback((id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
-    const tm = timers.current.get(id);
-    if (tm) { window.clearTimeout(tm); timers.current.delete(id); }
-  }, []);
+/**
+ * Time a toast stays visible, in milliseconds.
+ */
+const TOAST_DURATION_MS = 3200;
 
-  const push = useCallback((message: string, type: ToastType = "info") => {
-    const id = `toast_${++_id}_${Date.now()}`;
-    setToasts((prev) => [...prev, { id, message, type }]);
-    const tm = window.setTimeout(() => dismiss(id), 3200);
-    timers.current.set(id, tm);
-  }, [dismiss]);
+let toasts: ToastItem[] = [];
+let sequence = 0;
+const timers = new Map<string, number>();
+const listeners = new Set<() => void>();
 
-  useEffect(() => () => {
-    timers.current.forEach((tm) => window.clearTimeout(tm));
-    timers.current.clear();
-  }, []);
+/**
+ * Replaces the toast list and notifies subscribers.
+ *
+ * @param next - New toast list.
+ */
+function commit(next: ToastItem[]): void {
+  toasts = next;
+  listeners.forEach((listener) => listener());
+}
 
-  return { toasts, push, dismiss };
+/**
+ * Subscribes to toast list changes.
+ *
+ * @param listener - Callback invoked after the list changes.
+ * @returns Function that removes the subscription.
+ */
+function subscribe(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+/**
+ * Removes a toast before its timeout.
+ *
+ * @param id - Toast identifier.
+ */
+export function dismissToast(id: string): void {
+  const timer = timers.get(id);
+  if (timer) {
+    window.clearTimeout(timer);
+    timers.delete(id);
+  }
+  commit(toasts.filter((toast) => toast.id !== id));
+}
+
+/**
+ * Shows a toast from anywhere in the application.
+ *
+ * @param message - Text shown to the user.
+ * @param type - Visual variant.
+ */
+export function pushToast(message: string, type: ToastType = "info"): void {
+  const id = `toast_${++sequence}_${Date.now()}`;
+  commit([...toasts, { id, message, type }]);
+  timers.set(id, window.setTimeout(() => dismissToast(id), TOAST_DURATION_MS));
+}
+
+/**
+ * Hook exposing the shared toast list.
+ *
+ * @returns The visible toasts with functions to add and dismiss them.
+ */
+export function useToast(): { toasts: ToastItem[]; push: ToastFn; dismiss: (id: string) => void } {
+  const list = useSyncExternalStore(subscribe, () => toasts);
+  return { toasts: list, push: pushToast, dismiss: dismissToast };
 }

@@ -1,26 +1,67 @@
 import { useEffect, useMemo, useState } from "react";
 import { useCreekyStore } from "@/hooks/useCreekyStore";
-import { db } from "@/services/storage";
-import { PRIO_META } from "@/types/creeky";
+import { useAvatar } from "@/hooks/useAvatar";
+import { pushToast } from "@/hooks/useToast";
+import { errorMessage, useI18n } from "@/i18n";
+import { usePrioMeta } from "@/i18n/labels";
+import { authApi } from "@/services/api";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { ProfileCard } from "@/features/profile/ProfileCard";
+import { ProfileEditModal } from "@/features/profile/ProfileEditModal";
+import { GoalBars } from "@/features/profile/GoalRings";
+import type { GoalBarDatum } from "@/features/profile/GoalRings";
+import { PulseCard } from "@/features/profile/PulseCard";
+import { ListDonut } from "@/features/profile/ListDonut";
+import { UnadProfileTab } from "@/features/profile/UnadProfileTab";
+import type { DonutSegment } from "@/features/profile/ListDonut";
 
+/**
+ * Profile view with the account card, a summary tab with statistics and
+ * preferences, and a tab with the data of the linked UNAD account.
+ *
+ * @returns The profile view.
+ */
 export function ProfileView() {
-  const { store, refresh } = useCreekyStore();
+  const [tab, setTab] = useState<"summary" | "unad">("summary");
+  const { store } = useCreekyStore();
+  const { t, locale } = useI18n();
+  const PRIO_META = usePrioMeta();
   const [range, setRange] = useState<"all" | "week">("all");
   const [name, setName] = useState("");
   const [isEditing, setIsEditing] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
-  const user = useMemo(() => {
-    if (!store.session) return null;
-    return store.users.find((u) => u.id === store.session) || null;
-  }, [store]);
+  const user = store.user;
+  const avatarUrl = useAvatar();
+  const report = (error: unknown) => pushToast(errorMessage(error), "error");
 
   const weekAgo = Date.now() - 7 * 864e5;
   const alive = useMemo(() => store.tasks.filter((t) => !t.deleted && (range === "all" || (t.createdAt || 0) >= weekAgo)), [store.tasks, range]);
   const done = useMemo(() => alive.filter((t) => t.done).length, [alive]);
   const focusMin = useMemo(() => store.pomoLog.filter((p) => p.mode === "focus" && (range === "all" || (p.ts || 0) >= weekAgo)).reduce((a, p) => a + (p.minutes || 0), 0), [store.pomoLog, range, weekAgo]);
+
+  const priorityRings: GoalBarDatum[] = Object.entries(PRIO_META).map(([value, meta]) => {
+    const group = alive.filter((t) => (t.priority || "none") === value);
+    const finished = group.filter((t) => t.done).length;
+    return {
+      id: value,
+      label: meta.label,
+      detail: t("profile.priority.detail", { done: finished, total: group.length }),
+      percent: group.length ? (finished / group.length) * 100 : 0,
+      color: meta.color,
+    };
+  });
+  const priorityBlended = priorityRings.length
+    ? `${(priorityRings.reduce((acc, ring) => acc + ring.percent, 0) / priorityRings.length).toFixed(1)}%`
+    : "0.0%";
+  const listSegments: DonutSegment[] = store.lists.map((l) => ({
+    id: l.id,
+    label: l.name,
+    value: alive.filter((t) => t.list === l.id).length,
+    color: l.color,
+  }));
 
   useEffect(() => {
     if (user) {
@@ -31,12 +72,7 @@ export function ProfileView() {
 
   const handleSave = () => {
     if (!user) return;
-    const s = db.load();
-    const full = s.users.find((x) => x.id === user.id);
-    if (!full) return;
-    full.name = name.trim() || full.name;
-    db.save(s);
-    refresh();
+    authApi.updateProfile(name.trim() || user.name, user.email, null).catch(report);
     setIsEditing(false);
   };
 
@@ -45,63 +81,76 @@ export function ProfileView() {
     setIsEditing(false);
   };
 
-  if (!user) return <div className="p-6 text-sm text-(--muted)">No hay sesión activa.</div>;
+  const handleAvatarUpload = () => {
+    authApi.pickAvatar().then((stored) => { if (stored) pushToast(t("avatar.toast.updated"), "success"); }).catch(report);
+  };
+
+  const handleAvatarRemove = () => {
+    authApi.removeAvatar().catch(report);
+  };
+
+  if (!user) return <div className="p-6 text-sm text-(--muted)">{t("profile.noSession")}</div>;
 
   return (
     <section className="max-w-275 mx-auto flex flex-col gap-4" aria-labelledby="h-profile">
-      <div className="flex items-center gap-5 rounded-xl border border-(--border-light) bg-(--bg-primary) p-6 shadow-sm">
-        <div className="flex h-21 w-21 items-center justify-center rounded-full bg-(--accent) text-3xl font-bold text-white">{(user.name || "U")[0].toUpperCase()}</div>
-        <div className="flex-1 min-w-0">
-          <h2 id="h-profile" className="text-xl font-semibold">{user.name || "Usuario"}</h2>
-          <p className="text-sm text-(--muted)">{user.email} • Miembro desde {new Date(user.created).toLocaleDateString()}</p>
-        </div>
-        <Button variant="secondary" size="sm" onClick={() => { setIsEditing(true); setTimeout(() => document.getElementById("pf-name")?.focus(), 0); }}>Editar</Button>
+      <ProfileCard
+        name={user.name || t("profile.fallbackName")}
+        email={user.email}
+        memberSince={t("profile.memberSince", { date: new Date(user.created).toLocaleDateString(locale) })}
+        initial={(user.name || "U")[0].toUpperCase()}
+        avatarUrl={avatarUrl}
+        onAvatarUpload={handleAvatarUpload}
+        onAvatarRemove={handleAvatarRemove}
+        stats={{ tasks: alive.length, completed: done, focusMinutes: focusMin, habits: store.habits.length }}
+        onEdit={() => setEditOpen(true)}
+      />
+      <ProfileEditModal
+        open={editOpen}
+        defaultName={user.name || ""}
+        defaultEmail={user.email}
+        onClose={() => setEditOpen(false)}
+      />
+
+      <div className="flex w-fit gap-1 rounded-lg bg-(--bg-tertiary) p-1" role="tablist" aria-label={t("nav.profile")} data-tour="profile-tabs">
+        {(["summary", "unad"] as const).map((id) => (
+          <button key={id} type="button" role="tab" aria-selected={tab === id} onClick={() => setTab(id)} className={`rounded-md px-3 py-1.5 text-xs transition-colors ${tab === id ? "bg-(--bg-primary) font-semibold text-(--text) shadow-sm" : "text-(--muted) hover:text-(--text)"}`}>
+            {id === "summary" ? t("profile.tab.summary") : t("profile.tab.unad")}
+          </button>
+        ))}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="inline-flex h-7 items-center text-xs font-semibold uppercase tracking-widest text-(--muted)">Estadísticas:</span>
-        <button onClick={() => setRange("all")} className={`rounded-full border px-3 py-1 text-xs ${range === "all" ? "bg-(--accent) border-(--accent) text-white font-semibold" : "border-(--border-medium) bg-(--bg-primary) text-(--muted) hover:border-(--accent)"}`}>Todo</button>
-        <button onClick={() => setRange("week")} className={`rounded-full border px-3 py-1 text-xs ${range === "week" ? "bg-(--accent) border-(--accent) text-white font-semibold" : "border-(--border-medium) bg-(--bg-primary) text-(--muted) hover:border-(--accent)"}`}>Últimos 7 días</button>
-      </div>
-
-      <div className="grid grid-cols-4 gap-3 max-[900px]:grid-cols-2">
-        <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 text-center shadow-sm"><b className="block text-xl">{alive.length}</b><span className="text-xs text-(--muted)">Tareas</span></div>
-        <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 text-center shadow-sm"><b className="block text-xl">{done}</b><span className="text-xs text-(--muted)">Completadas</span></div>
-        <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 text-center shadow-sm"><b className="block text-xl">{focusMin}</b><span className="text-xs text-(--muted)">Min. de foco</span></div>
-        <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 text-center shadow-sm"><b className="block text-xl">{store.habits.length}</b><span className="text-xs text-(--muted)">Hábitos</span></div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4 max-[900px]:grid-cols-1">
-        <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 shadow-sm">
-          <h3 className="mb-3 font-semibold">Por lista</h3>
-          {store.lists.map((l) => {
-            const lt = alive.filter((t) => t.list === l.id);
-            return <div key={l.id} className="flex items-center gap-2 border-b border-(--border-light) py-2 text-sm last:border-0"><span className="h-3 w-3 rounded" style={{ background: l.color }} /><span className="flex-1 truncate">{l.name}</span><b className="text-sm">{lt.filter((t) => t.done).length}/{lt.length}</b></div>;
-          })}
+      {tab === "unad" ? <UnadProfileTab /> : (<>
+      <div className="grid grid-cols-2 gap-3 max-[1000px]:grid-cols-1">
+        <div className="col-span-2 max-[1000px]:col-span-1">
+          <PulseCard />
         </div>
-        <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 shadow-sm">
-          <h3 className="mb-3 font-semibold">Por prioridad</h3>
-          {Object.entries(PRIO_META).map(([v, m]) => {
-            const n = alive.filter((t) => (t.priority || "none") === v).length;
-            return <div key={v} className="flex items-center gap-2 border-b border-(--border-light) py-2 text-sm last:border-0"><span className="flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white" style={{ background: m.color }}>{m.mark}</span><span className="flex-1">{m.label}</span><b>{n}</b></div>;
-          })}
-        </div>
+        <ListDonut range={range} onRangeChange={setRange} segments={listSegments} />
+        <GoalBars
+          range={range}
+          onRangeChange={setRange}
+          bars={priorityRings}
+          footerValue={priorityBlended}
+          title={t("profile.priority.title")}
+          subtitle={t("profile.priority.subtitle")}
+          footerLabel={t("profile.priority.footer")}
+        />
       </div>
 
       <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 shadow-sm">
-        <h3 className="font-semibold">Preferencias</h3>
-        <p className="mt-1 text-xs text-(--muted)">Tema monocromo (blanco ↔ negro) por ahora. El color se añadirá después.</p>
+        <h3 className="font-semibold">{t("profile.prefs.title")}</h3>
+        <p className="mt-1 text-xs text-(--muted)">{t("profile.prefs.text")}</p>
         <div className="mt-3 grid grid-cols-2 gap-4 max-[600px]:grid-cols-1">
-          <div className="flex flex-col gap-1.5"><label className="text-xs font-medium text-(--text-soft)">Nombre</label><Input id="pf-name" value={name} onChange={(e) => { setName(e.target.value); if (!isEditing) setIsEditing(true); }} onFocus={() => setIsEditing(true)} placeholder="Tu nombre" /></div>
-          <div className="flex flex-col gap-1.5"><label className="text-xs font-medium text-(--text-soft)">Vista inicial</label><Select value="Tareas" onChange={() => {}} options={[{ value: "Tareas", label: "Tareas" }, { value: "Calendario", label: "Calendario" }, { value: "Pomodoro", label: "Pomodoro" }]} /></div>
+          <div className="flex flex-col gap-1.5"><label className="text-xs font-medium text-(--text-soft)">{t("common.name")}</label><Input id="pf-name" value={name} onChange={(e) => { setName(e.target.value); if (!isEditing) setIsEditing(true); }} onFocus={() => setIsEditing(true)} placeholder={t("auth.name.placeholder")} /></div>
+          <div className="flex flex-col gap-1.5"><label className="text-xs font-medium text-(--text-soft)">{t("profile.prefs.initialView")}</label><Select value="tasks" onChange={() => {}} options={[{ value: "tasks", label: t("nav.tasks") }, { value: "calendar", label: t("nav.calendar") }, { value: "pomodoro", label: t("nav.pomodoro") }]} /></div>
         </div>
         {isEditing ? (
           <div className="mt-4 flex justify-end gap-2">
-            <Button variant="secondary" onClick={handleCancel}>Cancelar</Button>
-            <Button variant="primary" onClick={handleSave}>Guardar</Button>
+            <Button variant="secondary" onClick={handleCancel}>{t("common.cancel")}</Button>
+            <Button variant="primary" onClick={handleSave}>{t("common.save")}</Button>
           </div>
         ) : null}
       </div>
+      </>)}
     </section>
   );
 }

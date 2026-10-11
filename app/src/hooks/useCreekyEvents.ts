@@ -1,37 +1,42 @@
-/**
- * useCreekyEvents — frontend-owned event handlers that Python triggers via evaluate_js.
- * Instead of Python evaluating arbitrary JS, it must call window.__creeky_* with a typed payload.
- */
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
+import { attachBackendEvents, onBackendEvent } from "@/services/api/events";
+import { refreshStore } from "@/services/store";
 
-export interface CreekyToastPayload {
-  message: string;
-  type?: "info" | "success" | "warning" | "error";
+/**
+ * Callbacks invoked for events emitted by the backend.
+ */
+export interface CreekyEventHandlers {
+  /** Called when the reminder scheduler fired task or habit reminders. */
+  onReminder?: (counts: { tasks: number; habits: number }) => void;
+  /** Called when the user clicks a native notification. */
+  onNavigate?: (view: string) => void;
 }
 
-export function useCreekyEvents(opts?: {
-  onToast?: (p: CreekyToastPayload) => void;
-  onNavigate?: (view: string) => void;
-}) {
-  const [lastToast, setLastToast] = useState<CreekyToastPayload | null>(null);
-
-  const handleToast = useCallback((payload: CreekyToastPayload) => {
-    setLastToast(payload);
-    opts?.onToast?.(payload);
-  }, [opts]);
-
-  const handleNavigate = useCallback((payload: { view: string }) => {
-    opts?.onNavigate?.(payload.view);
-  }, [opts]);
+/**
+ * Subscribes to backend events once the bridge is ready. The backend only
+ * publishes events; every reaction lives here in the frontend.
+ *
+ * @param ready - Whether the pywebview bridge is ready.
+ * @param handlers - Callbacks for the supported events.
+ */
+export function useCreekyEvents(ready: boolean, handlers: CreekyEventHandlers): void {
+  const handlersRef = useRef(handlers);
+  handlersRef.current = handlers;
 
   useEffect(() => {
-    window.__creeky_toast = handleToast as unknown as Window["__creeky_toast"];
-    window.__creeky_navigate = handleNavigate as unknown as Window["__creeky_navigate"];
+    if (!ready) return;
+    attachBackendEvents();
+    const offChanged = onBackendEvent("data:changed", () => { void refreshStore(); });
+    const offReminder = onBackendEvent("reminder:fired", (payload) => {
+      handlersRef.current.onReminder?.({ tasks: Number(payload.tasks) || 0, habits: Number(payload.habits) || 0 });
+    });
+    const offClicked = onBackendEvent("notification:clicked", (payload) => {
+      handlersRef.current.onNavigate?.(String(payload.view ?? "notifications"));
+    });
     return () => {
-      delete window.__creeky_toast;
-      delete window.__creeky_navigate;
+      offChanged();
+      offReminder();
+      offClicked();
     };
-  }, [handleToast, handleNavigate]);
-
-  return { lastToast };
+  }, [ready]);
 }

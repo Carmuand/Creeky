@@ -3,57 +3,77 @@
 </h1>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/React-111111?style=for-the-badge&logo=react">
-  <img src="https://img.shields.io/badge/TypeScript-111111?style=for-the-badge&logo=typescript">
-  <img src="https://img.shields.io/badge/Vite-111111?style=for-the-badge&logo=vite">
-  <img src="https://img.shields.io/badge/Tailwind_CSS-111111?style=for-the-badge&logo=tailwindcss">
-  <img src="https://img.shields.io/badge/Python-111111?style=for-the-badge&logo=python">
-  <img src="https://img.shields.io/badge/PyWebView-111111?style=for-the-badge">
+  <b>English</b> · <a href="README.es.md">Español</a>
 </p>
 
 <p align="center">
-  <img src=".github/preview.png" alt="Creeky Preview"/>
+  <img alt="React" src="https://img.shields.io/badge/React-111111?style=for-the-badge&logo=react&logoColor=61DAFB">
+  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-111111?style=for-the-badge&logo=typescript&logoColor=3178C6">
+  <img alt="Vite" src="https://img.shields.io/badge/Vite-111111?style=for-the-badge&logo=vite&logoColor=646CFF">
+  <img alt="Tailwind CSS" src="https://img.shields.io/badge/Tailwind%20CSS-111111?style=for-the-badge&logo=tailwindcss&logoColor=06B6D4">
+  <img alt="Python" src="https://img.shields.io/badge/Python-111111?style=for-the-badge&logo=python&logoColor=3776AB">
 </p>
 
-Creeky es una aplicación de productividad personal para organizar tareas, tiempo y hábitos en un solo lugar. Todo funciona en local, sin servidores, con tus datos guardados en el navegador.
+<p align="center">
+  <img src=".github/preview.png" alt="Creeky preview"/>
+</p>
+
+Creeky is a personal productivity desktop app for Windows that keeps tasks, time and habits in one place. Everything runs locally, with no servers: your data lives in a SQLite database on your computer and each account has its own.
 
 ---
 
-## Funcionalidades
+## Features
 
-- **Tareas y listas** con prioridades, fechas, duración, repetición por días, etiquetas y descripción. Vista lista y tablero Kanban con arrastrar y soltar.
-- **Calendario** con vistas año, mes, semana, día y rangos, conectado a las tareas por fecha y repetición.
-- **Pomodoro** 25/5/15 con anillo progresivo, historial filtrable y reserva de sesiones por tarea.
-- **Matriz Eisenhower** Q1–Q4 vinculada a la prioridad, arrastra para cambiar prioridad.
-- **Hábitos** con tabla semanal, racha y mejor racha, recordatorio diario y archivado automático cada lunes.
-- **Cuenta regresiva** manual y automática desde tareas con fecha, con progreso y edición.
-- **Búsqueda** en vivo por título, descripción y etiquetas con filtros por lista, prioridad y estado.
-- **Notificaciones** tipadas con paginación y marcado de leídas.
-- **Sincronización** con exportar e importar JSON y visor de colecciones.
-- **Perfil** con estadísticas por lista y prioridad, racha y foco, y preferencias locales.
-
----
-
-## Arquitectura
-
-Estructura modular basada en features, con React + TypeScript y Tailwind CSS. Cada dominio vive en `src/features/` con sus componentes, hooks y servicios aislados. El estado se gestiona en el frontend con `localStorage` (`creeky_db_v1`), sin backend activo y sin librerías de estado externas. Componentes base reutilizables en `src/components/ui/` (Modal, Select, Button, Input, Tooltip, Pagination, ConfirmDialog) y utilidades en `src/utils/` y `src/hooks/`. Ventana de escritorio con PyWebView.
+- **Tasks and lists** with priority, date, duration, weekly repetition, tags and description. List view and Kanban board with drag and drop.
+- **Calendar** with year, month, week, day and list views, connected to tasks by date and repetition.
+- **Pomodoro** 25/5/15 with a progress ring, filterable history and session reservation per task.
+- **Eisenhower matrix** Q1–Q4 linked to priority; drag to change it.
+- **Habits** with a weekly table, streak and best streak, and a daily reminder.
+- **Countdown** for manual events and automatically for dated tasks.
+- **Search** as you type by title, description and tags, with list, priority and state filters.
+- **Notifications** in the app and as native Windows notifications for task alarms and habits.
+- **UNAD integration** that signs in to the UNAD Virtual Campus, shows your campus profile and syncs your course agendas into the calendar, with reminders when an activity opens or is about to close.
+- **Encrypted backups** exported to a `.dat` file with a one-time recovery key, importable on any account.
+- **Profile** with statistics per list and priority, streak and focus.
+- **Settings** for language (Spanish and English), window size, starting with Windows and replaying the guided tour.
+- **Guided tour** for new users that walks through every section.
 
 ---
 
-## Requisitos
+## Architecture
 
+The frontend is React + TypeScript + Tailwind CSS, organized by feature under `app/src/features/`. The backend is Python on pywebview and owns all the data:
+
+- **Storage**: SQLite through SQLAlchemy at `%APPDATA%\Creeky\user\creeky.db`, with relational tables scoped to each account.
+- **Credentials**: password hashes (PBKDF2) and the active session are kept in the Windows Credential Manager through `keyring`; the database never stores passwords.
+- **Bridge**: the frontend calls one API method per entity and keeps the latest snapshot in memory.
+- **Events**: the backend never calls into the page. It publishes events on the shared pywebview state and the frontend listens for them.
+- **Reminders**: a background scheduler fires task and habit reminders and shows them with `desktop-notifier`.
+- **Backups**: AES-256-GCM with a key derived by scrypt from a recovery key generated for each export.
+
+---
+
+## Requirements
+
+- Windows 10 or later
 - Node 18+
-- Python 3.10+
+- Python 3.12+
 
 ---
 
-## Instalación
-
-Clona el repositorio:
+## Installation
 
 ```bash
 git clone https://github.com/Zerik-Official/Creeky
 cd Creeky
+```
+
+### Backend
+
+```bash
+python -m venv venv
+venv\Scripts\activate
+pip install -r app\requirements.txt
 ```
 
 ### Frontend
@@ -61,150 +81,79 @@ cd Creeky
 ```bash
 cd app
 npm install
-```
-
-### Backend (ventana de escritorio)
-
-**Windows:**
-
-```bash
-cd app
-
-# Inicializa un entorno virtual
-python -m venv venv
-venv\Scripts\activate
-
-# Instala las dependencias
-pip install -r requirements.txt
-
-# Copia el .env.example a .env y edita las variables si es necesario
 copy .env.example .env
-```
-
-**Linux / macOS:**
-
-```bash
-cd app
-
-# Inicializa un entorno virtual
-python3 -m venv venv
-source venv/bin/activate
-
-# Instala las dependencias
-pip install -r requirements.txt
-
-# Copia el .env.example a .env y edita las variables si es necesario
-cp .env.example .env
 ```
 
 ---
 
-## Ejecución
+## Running
 
-### Desarrollo (frontend)
+The desktop window needs the backend, so the app is used through pywebview rather than directly in a browser.
+
+Start the Vite dev server:
 
 ```bash
 cd app
 npm run dev
 ```
 
-Disponible en http://localhost:5173
-
-### Escritorio (PyWebView)
-
-**Windows:**
+Then, in another terminal, start the desktop window:
 
 ```bash
-cd app
 venv\Scripts\activate
-python desktop/main.py
+python app\desktop\main.py
 ```
 
-**Linux / macOS:**
-
-```bash
-cd app
-source venv/bin/activate
-python desktop/main.py
-```
-
-En modo desarrollo la ventana carga el servidor de Vite. En producción usa el build de `dist`.
-
-### Build de producción
-
-```bash
-cd app
-npm run build
-```
+With `DEBUG=true` in `app/.env` the window loads the Vite dev server. Without it the window loads the production build from `app/dist`.
 
 ---
 
-## Estructura del proyecto
+## Building the executable
+
+```powershell
+.\tools\build.ps1
+```
+
+The script builds the frontend and packages the app with PyInstaller in one-folder mode, without a console window and with the application icon. The result is `build\Creeky\Creeky.exe`. When it finishes it asks whether to install the app in a folder of your choice and whether to create a desktop shortcut, which replaces an existing one.
+
+| Parameter | Effect |
+| --- | --- |
+| `-SkipFrontend` | Reuse the existing `app/dist` output. |
+| `-Console` | Keep the console window to read the logs. |
+| `-Clean` | Remove the previous build output first. |
+| `-InstallDir <path>` | Install into that folder without asking. |
+| `-Shortcut` / `-NoShortcut` | Create or skip the desktop shortcut without asking. |
+| `-NoPrompt` | Never ask; keep the build where it is. |
+
+---
+
+## Project structure
 
 ```
 Creeky/
-├── .github/
-│   └── preview.png
-├── app/
-│   ├── desktop/
-│   │   ├── bootstrap.py
-│   │   ├── config.py
-│   │   └── core/
-│   ├── src/
-│   │   ├── App.tsx
-│   │   ├── main.tsx
-│   │   ├── assets/
-│   │   │   └── icons/
-│   │   ├── components/
-│   │   │   ├── layout/
-│   │   │   │   ├── AppLayout.tsx
-│   │   │   │   ├── Sidebar.tsx
-│   │   │   │   ├── TitleBar.tsx
-│   │   │   │   └── TopBar.tsx
-│   │   │   └── ui/
-│   │   │       ├── Button.tsx
-│   │   │       ├── Input.tsx
-│   │   │       ├── Textarea.tsx
-│   │   │       ├── Select.tsx
-│   │   │       ├── Modal.tsx
-│   │   │       ├── ConfirmDialog.tsx
-│   │   │       ├── Tooltip.tsx
-│   │   │       ├── Dropdown.tsx
-│   │   │       ├── Pagination.tsx
-│   │   │       └── Toast.tsx
-│   │   ├── features/
-│   │   │   ├── auth/
-│   │   │   ├── tasks/
-│   │   │   ├── calendar/
-│   │   │   ├── pomodoro/
-│   │   │   ├── eisenhower/
-│   │   │   ├── habits/
-│   │   │   ├── countdown/
-│   │   │   ├── search/
-│   │   │   ├── sync/
-│   │   │   ├── notifications/
-│   │   │   ├── help/
-│   │   │   └── profile/
-│   │   ├── hooks/
-│   │   │   ├── useCreekyStore.ts
-│   │   │   ├── useAppView.ts
-│   │   │   ├── useBadges.ts
-│   │   │   └── useReminders.ts
-│   │   ├── services/
-│   │   │   └── storage/
-│   │   ├── styles/
-│   │   │   ├── index.css
-│   │   │   └── main.css
-│   │   ├── types/
-│   │   │   └── creeky.ts
-│   │   └── utils/
-│   │       ├── date.ts
-│   │       ├── task.ts
-│   │       ├── navigation.ts
-│   │       └── notifications.ts
-|   ├── .env.example
-│   ├── package.json
-│   ├── vite.config.ts
-│   └── requirements.txt
-└── README.md
+├── tools/
+│   └── build.ps1
+└── app/
+    ├── desktop/
+    │   ├── main.py
+    │   ├── bootstrap.py
+    │   ├── config.py
+    │   ├── api/
+    │   ├── core/
+    │   ├── database/
+    │   └── utills/
+    ├── src/
+    │   ├── App.tsx
+    │   ├── main.tsx
+    │   ├── components/
+    │   ├── features/
+    │   ├── hooks/
+    │   ├── i18n/
+    │   ├── services/
+    │   ├── styles/
+    │   ├── types/
+    │   └── utils/
+    ├── index.html
+    ├── package.json
+    └── requirements.txt
 ```

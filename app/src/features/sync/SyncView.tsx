@@ -1,137 +1,133 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useCreekyStore } from "@/hooks/useCreekyStore";
-import { db } from "@/services/storage";
+import { pushToast } from "@/hooks/useToast";
+import { errorMessage, useI18n } from "@/i18n";
+import { dataApi } from "@/services/api";
 import { todayISO } from "@/utils/date";
 import { occursOn } from "@/utils/task";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
+import { DeleteButton } from "@/components/ui/delete-button";
+import { EmailSyncSection } from "@/features/sync/EmailSyncSection";
+import { BackupKeyModal, ImportKeyModal } from "@/features/sync/BackupDialogs";
 import { APP_VERSION } from "@/types/creeky";
 
+/**
+ * Sync view with data status, encrypted backup export and import, account
+ * wipe and a raw inspector. Data lives in the SQLite database managed by
+ * the backend and backups are files encrypted with a one-time recovery key.
+ *
+ * @returns The sync view.
+ */
 export function SyncView() {
   const { store, refresh } = useCreekyStore();
+  const { t, locale } = useI18n();
   const [inspect, setInspect] = useState("tasks");
-  const [syncTime, setSyncTime] = useState("ahora mismo");
-  const fileRef = useRef<HTMLInputElement>(null);
+  const [syncTime, setSyncTime] = useState<string | null>(null);
+  const [exported, setExported] = useState<{ key: string; path: string } | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   const alive = useMemo(() => store.tasks.filter((t) => !t.deleted), [store.tasks]);
   const bytes = useMemo(() => JSON.stringify(store).length, [store]);
 
   const handleSyncNow = () => {
-    setSyncTime(new Date().toLocaleTimeString());
+    void refresh().then(() => setSyncTime(new Date().toLocaleTimeString(locale)));
   };
 
   const handleExport = () => {
-    try {
-      const blob = new Blob([JSON.stringify(store, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "creeky-backup.json";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 2000);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      window.prompt("No se pudo descargar. Copia tu respaldo:", JSON.stringify(store).slice(0, 2000));
-      console.error(msg);
-    }
+    if (busy) return;
+    setBusy(true);
+    dataApi
+      .exportBackup()
+      .then((result) => { if (!result.cancelled) setExported({ key: result.key, path: result.path }); })
+      .catch((error: unknown) => pushToast(errorMessage(error), "error"))
+      .finally(() => setBusy(false));
   };
 
-  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    const r = new FileReader();
-    r.onload = () => {
-      try {
-        const data = JSON.parse(String(r.result));
-        if (!data.tasks || !data.lists) throw new Error("formato inválido");
-        const keepSession = db.load().session;
-        const keepUsers = db.load().users;
-        db.save({
-          tags: data.tags || ["trabajo", "personal", "urgente"],
-          users: data.users || keepUsers,
-          session: data.session ?? keepSession,
-          tasks: data.tasks,
-          lists: data.lists,
-          habits: data.habits || [],
-          matrix: data.matrix || { q1: [], q2: [], q3: [], q4: [] },
-          countdowns: data.countdowns || [],
-          pomoLog: data.pomoLog || [],
-          notifications: data.notifications || [],
-        });
-        refresh();
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        console.error(msg);
-      }
-    };
-    r.readAsText(f);
-    if (fileRef.current) fileRef.current.value = "";
+  const handleImport = (recoveryKey: string) => {
+    if (busy) return;
+    setBusy(true);
+    dataApi
+      .importBackup(recoveryKey)
+      .then((result) => {
+        if (result.cancelled) return;
+        setImportOpen(false);
+        pushToast(t("sync.toast.imported", { count: result.tasks }), "success");
+      })
+      .catch((error: unknown) => pushToast(errorMessage(error), "error"))
+      .finally(() => setBusy(false));
   };
 
   const handleWipe = () => {
-    if (confirm("¿Borrar todo?")) {
-      localStorage.clear();
-      location.reload();
-    }
+    dataApi.wipe().then(() => pushToast(t("sync.toast.wiped"), "warning")).catch((error: unknown) => pushToast(errorMessage(error), "error"));
   };
 
   const preview = useMemo(() => {
     const arr = (store as unknown as Record<string, unknown>)[inspect];
-    const count = Array.isArray(arr) ? `${arr.length} elemento(s)` : typeof arr;
+    const count = Array.isArray(arr) ? t("sync.inspect.count", { count: arr.length }) : typeof arr;
     const text = JSON.stringify(arr, null, 2).slice(0, 2000);
     return { count, text };
-  }, [store, inspect]);
+  }, [store, inspect, t]);
 
   return (
-    <section className="max-w-275 mx-auto flex flex-col gap-4" aria-label="Sincronización">
+    <section className="max-w-275 mx-auto flex flex-col gap-4" aria-label={t("nav.sync")}>
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <p className="text-sm text-(--muted)">App personal: todo vive en tu navegador. • Código <b className="font-semibold">v{APP_VERSION}</b></p>
-        <Button variant="primary" size="sm" onClick={handleSyncNow}>Sincronizar ahora</Button>
+        <p className="text-sm text-(--muted)">{t("sync.intro")} <b className="font-semibold">v{APP_VERSION}</b></p>
+        <Button variant="primary" size="sm" onClick={handleSyncNow}>{t("sync.now")}</Button>
       </div>
 
-      <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 shadow-sm">
-        <h3 className="font-semibold">Estado real de tus datos</h3>
+      <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 shadow-sm relative overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-(--accent)" />
+        <h3 className="font-semibold text-(--accent)">{t("sync.status.title")}</h3>
         <div className="mt-3 flex flex-col divide-y divide-(--border-light) text-sm">
-          <div className="flex justify-between py-2"><span className="text-(--muted)">Listas</span><b>{store.lists.length}</b></div>
-          <div className="flex justify-between py-2"><span className="text-(--muted)">Tareas pendientes</span><b>{alive.filter((t) => !t.done).length}</b></div>
-          <div className="flex justify-between py-2"><span className="text-(--muted)">Tareas completadas</span><b>{alive.filter((t) => t.done).length}</b></div>
-          <div className="flex justify-between py-2"><span className="text-(--muted)">En papelera</span><b>{store.tasks.filter((t) => t.deleted).length}</b></div>
-          <div className="flex justify-between py-2"><span className="text-(--muted)">Vencen hoy</span><b>{alive.filter((t) => !t.done && occursOn(t, todayISO())).length}</b></div>
-          <div className="flex justify-between py-2"><span className="text-(--muted)">Notificaciones sin leer / total</span><b>{store.notifications.filter((n) => n.unread).length} / {store.notifications.length}</b></div>
-          <div className="flex justify-between py-2"><span className="text-(--muted)">Tamaño en localStorage</span><b>{(bytes / 1024).toFixed(1)} KB</b></div>
+          <div className="flex justify-between py-2"><span className="text-(--muted)">{t("lists.title")}</span><b>{store.lists.length}</b></div>
+          <div className="flex justify-between py-2"><span className="text-(--muted)">{t("sync.status.pending")}</span><b>{alive.filter((t) => !t.done).length}</b></div>
+          <div className="flex justify-between py-2"><span className="text-(--muted)">{t("sync.status.completed")}</span><b>{alive.filter((t) => t.done).length}</b></div>
+          <div className="flex justify-between py-2"><span className="text-(--muted)">{t("sync.status.trash")}</span><b>{store.tasks.filter((t) => t.deleted).length}</b></div>
+          <div className="flex justify-between py-2"><span className="text-(--muted)">{t("sync.status.today")}</span><b>{alive.filter((t) => !t.done && occursOn(t, todayISO())).length}</b></div>
+          <div className="flex justify-between py-2"><span className="text-(--muted)">{t("sync.status.notifications")}</span><b>{store.notifications.filter((n) => n.unread).length} / {store.notifications.length}</b></div>
+          <div className="flex justify-between py-2"><span className="text-(--muted)">{t("sync.status.size")}</span><b>{(bytes / 1024).toFixed(1)} KB</b></div>
         </div>
       </div>
 
-      <div className="flex items-center gap-4 rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 shadow-sm">
-        <span className="h-3.5 w-3.5 shrink-0 rounded-full bg-[#2E7D32] shadow-[0_0_0_6px_rgba(46,125,50,0.12)]" />
-        <div><b className="text-sm">Al día</b><div className="text-xs text-(--muted)">Última copia: {syncTime} • Almacenamiento: localStorage</div></div>
+      <div className="flex items-center gap-4 rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 shadow-sm relative overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-(--secondary)" />
+        <span className="h-3.5 w-3.5 shrink-0 rounded-full bg-(--secondary) shadow-[0_0_0_6px_var(--secondary-light)]" />
+        <div><b className="text-sm">{t("sync.upToDate")}</b><div className="text-xs text-(--muted)">{t("sync.lastSync", { time: syncTime ?? t("sync.justNow") })}</div></div>
       </div>
+
+      <EmailSyncSection />
 
       <div className="grid grid-cols-2 gap-4 max-[700px]:grid-cols-1">
-        <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 shadow-sm">
-          <h3 className="font-semibold">Exportar</h3><p className="mt-1 text-xs text-(--muted)">Descarga tus datos en JSON. Guárdalo en Descargas o en <code className="rounded bg-(--bg-tertiary) px-1 py-0.5 text-xs">Creeky/backups/</code>.</p>
-          <div className="mt-3"><Button variant="secondary" size="sm" onClick={handleExport}>Descargar JSON</Button></div>
+        <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 shadow-sm relative overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-(--accent)" />
+          <h3 className="font-semibold text-(--accent)">{t("sync.export.title")}</h3><p className="mt-1 text-xs text-(--muted)">{t("sync.export.text")}</p>
+          <div className="mt-3"><Button variant="secondary" size="sm" onClick={handleExport} disabled={busy}>{t("sync.export.button")}</Button></div>
         </div>
-        <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 shadow-sm">
-          <h3 className="font-semibold">Importar / Borrar</h3><p className="mt-1 text-xs text-(--muted)">Restaura desde un <code className="rounded bg-(--bg-tertiary) px-1 py-0.5 text-xs">creeky-backup.json</code> o limpia tu espacio.</p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <label className="inline-flex cursor-pointer items-center justify-center rounded-md border border-(--border-medium) bg-(--bg-tertiary) px-3 py-1.5 text-xs font-medium hover:bg-(--bg-hover)"><input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={handleImport} />Importar</label>
-            <Button variant="danger" size="sm" onClick={handleWipe}>Borrar todo</Button>
+        <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 shadow-sm relative overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-(--secondary)" />
+          <h3 className="font-semibold text-(--secondary)">{t("sync.import.title")}</h3><p className="mt-1 text-xs text-(--muted)">{t("sync.import.text")} <code className="rounded bg-(--bg-tertiary) px-1 py-0.5 text-xs">creeky-backup.dat</code> {t("sync.import.textAfter")}</p>
+          <div className="mt-3 flex flex-wrap gap-2 items-center">
+            <Button variant="secondary" size="sm" onClick={() => setImportOpen(true)} disabled={busy}>{t("sync.import.button")}</Button>
+            <span className="text-xs text-(--muted)">{t("sync.wipe")}</span>
+            <DeleteButton onConfirm={handleWipe} className="scale-[0.58] origin-left -my-2" />
           </div>
         </div>
       </div>
 
-      <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 shadow-sm">
-        <h3 className="font-semibold">Inspeccionar datos</h3>
+      <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 shadow-sm relative overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-linear-to-r from-(--accent) to-(--secondary)" />
+        <h3 className="font-semibold">{t("sync.inspect.title")}</h3>
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <span className="text-xs font-semibold uppercase tracking-widest text-(--muted)">Ver:</span>
-          <div className="min-w-45"><Select value={inspect} onChange={setInspect} options={[{ value: "tasks", label: "Tareas" }, { value: "lists", label: "Listas" }, { value: "habits", label: "Hábitos" }, { value: "countdowns", label: "Cuentas atrás" }, { value: "pomoLog", label: "Sesiones Pomodoro" }, { value: "notifications", label: "Notificaciones" }, { value: "tags", label: "Etiquetas" }]} /></div>
+          <span className="text-xs font-semibold uppercase tracking-widest text-(--muted)">{t("common.viewColon")}</span>
+          <div className="min-w-45"><Select value={inspect} onChange={setInspect} options={[{ value: "tasks", label: t("nav.tasks") }, { value: "lists", label: t("lists.title") }, { value: "habits", label: t("nav.habits") }, { value: "countdowns", label: t("sync.inspect.countdowns") }, { value: "pomoLog", label: t("sync.inspect.pomodoro") }, { value: "notifications", label: t("nav.notifications") }, { value: "tags", label: t("task.tags") }]} /></div>
           <span className="text-xs text-(--muted)">{preview.count}</span>
         </div>
         <pre className="mt-3 max-h-55 overflow-auto rounded-lg border border-(--border-light) bg-(--bg-secondary) p-3 text-xs whitespace-pre-wrap wrap-break-word">{preview.text}</pre>
       </div>
+      <BackupKeyModal recoveryKey={exported?.key ?? null} path={exported?.path ?? ""} onClose={() => setExported(null)} />
+      <ImportKeyModal open={importOpen} busy={busy} onClose={() => setImportOpen(false)} onSubmit={handleImport} />
     </section>
   );
 }
