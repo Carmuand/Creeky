@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { TitleBar } from "@/components/layout/TitleBar";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ToastContainer } from "@/components/ui/Toast";
@@ -13,52 +13,83 @@ import { CountdownView } from "@/features/countdown/CountdownView";
 import { SearchView } from "@/features/search/SearchView";
 import { SyncView } from "@/features/sync/SyncView";
 import { NotificationsView } from "@/features/notifications/NotificationsView";
+import { SettingsView } from "@/features/settings/SettingsView";
 import { HelpView } from "@/features/help/HelpView";
 import { ProfileView } from "@/features/profile/ProfileView";
-import { useAppView } from "@/hooks/useAppView";
+import { VIEW_TITLE_KEYS, isCreekyView, useAppView } from "@/hooks/useAppView";
 import { useBadges } from "@/hooks/useBadges";
 import { useBridge } from "@/hooks/useBridge";
 import { useCreekyEvents } from "@/hooks/useCreekyEvents";
 import { useCreekyStore } from "@/hooks/useCreekyStore";
-import { useReminders } from "@/hooks/useReminders";
 import { useToast } from "@/hooks/useToast";
-import { db } from "@/services/storage";
+import { errorMessage, useI18n } from "@/i18n";
+import { authApi } from "@/services/api";
 import { todayISO } from "@/utils/date";
 import { occursOn } from "@/utils/task";
 import { APP_VERSION } from "@/types/creeky";
 
+/**
+ * Application root: waits for the backend, gates on the session and
+ * renders the active view.
+ *
+ * @returns The application shell.
+ */
 export default function App() {
-  const { ready: bridgeReady } = useBridge();
-  const { store, refresh } = useCreekyStore();
+  const { ready, error: bridgeError } = useBridge();
+  const { store } = useCreekyStore();
   const { toasts, push, dismiss } = useToast();
-  const { view, setView, TITLES } = useAppView();
+  const { view, setView } = useAppView();
+  const { t } = useI18n();
   const badges = useBadges(store);
 
   const [collapsed, setCollapsed] = useState(false);
-  const [authed, setAuthed] = useState(() => !!db.load().session);
+  const user = store.user;
 
-  useCreekyEvents({ onToast: (p) => push(p.message, p.type ?? "info"), onNavigate: (v) => { if (v in TITLES) setView(v as never); } });
-  useReminders({ onToast: push, onRefresh: refresh });
+  useCreekyEvents(ready, {
+    onReminder: ({ habits }) => {
+      const hash = window.location.hash || "";
+      if (hash === "#notifications" || hash === "#habits") return;
+      push(habits > 0 ? t("reminder.toast.habits") : t("reminder.toast.task"), "warning");
+    },
+    onNavigate: (target) => { if (isCreekyView(target)) setView(target); },
+  });
 
-  const handleAuthed = useCallback(() => { refresh(); setAuthed(true); push("Sesión iniciada.", "success"); }, [push, refresh]);
-  const handleLogout = useCallback(() => { const s = db.load(); s.session = null; db.save(s); refresh(); setAuthed(false); push("Sesión cerrada.", "info"); }, [push, refresh]);
-
-  const user = useMemo(() => {
-    if (!store.session) return null;
-    return store.users.find((u) => u.id === store.session) || null;
-  }, [store]);
+  const handleAuthed = useCallback(() => { push(t("auth.toast.signedIn"), "success"); }, [push, t]);
+  const handleLogout = useCallback(() => {
+    authApi.signOut().then(() => push(t("auth.toast.signedOut"), "info")).catch((error: unknown) => push(errorMessage(error), "error"));
+  }, [push, t]);
 
   useEffect(() => {
-    try {
-      const alive = store.tasks.filter((t) => !t.deleted);
-      console.log(`%cCreeky v${APP_VERSION}%c tareas vivas:${alive.length} (pendientes:${alive.filter((t) => !t.done).length}) • listas:${store.lists.length} • hoy:${alive.filter((t) => !t.done && occursOn(t, todayISO())).length} • notif sin leer:${store.notifications.filter((n) => n.unread).length}/${store.notifications.length}`, "font-weight:bold", "");
-    } catch { /* ignore */ }
-  }, [store]);
+    if (!ready) return;
+    const alive = store.tasks.filter((task) => !task.deleted);
+    console.log(`%cCreeky v${APP_VERSION}%c tasks:${alive.length} (pending:${alive.filter((task) => !task.done).length}) lists:${store.lists.length} today:${alive.filter((task) => !task.done && occursOn(task, todayISO())).length} unread:${store.notifications.filter((n) => n.unread).length}/${store.notifications.length}`, "font-weight:bold", "");
+  }, [ready, store]);
 
-  if (!authed) {
+  if (!ready) {
     return (
       <div className="flex h-screen w-screen flex-col overflow-hidden bg-(--bg-secondary)">
-        <TitleBar bridgeReady={bridgeReady} />
+        <TitleBar bridgeReady={false} />
+        <div className="flex flex-1 min-h-0 flex-col items-center justify-center gap-3 p-6 text-center">
+          {bridgeError ? (
+            <>
+              <p className="text-lg font-semibold text-(--text)">{t("boot.error.title")}</p>
+              <p className="max-w-110 text-sm text-(--muted)">{t("boot.error.text")}</p>
+            </>
+          ) : (
+            <>
+              <span aria-hidden className="h-8 w-8 animate-spin rounded-full border-2 border-(--border-medium) border-t-(--accent)" />
+              <p className="text-sm text-(--muted)">{t("boot.loading")}</p>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="flex h-screen w-screen flex-col overflow-hidden bg-(--bg-secondary)">
+        <TitleBar bridgeReady={ready} />
         <div className="flex flex-1 min-h-0 overflow-hidden">
           <AuthView onAuthed={handleAuthed} onToast={push} />
         </div>
@@ -78,6 +109,7 @@ export default function App() {
       case "search": return <SearchView />;
       case "sync": return <SyncView />;
       case "notifications": return <NotificationsView />;
+      case "settings": return <SettingsView />;
       case "help": return <HelpView />;
       case "profile": return <ProfileView />;
       default: return <TasksView onToast={push} />;
@@ -87,9 +119,9 @@ export default function App() {
   return (
     <TooltipProvider>
       <div className="flex h-screen w-screen flex-col overflow-hidden bg-(--bg-secondary) text-(--text)">
-        <TitleBar bridgeReady={bridgeReady} title="Creeky" />
+        <TitleBar bridgeReady={ready} title="Creeky" />
         <div className="flex flex-1 min-h-0">
-          <AppLayout view={view} onViewChange={setView} title={TITLES[view] ?? view} badges={badges} userInitial={(user?.name || "U")[0]?.toUpperCase()} onLogout={handleLogout} collapsed={collapsed} onToggleCollapse={() => setCollapsed((c) => !c)}>
+          <AppLayout view={view} onViewChange={setView} title={t(VIEW_TITLE_KEYS[view])} badges={badges} userInitial={(user.name || "U")[0]?.toUpperCase()} onLogout={handleLogout} collapsed={collapsed} onToggleCollapse={() => setCollapsed((c) => !c)}>
             {renderView()}
           </AppLayout>
         </div>
