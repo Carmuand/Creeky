@@ -1,15 +1,8 @@
-import { useRef, useState } from "react";
-import type { ChangeEvent } from "react";
 import { Pencil, Trash2, Upload } from "lucide-react";
 import { Dropdown, DropdownItem } from "@/components/ui/Dropdown";
 import { TooltipSimple } from "@/components/ui/Tooltip";
 import { useI18n } from "@/i18n";
 import { cn } from "@/lib/utils";
-
-/**
- * Maximum accepted avatar file size in bytes.
- */
-const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 
 /**
  * Properties for the {@link ProfileAvatar} component.
@@ -21,8 +14,8 @@ export interface ProfileAvatarProps {
   initial: string;
   /** Photo data URL. When undefined the initials fallback is rendered. */
   imageUrl?: string;
-  /** Called with the new photo data URL after a valid file is picked. */
-  onUpload: (dataUrl: string) => void;
+  /** Called when the user asks to choose a new photo. */
+  onUpload: () => void;
   /** Called when the user removes the current photo. */
   onRemove: () => void;
   /** Additional classes applied to the outer wrapper. */
@@ -33,35 +26,14 @@ export interface ProfileAvatarProps {
  * React equivalent of the originui `avatar-07` pattern.
  *
  * Renders a rounded photo with an online dot. Opening it reveals
- * the photo actions: edit entry, upload a new photo or remove it.
+ * the photo actions: upload a new photo or remove it. Choosing the
+ * file is delegated to the backend, which shows a native dialog.
  *
  * @param props - Component properties.
  * @returns The avatar with its actions menu.
  */
 export function ProfileAvatar({ name, initial, imageUrl, onUpload, onRemove, className = "" }: ProfileAvatarProps) {
   const { t } = useI18n();
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [fileError, setFileError] = useState("");
-
-  const openPicker = () => fileRef.current?.click();
-
-  const handleFile = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      setFileError(t("avatar.error.type"));
-      return;
-    }
-    if (file.size > MAX_AVATAR_BYTES) {
-      setFileError(t("avatar.error.size"));
-      return;
-    }
-    setFileError("");
-    const reader = new FileReader();
-    reader.onload = () => onUpload(String(reader.result || ""));
-    reader.readAsDataURL(file);
-  };
 
   return (
     <div className={cn("relative shrink-0", className)}>
@@ -95,7 +67,7 @@ export function ProfileAvatar({ name, initial, imageUrl, onUpload, onRemove, cla
           </TooltipSimple>
         }
       >
-        <DropdownItem onClick={openPicker}>
+        <DropdownItem onClick={onUpload}>
           <span className="inline-flex items-center gap-2">
             <Upload className="h-4 w-4" aria-hidden />
             {imageUrl ? t("avatar.change") : t("avatar.upload")}
@@ -112,12 +84,6 @@ export function ProfileAvatar({ name, initial, imageUrl, onUpload, onRemove, cla
       </Dropdown>
       <span aria-hidden className="absolute -inset-e-1 -top-1 size-3 rounded-full border-2 border-(--bg-primary) bg-emerald-500" />
       <span className="sr-only">{t("avatar.online")}</span>
-      <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile} aria-hidden tabIndex={-1} />
-      {fileError ? (
-        <p role="alert" className="absolute left-0 top-full z-10 mt-1 w-44 rounded-md border border-[rgba(198,40,40,0.25)] bg-(--bg-primary) px-2 py-1 text-[11px] text-[#C62828]">
-          {fileError}
-        </p>
-      ) : null}
     </div>
   );
 }
