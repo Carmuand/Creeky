@@ -204,6 +204,7 @@ export function Sidebar({ view, onSelect, badges, userInitial, onLogout, collaps
             aria-expanded={userOpen}
             aria-haspopup="true"
             aria-label={t("nav.userMenu")}
+            data-tour="user-menu"
             onClick={(e) => { e.stopPropagation(); setUserOpen((o) => !o); }}
           >
             <span>{userInitial}</span>
