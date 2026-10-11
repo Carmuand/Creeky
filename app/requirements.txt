@@ -6,3 +6,6 @@ pywebview
 sqlalchemy
 keyring
 desktop-notifier
+cryptography
+requests
+beautifulsoup4
