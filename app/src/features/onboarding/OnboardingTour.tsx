@@ -35,7 +35,11 @@ const TOUR_STOPS: TourStop[] = [
   { target: '[data-page="search"]', titleKey: "nav.search", textKey: "tour.search.text", view: "search" },
   { target: '[data-page="sync"]', titleKey: "nav.sync", textKey: "tour.sync.text", view: "sync" },
   { target: '[data-page="notifications"]', titleKey: "nav.notifications", textKey: "tour.notifications.text", view: "notifications" },
+  { target: '[data-tour="notif-filters"]', titleKey: "tour.filters.title", textKey: "tour.notifFilters.text", view: "notifications" },
+  { target: '[data-tour="profile-tabs"]', titleKey: "nav.profile", textKey: "tour.profile.text", view: "profile" },
   { target: '[data-page="settings"]', titleKey: "nav.settings", textKey: "tour.settings.text", view: "settings" },
+  { target: '[data-tour="settings-tabs"]', titleKey: "tour.unad.title", textKey: "tour.unad.text", view: "settings" },
+  { target: '[data-page="help"]', titleKey: "nav.help", textKey: "tour.help.text", view: "help" },
   { target: '[data-tour="theme"]', titleKey: "tour.theme.title", textKey: "tour.theme.text" },
   { target: '[data-tour="user-menu"]', titleKey: "tour.user.title", textKey: "tour.user.text", view: "tasks" },
   { target: "body", titleKey: "tour.done.title", textKey: "tour.done.text" },
@@ -76,8 +80,13 @@ export function OnboardingTour({ active, onNavigate }: OnboardingTourProps) {
 
   const handleEvent = (data: EventData) => {
     if (data.type === EVENTS.STEP_BEFORE) {
-      const view = TOUR_STOPS[data.index]?.view;
-      if (view) onNavigate(view);
+      const stop = TOUR_STOPS[data.index];
+      if (stop?.view) onNavigate(stop.view);
+      if (stop && stop.target !== "body") {
+        requestAnimationFrame(() => {
+          document.querySelector(stop.target)?.scrollIntoView({ block: "nearest", inline: "nearest" });
+        });
+      }
     }
     if (data.status === STATUS.FINISHED || data.status === STATUS.SKIPPED) {
       authApi.setOnboarded(true).catch((error: unknown) => pushToast(errorMessage(error), "error"));
