@@ -1,4 +1,5 @@
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { Fragment, useState, useCallback, useMemo, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
@@ -7,7 +8,7 @@ import { Modal, ModalBody, ModalFooter, ModalHeader } from "@/components/ui/Moda
 import { Dropdown, DropdownItem } from "@/components/ui/Dropdown";
 import { useI18n } from "@/i18n";
 import type { MessageKey } from "@/i18n";
-import { GraduationCap } from "lucide-react";
+import { ArrowRight, GraduationCap } from "lucide-react";
 import { ChevronLeft, ChevronRight, Plus, Calendar, Clock, Grid3x3, List, Search, Filter, X } from "lucide-react";
 
 /**
@@ -83,6 +84,12 @@ const COLOR_VALUES: Record<string, string> = {
   pink: "#ec4899",
   red: "#ef4444",
 };
+
+/**
+ * Space reserved below an event chip for its hover card, in pixels. When
+ * it does not fit, the card opens above the chip.
+ */
+const HOVER_CARD_HEIGHT = 190;
 
 /**
  * Returns the CSS color that identifies an event.
@@ -363,19 +370,19 @@ export function EventManager({
           {searchQuery && <button onClick={() => setSearchQuery("")} className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 flex items-center justify-center rounded-md hover:bg-(--bg-hover)"><X className="h-4 w-4" /></button>}
         </div>
         <div className="flex items-center gap-2 overflow-x-auto pb-1 overflow-visible">
-          <Dropdown trigger={<Button variant="secondary" size="sm" className="gap-2 whitespace-nowrap"><Filter className="h-4 w-4" />{t("calendar.filter.colors")} {selectedColors.length > 0 && <Badge className="ml-1 bg-(--accent) text-white border-(--accent)">{selectedColors.length}</Badge>}</Button>}>
+          <Dropdown closeOnSelect={false} trigger={<Button variant="secondary" size="sm" className="gap-2 whitespace-nowrap"><Filter className="h-4 w-4" />{t("calendar.filter.colors")} {selectedColors.length > 0 && <Badge className="ml-1 bg-(--accent) text-white border-(--accent)">{selectedColors.length}</Badge>}</Button>}>
             {colors.map((color) => (
               <DropdownItem key={color.value} onClick={() => setSelectedColors((prev) => prev.includes(color.value) ? prev.filter((c) => c !== color.value) : [...prev, color.value])}>
                 <div className="flex items-center gap-2"><div className={`h-3 w-3 rounded ${color.bg}`} />{t(color.nameKey)} {selectedColors.includes(color.value) ? "✓" : ""}</div>
               </DropdownItem>
             ))}
           </Dropdown>
-          <Dropdown trigger={<Button variant="secondary" size="sm" className="gap-2 whitespace-nowrap"><Filter className="h-4 w-4" />{t("task.tags")} {selectedTags.length > 0 && <Badge className="ml-1 bg-(--secondary) text-white border-(--secondary)">{selectedTags.length}</Badge>}</Button>}>
+          <Dropdown closeOnSelect={false} trigger={<Button variant="secondary" size="sm" className="gap-2 whitespace-nowrap"><Filter className="h-4 w-4" />{t("task.tags")} {selectedTags.length > 0 && <Badge className="ml-1 bg-(--secondary) text-white border-(--secondary)">{selectedTags.length}</Badge>}</Button>}>
             {availableTags.map((tag) => (
               <DropdownItem key={tag} onClick={() => setSelectedTags((prev) => prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag])}>{tag} {selectedTags.includes(tag) ? "✓" : ""}</DropdownItem>
             ))}
           </Dropdown>
-          <Dropdown trigger={<Button variant="secondary" size="sm" className="gap-2 whitespace-nowrap"><Filter className="h-4 w-4" />{t("calendar.filter.categories")} {selectedCategories.length > 0 && <Badge className="ml-1 bg-(--accent) text-white border-(--accent)">{selectedCategories.length}</Badge>}</Button>}>
+          <Dropdown closeOnSelect={false} trigger={<Button variant="secondary" size="sm" className="gap-2 whitespace-nowrap"><Filter className="h-4 w-4" />{t("calendar.filter.categories")} {selectedCategories.length > 0 && <Badge className="ml-1 bg-(--accent) text-white border-(--accent)">{selectedCategories.length}</Badge>}</Button>}>
             {categories.map((cat) => (
               <DropdownItem key={cat} onClick={() => setSelectedCategories((prev) => prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat])}>{cat} {selectedCategories.includes(cat) ? "✓" : ""}</DropdownItem>
             ))}
@@ -401,8 +408,8 @@ export function EventManager({
       {view === "day" && <DayView currentDate={currentDate} events={filteredEvents} onEventClick={(e) => { setSelectedEvent(e); setIsDialogOpen(true); }} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDrop={handleDrop} getColorClasses={getColorClasses} />}
       {view === "list" && <ListView events={filteredEvents} onEventClick={(e) => { setSelectedEvent(e); setIsDialogOpen(true); }} getColorClasses={getColorClasses} />}
 
-      <Modal open={isDialogOpen} onClose={() => { setIsDialogOpen(false); setIsCreating(false); setSelectedEvent(null); }} className="w-full max-w-md max-h-[90vh]">
-        <ModalHeader title={isCreating ? t("calendar.dialog.create") : t("calendar.dialog.details")} onClose={() => { setIsDialogOpen(false); setIsCreating(false); setSelectedEvent(null); }} />
+      <Modal open={isDialogOpen} onClose={() => { setIsDialogOpen(false); setIsCreating(false); setSelectedEvent(null); }} className={`w-full max-h-[90vh] ${readOnlyEvent ? "max-w-2xl" : "max-w-md"}`}>
+        <ModalHeader title={isCreating ? t("calendar.dialog.create") : readOnlyEvent?.sourceLabel ? t("calendar.dialog.external", { source: readOnlyEvent.sourceLabel }) : t("calendar.dialog.details")} onClose={() => { setIsDialogOpen(false); setIsCreating(false); setSelectedEvent(null); }} />
         <ModalBody className="gap-4">
           {readOnlyEvent ? <EventDetails event={readOnlyEvent} /> : (<>
           <div className="flex flex-col gap-1.5"><Label htmlFor="title">{t("calendar.field.title")}</Label><Input id="title" value={isCreating ? newEvent.title : selectedEvent?.title || ""} onChange={(e) => isCreating ? setNewEvent((prev) => ({ ...prev, title: e.target.value })) : setSelectedEvent((prev) => (prev ? { ...prev, title: e.target.value } : null))} placeholder={t("calendar.field.title.placeholder")} /></div>
@@ -429,7 +436,26 @@ export function EventManager({
 }
 
 /**
- * Read-only description of an event that comes from an external source.
+ * Splits a description written as `*Label: text *Label: text` into its
+ * labeled parts, as the UNAD agendas do.
+ *
+ * @param text - Raw description.
+ * @returns The labeled parts, or a single unlabeled part when the text has no such structure.
+ */
+function splitDescription(text: string): { label: string; body: string }[] {
+  const parts = text.split("*").map((part) => part.trim()).filter(Boolean);
+  if (parts.length < 2 && !text.trim().startsWith("*")) return [{ label: "", body: text.trim() }];
+  return parts.map((part) => {
+    const colon = part.indexOf(":");
+    if (colon < 1 || colon > 40) return { label: "", body: part };
+    return { label: part.slice(0, colon).trim(), body: part.slice(colon + 1).trim() };
+  });
+}
+
+/**
+ * Read-only description of an event that comes from an external source,
+ * with a colored header, its facts as tiles and the description broken
+ * into labeled paragraphs.
  *
  * @param props - Component properties.
  * @param props.event - Event to describe.
@@ -438,35 +464,54 @@ export function EventManager({
 function EventDetails({ event }: { event: Event }) {
   const { locale } = useI18n();
   const color = eventColor(event);
-  const formatMoment = (date: Date) => date.toLocaleString(locale, { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  const moment = event.endTime.toLocaleString(locale, { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
+  const sections = event.description ? splitDescription(event.description) : [];
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-start gap-3 rounded-lg border border-(--border-light) p-3" style={{ borderLeft: `4px solid ${color}`, background: `color-mix(in srgb, ${color} 8%, transparent)` }}>
-        <div className="min-w-0 flex-1">
-          <h4 className="text-sm font-semibold leading-snug text-(--text)">{event.title}</h4>
-          <p className="mt-1 flex items-center gap-1.5 text-xs text-(--muted)"><Clock className="h-3.5 w-3.5 shrink-0" aria-hidden />{formatMoment(event.endTime)}</p>
+    <div className="flex flex-col gap-4">
+      <div className="relative overflow-hidden rounded-xl border border-(--border-light) p-4" style={{ background: `linear-gradient(135deg, color-mix(in srgb, ${color} 16%, var(--bg-primary)) 0%, var(--bg-primary) 70%)` }}>
+        <span aria-hidden className="absolute inset-y-0 left-0 w-1" style={{ background: color }} />
+        <div className="flex items-start gap-3">
+          <span aria-hidden className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white" style={{ background: color }}><GraduationCap className="h-5 w-5" /></span>
+          <div className="min-w-0 flex-1">
+            {event.category ? <p className="truncate text-[11px] font-semibold uppercase tracking-wide" style={{ color }}>{event.category}</p> : null}
+            <h4 className="mt-0.5 text-base font-semibold leading-snug text-(--text)">{event.title}</h4>
+            <p className="mt-1.5 flex items-center gap-1.5 text-xs capitalize text-(--text-soft)"><Clock className="h-3.5 w-3.5 shrink-0" aria-hidden />{moment}</p>
+          </div>
+          {event.sourceLabel ? <Badge className="shrink-0">{event.sourceLabel}</Badge> : null}
         </div>
-        {event.sourceLabel ? <Badge className="shrink-0 gap-1"><GraduationCap className="h-3 w-3" aria-hidden />{event.sourceLabel}</Badge> : null}
       </div>
-      {event.category ? <p className="text-xs font-medium text-(--text-soft)">{event.category}</p> : null}
       {event.details?.length ? (
-        <dl className="grid grid-cols-2 gap-2 max-[480px]:grid-cols-1">
+        <dl className="grid grid-cols-3 gap-2 max-[560px]:grid-cols-2">
           {event.details.map((item) => (
-            <div key={item.label} className="rounded-lg border border-(--border-light) bg-(--bg-secondary) px-3 py-2">
-              <dt className="text-[11px] font-medium uppercase tracking-wide text-(--muted)">{item.label}</dt>
-              <dd className="mt-0.5 text-sm text-(--text)">{item.value}</dd>
+            <div key={item.label} className="min-w-0 rounded-lg border border-(--border-light) bg-(--bg-secondary) px-3 py-2.5">
+              <dt className="truncate text-[10px] font-semibold uppercase tracking-wider text-(--muted)">{item.label}</dt>
+              <dd className="mt-1 text-sm font-medium text-(--text)">{item.value}</dd>
             </div>
           ))}
         </dl>
       ) : null}
-      {event.description ? <p className="max-h-45 overflow-y-auto whitespace-pre-wrap rounded-lg border border-(--border-light) bg-(--bg-secondary) p-3 text-xs leading-relaxed text-(--text-soft)">{event.description}</p> : null}
+      {sections.length ? (
+        <div className="flex flex-col gap-3">
+          {sections.map((section, index) => (
+            <div key={`${section.label}-${index}`} className="flex gap-3">
+              <span aria-hidden className="mt-1.5 h-2 w-2 shrink-0 rounded-full" style={{ background: color }} />
+              <div className="min-w-0 flex-1">
+                {section.label ? <p className="text-xs font-semibold text-(--text)">{section.label}</p> : null}
+                <p className="text-sm leading-relaxed text-(--text-soft)">{section.body}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
 
 /**
  * Event chip with a hover card. Chips use a soft tint of the event color
- * with a solid edge so several events stay readable in the same day.
+ * with a solid edge so several events stay readable in the same day. The
+ * hover card is rendered in a portal with fixed position, so neighbouring
+ * cells and the calendar frame never clip or cover it.
  * Events from external sources are not draggable.
  *
  * @param props - Event, callbacks and visual variant.
@@ -475,6 +520,7 @@ function EventDetails({ event }: { event: Event }) {
 function EventCard({ event, onEventClick, onDragStart, onDragEnd, variant = "default" }: { event: Event; onEventClick: (event: Event) => void; onDragStart: (event: Event) => void; onDragEnd: () => void; getColorClasses: (color: string) => { bg: string; text: string }; variant?: "default" | "compact" | "detailed" }) {
   const { locale } = useI18n();
   const [isHovered, setIsHovered] = useState(false);
+  const anchorRef = useRef<HTMLDivElement>(null);
   const color = eventColor(event);
   const formatTime = (date: Date) => date.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
   const getDuration = () => {
@@ -494,8 +540,14 @@ function EventCard({ event, onEventClick, onDragStart, onDragEnd, variant = "def
     onMouseEnter: () => setIsHovered(true),
     onMouseLeave: () => setIsHovered(false),
   };
-  const hoverCard = (width: string) => (
-    <div className={`absolute left-0 top-full z-50 mt-1 ${width}`}>
+  const hoverCard = (width: number) => {
+    const rect = anchorRef.current?.getBoundingClientRect();
+    if (!rect) return null;
+    const left = Math.max(8, Math.min(rect.left, window.innerWidth - width - 8));
+    const below = rect.bottom + HOVER_CARD_HEIGHT + 8 <= window.innerHeight;
+    const position = below ? { top: rect.bottom + 4 } : { bottom: window.innerHeight - rect.top + 4 };
+    return createPortal(
+    <div className="pointer-events-none fixed z-60" style={{ left, width, ...position }}>
       <Card className="p-3 shadow-xl" style={{ borderTop: `3px solid ${color}` }}>
         <div className="space-y-2">
           <div className="flex items-start justify-between gap-2">
@@ -507,18 +559,20 @@ function EventCard({ event, onEventClick, onDragStart, onDragEnd, variant = "def
           <div className="flex flex-wrap gap-1">{event.category && <Badge>{event.category}</Badge>}{event.tags?.map((tag) => <Badge key={tag} variant="outline">{tag}</Badge>)}</div>
         </div>
       </Card>
-    </div>
-  );
+    </div>,
+      document.body,
+    );
+  };
 
   if (variant === "compact") {
     return (
-      <div {...dragProps} className={`relative ${event.readOnly ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"}`}>
+      <div ref={anchorRef} {...dragProps} className={`relative ${event.readOnly ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"}`}>
         <div style={tint} className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] leading-4 text-(--text) transition-colors">
           {sourceIcon}
           <span className="shrink-0 font-semibold tabular-nums text-(--text-soft)">{formatTime(event.startTime)}</span>
           <span className="truncate font-medium">{event.title}</span>
         </div>
-        {isHovered && hoverCard("w-64")}
+        {isHovered && hoverCard(256)}
       </div>
     );
   }
@@ -532,9 +586,9 @@ function EventCard({ event, onEventClick, onDragStart, onDragEnd, variant = "def
     );
   }
   return (
-    <div {...dragProps} className="relative cursor-pointer">
+    <div ref={anchorRef} {...dragProps} className="relative cursor-pointer">
       <div style={tint} className="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-(--text) transition-colors">{sourceIcon}<span className="truncate">{event.title}</span></div>
-      {isHovered && hoverCard("w-72")}
+      {isHovered && hoverCard(288)}
     </div>
   );
 }
@@ -632,13 +686,13 @@ function WeekView({ currentDate, events, onEventClick, onDragStart, onDragEnd, o
       </div>
       <div className="grid grid-cols-8">
         {hours.map((hour) => (
-          <>
+          <Fragment key={hour}>
             <div key={`time-${hour}`} className="border-b border-r border-(--border-light) p-1 text-[10px] text-(--muted) sm:p-2 sm:text-xs">{hour.toString().padStart(2, "0")}:00</div>
             {weekDays.map((day) => {
               const dayEvents = getEventsForDayAndHour(day, hour);
               return <div key={`${day.toISOString()}-${hour}`} className="min-h-12 border-b border-r border-(--border-light) p-0.5 hover:bg-(--bg-hover) last:border-r-0 sm:min-h-16 sm:p-1" onDragOver={(e) => e.preventDefault()} onDrop={() => onDrop(day, hour)}><div className="space-y-1">{dayEvents.map((event) => <EventCard key={event.id} event={event} onEventClick={onEventClick} onDragStart={onDragStart} onDragEnd={onDragEnd} getColorClasses={getColorClasses} variant="default" />)}</div></div>;
             })}
-          </>
+          </Fragment>
         ))}
       </div>
     </Card>
@@ -708,7 +762,9 @@ function YearView({ currentDate, events, onEventClick: _onEventClick, onMonthCli
 }
 
 /**
- * Chronological list of events grouped by day.
+ * Chronological list of events grouped by day. Each day shows its date
+ * block on the left and its events as rows with a time column, a color
+ * edge, the title with a short description and the course or list.
  *
  * @param props - Events and callbacks.
  * @returns The list layout.
@@ -716,41 +772,54 @@ function YearView({ currentDate, events, onEventClick: _onEventClick, onMonthCli
 function ListView({ events, onEventClick }: { events: Event[]; onEventClick: (event: Event) => void; getColorClasses: (color: string) => { bg: string; text: string } }) {
   const { t, locale } = useI18n();
   const sortedEvents = [...events].sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
-  const groupedEvents = sortedEvents.reduce((acc, event) => {
-    const dateKey = event.startTime.toLocaleDateString(locale, { weekday: "long", year: "numeric", month: "long", day: "numeric" });
-    if (!acc[dateKey]) acc[dateKey] = [];
-    acc[dateKey].push(event);
-    return acc;
-  }, {} as Record<string, Event[]>);
+  const groups: { key: string; date: Date; events: Event[] }[] = [];
+  for (const event of sortedEvents) {
+    const last = groups[groups.length - 1];
+    if (last && isSameDay(last.date, event.startTime)) last.events.push(event);
+    else groups.push({ key: event.startTime.toDateString(), date: event.startTime, events: [event] });
+  }
+  const today = new Date();
+  const formatTime = (date: Date) => date.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
   return (
     <Card className="p-3 sm:p-4">
-      <div className="space-y-6">
-        {Object.entries(groupedEvents).map(([date, dateEvents]) => (
-          <div key={date} className="space-y-3">
-            <h3 className="text-xs font-semibold text-(--muted) sm:text-sm">{date}</h3>
-            <div className="space-y-2">
-              {dateEvents.map((event) => {
-                return (
-                  <div key={event.id} onClick={() => onEventClick(event)} className="group cursor-pointer rounded-lg border border-(--border-light) bg-(--bg-primary) p-3 sm:p-4 hover:shadow-md hover:border-(--accent) hover:scale-[1.01] transition-all">
-                    <div className="flex items-start gap-2 sm:gap-3">
-                      <div className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full sm:h-3 sm:w-3" style={{ background: eventColor(event) }} />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                          <div className="min-w-0"><h4 className="font-semibold text-sm group-hover:text-(--accent) sm:text-base truncate">{event.title}</h4>{event.description && <p className="mt-1 text-xs text-(--muted) sm:text-sm line-clamp-2">{event.description}</p>}</div>
-                          <div className="flex flex-wrap gap-1">{event.sourceLabel && <Badge className="gap-1"><GraduationCap className="h-3 w-3" aria-hidden />{event.sourceLabel}</Badge>}{event.category && <Badge>{event.category}</Badge>}</div>
-                        </div>
-                        <div className="mt-2 flex flex-wrap items-center gap-2 text-[10px] text-(--muted) sm:gap-4 sm:text-xs">
-                          <div className="flex items-center gap-1"><Clock className="h-3 w-3" />{event.startTime.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })} - {event.endTime.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}</div>
-                          {event.tags && event.tags.length > 0 && <div className="flex flex-wrap gap-1">{event.tags.map((tag) => <Badge key={tag} variant="outline">{tag}</Badge>)}</div>}
-                        </div>
+      <div className="flex flex-col gap-5">
+        {groups.map((group) => {
+          const isToday = isSameDay(group.date, today);
+          return (
+            <div key={group.key} className="flex gap-3 sm:gap-4">
+              <div className={`sticky top-0 flex h-fit w-14 shrink-0 flex-col items-center rounded-xl border px-1 py-2 text-center ${isToday ? "border-(--accent) bg-(--accent) text-white" : "border-(--border-light) bg-(--bg-secondary) text-(--text)"}`}>
+                <span className={`text-[10px] font-semibold uppercase tracking-wide ${isToday ? "text-white/80" : "text-(--muted)"}`}>{group.date.toLocaleDateString(locale, { weekday: "short" })}</span>
+                <span className="text-xl font-bold leading-tight">{group.date.getDate()}</span>
+                <span className={`text-[10px] uppercase ${isToday ? "text-white/80" : "text-(--muted)"}`}>{group.date.toLocaleDateString(locale, { month: "short" })}</span>
+              </div>
+              <div className="flex min-w-0 flex-1 flex-col gap-2">
+                <p className="text-xs font-medium capitalize text-(--muted)">{group.date.toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long", year: "numeric" })} • {t("calendar.eventCount", { count: group.events.length })}</p>
+                {group.events.map((event) => {
+                  const color = eventColor(event);
+                  const instant = event.endTime.getTime() === event.startTime.getTime();
+                  return (
+                    <div key={event.id} onClick={() => onEventClick(event)} className="group flex cursor-pointer items-stretch gap-3 overflow-hidden rounded-lg border border-(--border-light) bg-(--bg-primary) transition-all hover:border-(--accent) hover:shadow-md" style={{ borderLeft: `4px solid ${color}` }}>
+                      <div className="flex w-16 shrink-0 flex-col items-center justify-center px-1 py-3 text-center" style={{ background: `color-mix(in srgb, ${color} 10%, transparent)` }}>
+                        <span className="text-sm font-semibold tabular-nums text-(--text)">{formatTime(event.startTime)}</span>
+                        {instant ? null : <span className="text-[11px] tabular-nums text-(--muted)">{formatTime(event.endTime)}</span>}
                       </div>
+                      <div className="min-w-0 flex-1 py-2.5 pr-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <h4 className="min-w-0 truncate text-sm font-semibold text-(--text) group-hover:text-(--accent)">{event.title}</h4>
+                          {event.sourceLabel ? <span className="inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold text-white" style={{ background: color }}><GraduationCap className="h-3 w-3" aria-hidden />{event.sourceLabel}</span> : null}
+                        </div>
+                        {event.category ? <p className="mt-0.5 truncate text-xs font-medium" style={{ color }}>{event.category}</p> : null}
+                        {event.description ? <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-(--muted)">{event.description.replace(/\*/g, " ").trim()}</p> : null}
+                        {event.tags && event.tags.length > 0 ? <div className="mt-1.5 flex flex-wrap gap-1">{event.tags.map((tag) => <Badge key={tag} variant="outline">{tag}</Badge>)}</div> : null}
+                      </div>
+                      <div className="flex shrink-0 items-center pr-3 text-(--muted) opacity-0 transition-opacity group-hover:opacity-100"><ArrowRight className="h-4 w-4" aria-hidden /></div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
         {sortedEvents.length === 0 && <div className="py-12 text-center text-sm text-(--muted) sm:text-base">{t("calendar.noEvents")}</div>}
       </div>
     </Card>
