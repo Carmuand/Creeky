@@ -48,4 +48,12 @@ export const authApi = {
    * @returns The updated user.
    */
   setAvatar(dataUrl: string | null): Promise<User> { return mutate(bridge().set_avatar(dataUrl)); },
+
+  /**
+   * Records whether the signed-in user finished or skipped the guided tour.
+   *
+   * @param onboarded - False to show the tour again.
+   * @returns The updated user.
+   */
+  setOnboarded(onboarded: boolean): Promise<User> { return mutate(bridge().set_onboarded(onboarded)); },
 };
