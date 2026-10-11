@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { db } from "@/services/storage";
+import { errorMessage, useI18n } from "@/i18n";
+import { authApi } from "@/services/api";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Modal, ModalBody, ModalFooter, ModalHeader } from "@/components/ui/Modal";
@@ -10,25 +11,26 @@ import { Modal, ModalBody, ModalFooter, ModalHeader } from "@/components/ui/Moda
 export interface ProfileEditModalProps {
   /** Controls the visibility state of the modal. */
   open: boolean;
-  /** Identifier of the user being edited. */
-  userId: string;
   /** Name used to prefill the form when the modal opens. */
   defaultName: string;
   /** Email used to prefill the form when the modal opens. */
   defaultEmail: string;
   /** Callback fired when the modal requests to close. */
   onClose: () => void;
-  /** Callback fired after the profile is persisted. */
-  onSaved: () => void;
 }
 
 /**
  * Profile edition dialog for name, email and password.
  *
  * An empty password keeps the current one. Validation messages
- * are shown inline and nothing is persisted until they pass.
+ * are shown inline and nothing is persisted until they pass. The new
+ * password is hashed and stored by the backend in the credential manager.
+ *
+ * @param props - Component properties.
+ * @returns The profile edition dialog.
  */
-export function ProfileEditModal({ open, userId, defaultName, defaultEmail, onClose, onSaved }: ProfileEditModalProps) {
+export function ProfileEditModal({ open, defaultName, defaultEmail, onClose }: ProfileEditModalProps) {
+  const { t } = useI18n();
   const [name, setName] = useState(defaultName);
   const [email, setEmail] = useState(defaultEmail);
   const [password, setPassword] = useState("");
@@ -42,42 +44,32 @@ export function ProfileEditModal({ open, userId, defaultName, defaultEmail, onCl
     setError("");
   }, [open, defaultName, defaultEmail]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const nextName = name.trim();
     const nextEmail = email.trim();
     if (!nextName) {
-      setError("El nombre no puede estar vacío.");
+      setError(t("error.name_required"));
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nextEmail)) {
-      setError("Escribe un correo válido.");
+      setError(t("error.invalid_email"));
       return;
     }
     if (password && password.length < 4) {
-      setError("La contraseña debe tener al menos 4 caracteres.");
+      setError(t("error.weak_password"));
       return;
     }
-    const store = db.load();
-    const target = store.users.find((candidate) => candidate.id === userId);
-    if (!target) {
-      setError("No se encontró el usuario.");
-      return;
+    try {
+      await authApi.updateProfile(nextName, nextEmail, password || null);
+      onClose();
+    } catch (failure) {
+      setError(errorMessage(failure));
     }
-    if (store.users.some((candidate) => candidate.id !== userId && candidate.email === nextEmail)) {
-      setError("Ese correo ya está registrado.");
-      return;
-    }
-    target.name = nextName;
-    target.email = nextEmail;
-    if (password) target.pass = btoa(password);
-    db.save(store);
-    onSaved();
-    onClose();
   };
 
   return (
     <Modal open={open} onClose={onClose}>
-      <ModalHeader icon="✏️" title="Editar perfil" subtitle="Actualiza tu nombre, correo y contraseña." onClose={onClose} />
+      <ModalHeader icon="✏️" title={t("profile.edit.title")} subtitle={t("profile.edit.subtitle")} onClose={onClose} />
       <ModalBody>
         {error ? (
           <div role="alert" className="rounded-lg border border-[rgba(198,40,40,0.25)] bg-[rgba(198,40,40,0.08)] px-3 py-2.5 text-sm text-[#C62828]">
@@ -85,30 +77,30 @@ export function ProfileEditModal({ open, userId, defaultName, defaultEmail, onCl
           </div>
         ) : null}
         <label className="flex flex-col gap-1.5 text-xs font-medium text-(--text-soft)">
-          Nombre
-          <Input id="profile-edit-name" value={name} onChange={(event) => setName(event.target.value)} placeholder="Tu nombre" />
+          {t("common.name")}
+          <Input id="profile-edit-name" value={name} onChange={(event) => setName(event.target.value)} placeholder={t("auth.name.placeholder")} />
         </label>
         <label className="flex flex-col gap-1.5 text-xs font-medium text-(--text-soft)">
-          Correo
-          <Input id="profile-edit-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="tu@correo.com" />
+          {t("auth.email")}
+          <Input id="profile-edit-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder={t("auth.email.placeholder")} />
         </label>
         <label className="flex flex-col gap-1.5 text-xs font-medium text-(--text-soft)">
-          Contraseña
+          {t("auth.password")}
           <Input
             id="profile-edit-pass"
             type="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            placeholder="Déjala en blanco para no cambiarla"
+            placeholder={t("profile.edit.password.placeholder")}
           />
         </label>
       </ModalBody>
       <ModalFooter>
         <Button variant="secondary" onClick={onClose}>
-          Cancelar
+          {t("common.cancel")}
         </Button>
-        <Button variant="primary" onClick={handleSubmit}>
-          Guardar cambios
+        <Button variant="primary" onClick={() => { void handleSubmit(); }}>
+          {t("common.saveChanges")}
         </Button>
       </ModalFooter>
     </Modal>
