@@ -594,8 +594,6 @@ export const en: Record<MessageKey, string> = {
   "avatar.change": "Change photo",
   "avatar.remove": "Remove photo",
   "avatar.online": "Online",
-  "avatar.error.type": "The file must be an image.",
-  "avatar.error.size": "The image cannot exceed 2 MB.",
 
   "pulse.title": "Workspace pulse",
   "pulse.subtitle": "Activity, focus and consistency of your workspace.",
@@ -771,4 +769,9 @@ export const en: Record<MessageKey, string> = {
   "unad.calendar.badge": "UNAD",
   "unad.calendar.opens": "Opens: {name}",
   "unad.calendar.closes": "Closes: {name}",
+  "avatar.toast.updated": "Profile photo updated.",
+  "error.avatar_invalid_type": "The file must be a PNG, JPG, GIF, WEBP or BMP image.",
+  "error.avatar_too_large": "The image cannot exceed 2 MB.",
+  "error.avatar_unreadable": "The image could not be read.",
+  "calendar.dialog.external": "{source} activity",
 };
