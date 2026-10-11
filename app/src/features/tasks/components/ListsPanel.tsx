@@ -54,6 +54,7 @@ export function ListsPanel({ lists, visLists, alive, trashCount, activeFilter, v
         <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-(--bg-tertiary) text-(--accent)"><Icon name="list" size={16} /></span>
         <h3 className="flex-1 text-xs font-semibold uppercase tracking-widest text-(--muted)">{t("lists.title")} <span className="font-normal text-(--muted)">({lists.length})</span></h3>
         <Dropdown
+          closeOnSelect={false}
           trigger={
             <button className="flex h-7 w-7 items-center justify-center rounded-md text-(--muted) hover:bg-(--bg-hover) hover:text-(--text) transition-colors" aria-label={t("lists.options")}>
               <Icon name="gear" size={15} />
