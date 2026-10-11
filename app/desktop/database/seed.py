@@ -1,5 +1,5 @@
 """
-Starter data inserted when the database is created.
+Starter data given to every new account.
 """
 
 # Standard library
@@ -20,62 +20,72 @@ from desktop.database.models import (
     TaskList,
     TaskRepeatDay,
 )
-from desktop.utills.dates import add_days_iso, monday_of, now_ms, today_iso
+from desktop.utills.dates import add_days_iso, monday_of, new_id, now_ms, today_iso
 
-INBOX_LIST_ID: str = "inbox"
+INBOX_ALIAS: str = "inbox"
 DEFAULT_LIST_ICON: str = "\U0001F4CB"
 DEFAULT_TAGS: tuple[str, ...] = ("trabajo", "personal", "urgente")
 
 _DAY_MS: int = 86_400_000
 
 
-def seed_database(session: Session) -> None:
-    """Insert the starter lists, tags, tasks, habits and notes."""
+def seed_user_data(session: Session, user_id: str) -> None:
+    """
+    Insert the starter lists, tags, tasks, habits and notes of a new account.
+
+    Args:
+        session: Open database session.
+        user_id: Identifier of the account that owns the data.
+    """
     now: int = now_ms()
     today: str = today_iso()
     monday: str = monday_of(today)
 
-    session.add_all(
-        [
-            TaskList(
-                id=INBOX_LIST_ID,
-                name="Bandeja de entrada",
-                description="Captura rápida sin clasificar.",
-                color="#212121",
-                icon="\U0001F4E5",
-                position=0,
-            ),
-            TaskList(
-                id="trabajo",
-                name="Trabajo",
-                description="Pendientes laborales.",
-                color="#3949AB",
-                icon="\U0001F4BC",
-                position=1,
-            ),
-            TaskList(
-                id="personal",
-                name="Personal",
-                description="Asuntos propios.",
-                color="#00897B",
-                icon="\U0001F3E0",
-                position=2,
-            ),
-        ]
+    inbox: TaskList = TaskList(
+        id=new_id("l"),
+        user_id=user_id,
+        is_inbox=True,
+        name="Bandeja de entrada",
+        description="Captura rápida sin clasificar.",
+        color="#212121",
+        icon="\U0001F4E5",
+        position=0,
     )
+    work: TaskList = TaskList(
+        id=new_id("l"),
+        user_id=user_id,
+        name="Trabajo",
+        description="Pendientes laborales.",
+        color="#3949AB",
+        icon="\U0001F4BC",
+        position=1,
+    )
+    personal: TaskList = TaskList(
+        id=new_id("l"),
+        user_id=user_id,
+        name="Personal",
+        description="Asuntos propios.",
+        color="#00897B",
+        icon="\U0001F3E0",
+        position=2,
+    )
+    session.add_all([inbox, work, personal])
 
     tags: dict[str, Tag] = {
-        name: Tag(name=name, position=index) for index, name in enumerate(DEFAULT_TAGS)
+        name: Tag(user_id=user_id, name=name, position=index)
+        for index, name in enumerate(DEFAULT_TAGS)
     }
     session.add_all(tags.values())
+    session.flush()
 
     session.add_all(
         [
             Task(
-                id="t1",
+                id=new_id("t"),
+                user_id=user_id,
                 title="Revisar pendientes de la semana",
                 description="Revisa cada lista y pon fecha a lo importante.",
-                list_id=INBOX_LIST_ID,
+                list_id=inbox.id,
                 priority="medium",
                 due=today,
                 due_time="09:00",
@@ -84,9 +94,10 @@ def seed_database(session: Session) -> None:
                 tags=[tags["personal"]],
             ),
             Task(
-                id="t2",
+                id=new_id("t"),
+                user_id=user_id,
                 title="Probar Pomodoro de 25 min",
-                list_id="trabajo",
+                list_id=work.id,
                 priority="high",
                 created_at=now,
                 position=1,
@@ -99,14 +110,16 @@ def seed_database(session: Session) -> None:
     session.add_all(
         [
             Habit(
-                id="h1",
+                id=new_id("h"),
+                user_id=user_id,
                 name="Leer 20 min",
                 best_streak=3,
                 position=0,
                 checks=[HabitCheck(date=add_days_iso(monday, offset)) for offset in (0, 1, 2, 4)],
             ),
             Habit(
-                id="h2",
+                id=new_id("h"),
+                user_id=user_id,
                 name="Ejercicio",
                 best_streak=5,
                 position=1,
@@ -117,14 +130,15 @@ def seed_database(session: Session) -> None:
 
     session.add_all(
         [
-            MatrixNote(quadrant="q1", text="Entrega urgente", position=0),
-            MatrixNote(quadrant="q2", text="Planear semana", position=0),
+            MatrixNote(user_id=user_id, quadrant="q1", text="Entrega urgente", position=0),
+            MatrixNote(user_id=user_id, quadrant="q2", text="Planear semana", position=0),
         ]
     )
 
     session.add(
         Countdown(
-            id="c1",
+            id=new_id("c"),
+            user_id=user_id,
             title="Viaje",
             date=add_days_iso(today, 12),
             created_at=now - 20 * _DAY_MS,
@@ -133,7 +147,8 @@ def seed_database(session: Session) -> None:
 
     session.add(
         Notification(
-            id="n1",
+            id=new_id("n"),
+            user_id=user_id,
             title="Bienvenido a Creeky",
             text="Tu clon personal de TickTick está listo.",
             kind="system",
@@ -141,3 +156,4 @@ def seed_database(session: Session) -> None:
             created_at=now,
         )
     )
+    session.flush()
