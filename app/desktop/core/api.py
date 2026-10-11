@@ -12,6 +12,7 @@ from typing import Any
 # Project imports
 from desktop.api import (
     auth_api,
+    avatar_api,
     backup_api,
     habit_api,
     list_api,
@@ -130,9 +131,19 @@ class Api:
         return auth_api.update_profile(name, email, password)
 
     @bridge_method
-    def set_avatar(self, data_url: str | None) -> dict[str, Any]:
-        """Set or remove the signed-in user's photo."""
-        return auth_api.set_avatar(data_url)
+    def pick_avatar(self) -> dict[str, Any]:
+        """Choose a profile photo through a native dialog and store it."""
+        return avatar_api.pick_avatar()
+
+    @bridge_method
+    def get_avatar(self) -> dict[str, str | None]:
+        """Return the profile photo of the signed-in user as a data URL."""
+        return avatar_api.get_avatar()
+
+    @bridge_method
+    def remove_avatar(self) -> dict[str, Any]:
+        """Remove the profile photo of the signed-in user."""
+        return avatar_api.remove_avatar()
 
     @bridge_method
     def create_task(self, payload: dict[str, Any]) -> dict[str, Any]:
