@@ -12,9 +12,6 @@
   <img alt="Vite" src="https://img.shields.io/badge/Vite-111111?style=for-the-badge&logo=vite&logoColor=646CFF">
   <img alt="Tailwind CSS" src="https://img.shields.io/badge/Tailwind%20CSS-111111?style=for-the-badge&logo=tailwindcss&logoColor=06B6D4">
   <img alt="Python" src="https://img.shields.io/badge/Python-111111?style=for-the-badge&logo=python&logoColor=3776AB">
-  <img alt="pywebview" src="https://img.shields.io/badge/pywebview-111111?style=for-the-badge&logo=python&logoColor=FFD43B">
-  <img alt="SQLite" src="https://img.shields.io/badge/SQLite-111111?style=for-the-badge&logo=sqlite&logoColor=74C0FC">
-  <img alt="SQLAlchemy" src="https://img.shields.io/badge/SQLAlchemy-111111?style=for-the-badge&logo=sqlalchemy&logoColor=D71F00">
 </p>
 
 <p align="center">
