@@ -2,7 +2,8 @@
 Authentication and profile API.
 
 Accounts are stored in the database while password hashes and the active
-session are kept in the system credential manager.
+session are kept in the system credential manager. Every account owns its
+own lists, tasks, habits and the rest of its data.
 """
 
 # Standard library
@@ -19,6 +20,7 @@ from desktop.core import credentials
 from desktop.core.errors import ApiError
 from desktop.database.engine import session_scope
 from desktop.database.models import User
+from desktop.database.seed import seed_user_data
 from desktop.database.serializers import serialize_user
 from desktop.utills.dates import new_id, now_ms
 from desktop.utills.logger import log, Tags
@@ -38,7 +40,7 @@ def current_user(session: Session) -> User | None:
     return user
 
 
-def _require_user(session: Session) -> User:
+def require_user(session: Session) -> User:
     """Return the signed-in user or fail when there is no session."""
     user: User | None = current_user(session)
     if user is None:
@@ -52,7 +54,7 @@ def _find_by_email(session: Session, email: str) -> User | None:
 
 
 def sign_up(name: str, email: str, password: str) -> dict[str, Any]:
-    """Create an account, store its password hash and start a session."""
+    """Create an account with its starter data, store its password hash and start a session."""
     clean_name: str = (name or "").strip()
     clean_email: str = (email or "").strip()
     if not clean_name:
@@ -65,10 +67,15 @@ def sign_up(name: str, email: str, password: str) -> dict[str, Any]:
         if _find_by_email(session, clean_email) is not None:
             raise ApiError("email_taken")
         user: User = User(
-            id=new_id("u"), name=clean_name, email=clean_email, created_at=now_ms()
+            id=new_id("u"),
+            name=clean_name,
+            email=clean_email,
+            created_at=now_ms(),
+            onboarded=False,
         )
         session.add(user)
         session.flush()
+        seed_user_data(session, user.id)
         credentials.store_password(user.id, password)
         credentials.store_session(user.id)
         log("SUCCESS", Tags.AUTH, f"Account created: {user.id}")
@@ -103,7 +110,7 @@ def update_profile(name: str, email: str, password: str | None = None) -> dict[s
     if password and len(password) < _MIN_PASSWORD_LENGTH:
         raise ApiError("weak_password")
     with session_scope() as session:
-        user: User = _require_user(session)
+        user: User = require_user(session)
         other: User | None = _find_by_email(session, clean_email)
         if other is not None and other.id != user.id:
             raise ApiError("email_taken")
@@ -117,15 +124,26 @@ def update_profile(name: str, email: str, password: str | None = None) -> dict[s
 def set_avatar(data_url: str | None) -> dict[str, Any]:
     """Set or remove the signed-in user's profile photo."""
     with session_scope() as session:
-        user: User = _require_user(session)
+        user: User = require_user(session)
         user.avatar = data_url or None
         return serialize_user(user)
 
 
-def delete_all_credentials() -> None:
-    """Remove every stored password hash and the active session."""
+def set_onboarded(onboarded: bool) -> dict[str, Any]:
+    """Record whether the signed-in user finished or skipped the guided tour."""
     with session_scope() as session:
-        user_ids: list[str] = list(session.scalars(select(User.id)))
-    for user_id in user_ids:
-        credentials.delete_password(user_id)
+        user: User = require_user(session)
+        user.onboarded = bool(onboarded)
+        return serialize_user(user)
+
+
+def delete_account() -> None:
+    """Delete the signed-in account with all its data, its password hash and its session."""
+    with session_scope() as session:
+        user: User = require_user(session)
+        user_id: str = user.id
+        session.delete(user)
+    credentials.delete_password(user_id)
+    credentials.delete_unad_password(user_id)
     credentials.clear_session()
+    log("WARNING", Tags.AUTH, f"Account deleted: {user_id}")
