@@ -111,7 +111,7 @@ export function ProfileView() {
         onClose={() => setEditOpen(false)}
       />
 
-      <div className="flex w-fit gap-1 rounded-lg bg-(--bg-tertiary) p-1" role="tablist" aria-label={t("nav.profile")}>
+      <div className="flex w-fit gap-1 rounded-lg bg-(--bg-tertiary) p-1" role="tablist" aria-label={t("nav.profile")} data-tour="profile-tabs">
         {(["summary", "unad"] as const).map((id) => (
           <button key={id} type="button" role="tab" aria-selected={tab === id} onClick={() => setTab(id)} className={`rounded-md px-3 py-1.5 text-xs transition-colors ${tab === id ? "bg-(--bg-primary) font-semibold text-(--text) shadow-sm" : "text-(--muted) hover:text-(--text)"}`}>
             {id === "summary" ? t("profile.tab.summary") : t("profile.tab.unad")}
