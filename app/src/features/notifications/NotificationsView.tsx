@@ -12,7 +12,7 @@ import { Pagination } from "@/components/ui/Pagination";
 /**
  * Filters available in the notifications view.
  */
-type NotifView = "all" | "unread" | "reminder" | "calendar" | "system";
+type NotifView = "all" | "unread" | "reminder" | "calendar" | "unad" | "system";
 
 /**
  * Message key of the label for each filter.
@@ -22,6 +22,7 @@ const FILTER_KEYS: Record<NotifView, MessageKey> = {
   unread: "notifications.filter.unread",
   reminder: "notifications.filter.reminder",
   calendar: "nav.calendar",
+  unad: "notifications.filter.unad",
   system: "notifications.filter.system",
 };
 
@@ -42,7 +43,7 @@ export function NotificationsView() {
   const unread = store.notifications.filter((n) => n.unread).length;
   const list = store.notifications.filter((n) => {
     if (view === "unread") return n.unread;
-    if (view === "reminder" || view === "calendar" || view === "system") return n.kind === view;
+    if (view === "reminder" || view === "calendar" || view === "unad" || view === "system") return n.kind === view;
     return true;
   });
 
@@ -55,7 +56,7 @@ export function NotificationsView() {
   const markAll = () => { notificationsApi.markAllRead().catch(report); };
   const markOne = (id: string) => { notificationsApi.markRead(id).catch(report); };
 
-  const iconFor = (kind: string) => (kind === "reminder" ? "bell" : kind === "calendar" ? "calendar" : "info");
+  const iconFor = (kind: string) => (kind === "reminder" ? "bell" : kind === "calendar" || kind === "unad" ? "calendar" : "info");
 
   return (
     <section className="max-w-275 mx-auto flex flex-col gap-4" aria-label={t("nav.notifications")}>
@@ -65,7 +66,7 @@ export function NotificationsView() {
       </div>
 
       <div className="flex flex-wrap gap-1.5">
-        {(["all", "unread", "reminder", "calendar", "system"] as const).map((v) => (
+        {(["all", "unread", "reminder", "calendar", "unad", "system"] as const).map((v) => (
           <button key={v} onClick={() => setView(v)} className={`rounded-full border px-3 py-1 text-xs ${view === v ? "bg-(--accent) border-(--accent) text-white font-semibold" : "border-(--border-medium) bg-(--bg-primary) text-(--muted) hover:border-(--accent)"}`}>
             {v === "unread" ? t(FILTER_KEYS[v], { count: unread }) : t(FILTER_KEYS[v])}
           </button>
