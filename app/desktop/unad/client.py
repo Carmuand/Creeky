@@ -34,10 +34,16 @@ DEFAULT_HEADERS: Final[dict[str, str]] = {
     "Accept-Language": "es-CO,es;q=0.9,en;q=0.8",
 }
 _MAX_SALTOS: Final[int] = 10
+_LOGIN_ATTEMPTS: Final[int] = 3
+_LOGIN_RETRY_SECONDS: Final[float] = 2.0
 
 
 class CampusUnreachable(Exception):
     """The campus could not be reached or answered with an error."""
+
+
+class _UnreadableLogin(Exception):
+    """The campus answered the login with something other than an xajax response."""
 
 
 def _xajax_body(function_name: str, args: list[Any]) -> dict[str, str]:
@@ -143,7 +149,11 @@ class CampusClient:
 
     def login(self, document_type: str, document: str, password: str) -> bool:
         """
-        Authenticate the session with the portal credentials.
+        Authenticate with the portal credentials.
+
+        The portal sometimes answers the login with a page instead of the
+        xajax response, typically when signing in twice in a row. Such an
+        answer is retried with a fresh session before giving up.
 
         Args:
             document_type: Document type code.
@@ -154,6 +164,28 @@ class CampusClient:
             Whether the portal accepted the credentials.
 
         Raises:
+            CampusUnreachable: When the portal cannot be reached or keeps
+                answering with an unreadable response.
+        """
+        for attempt in range(1, _LOGIN_ATTEMPTS + 1):
+            try:
+                return self._login_once(document_type, document, password)
+            except _UnreadableLogin:
+                log("WARNING", Tags.UNAD, f"Unreadable login response, attempt {attempt}")
+                self._session.close()
+                self._session = requests.Session()
+                self._session.headers.update(DEFAULT_HEADERS)
+                self._landing_html = None
+                if attempt < _LOGIN_ATTEMPTS:
+                    time.sleep(_LOGIN_RETRY_SECONDS * attempt)
+        raise CampusUnreachable("unexpected login response")
+
+    def _login_once(self, document_type: str, document: str, password: str) -> bool:
+        """
+        Run the login flow once on the current session.
+
+        Raises:
+            _UnreadableLogin: When the portal does not answer with xajax JSON.
             CampusUnreachable: When the portal cannot be reached.
         """
         landing: requests.Response = self._request("GET", BASE_URL)
@@ -168,7 +200,7 @@ class CampusClient:
         try:
             commands: list[XajaxCommand] = _xajax_commands(response.text)
         except ValueError as error:
-            raise CampusUnreachable("unexpected login response") from error
+            raise _UnreadableLogin() from error
         user_id: str | None = _assigned_value(commands, "id11")
         if not user_id or not user_id.isdigit() or int(user_id) <= 0:
             log("WARNING", Tags.UNAD, "Campus rejected the credentials")
