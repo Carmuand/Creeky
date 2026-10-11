@@ -185,8 +185,8 @@ export interface User {
   email: string;
   /** Epoch millis when the account was created. */
   created: number;
-  /** Profile photo as a data URL. */
-  avatar?: string | null;
+  /** Number that changes with the stored profile photo, or null when there is none. */
+  avatarVersion: number | null;
   /** Whether the guided tour was finished or skipped. */
   onboarded: boolean;
 }
