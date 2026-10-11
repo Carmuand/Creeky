@@ -4,19 +4,22 @@ SQLAlchemy engine, session handling and database initialization.
 
 # Standard library
 from __future__ import annotations
+import sqlite3
 from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import Any
 
 # Third-party
-from sqlalchemy import Engine, create_engine, event, func, select
+from sqlalchemy import Engine, create_engine, event, text
 from sqlalchemy.orm import Session, sessionmaker
 
 # Project imports
 from desktop.config import config
-from desktop.database.models import Base, TaskList
-from desktop.database.seed import seed_database
+from desktop.database.models import Base
 from desktop.utills.logger import log, Tags
+
+SCHEMA_VERSION: int = 3
+"""Version stored in the database file. A file with another version is replaced."""
 
 engine: Engine = create_engine(
     f"sqlite:///{config.db_path.as_posix()}",
@@ -48,22 +51,35 @@ def session_scope() -> Iterator[Session]:
         session.close()
 
 
+def _stored_schema_version() -> int | None:
+    """Return the schema version of the database file, or None when the file is missing."""
+    if not config.db_path.exists():
+        return None
+    connection: sqlite3.Connection = sqlite3.connect(config.db_path)
+    try:
+        return int(connection.execute("PRAGMA user_version").fetchone()[0])
+    finally:
+        connection.close()
+
+
 def init_database() -> None:
-    """Create the data directory and tables, seeding them on first run."""
+    """
+    Create the data directory and the tables.
+
+    A database file written with a different schema version is deleted and
+    created again, because the application ships no migrations.
+    """
     config.data_dir.mkdir(parents=True, exist_ok=True)
+    stored_version: int | None = _stored_schema_version()
+    if stored_version is not None and stored_version != SCHEMA_VERSION:
+        engine.dispose()
+        config.db_path.unlink()
+        log(
+            "WARNING",
+            Tags.DATABASE,
+            f"Database schema {stored_version} replaced by schema {SCHEMA_VERSION}",
+        )
     Base.metadata.create_all(engine)
-    with session_scope() as session:
-        list_count: int = session.scalar(select(func.count()).select_from(TaskList)) or 0
-        if list_count == 0:
-            seed_database(session)
-            log("INFO", Tags.DATABASE, "Database seeded with starter data")
+    with engine.begin() as connection:
+        connection.execute(text(f"PRAGMA user_version = {SCHEMA_VERSION}"))
     log("SUCCESS", Tags.DATABASE, f"Database ready at {config.db_path}")
-
-
-def reset_database() -> None:
-    """Drop every table and recreate the database with starter data."""
-    Base.metadata.drop_all(engine)
-    Base.metadata.create_all(engine)
-    with session_scope() as session:
-        seed_database(session)
-    log("WARNING", Tags.DATABASE, "Database reset to starter data")
