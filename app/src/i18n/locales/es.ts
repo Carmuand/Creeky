@@ -592,8 +592,6 @@ export const es = {
   "avatar.change": "Cambiar foto",
   "avatar.remove": "Eliminar foto",
   "avatar.online": "En línea",
-  "avatar.error.type": "El archivo debe ser una imagen.",
-  "avatar.error.size": "La imagen no puede superar 2 MB.",
 
   "pulse.title": "Pulso del espacio",
   "pulse.subtitle": "Actividad, foco y constancia de tu espacio.",
@@ -769,6 +767,11 @@ export const es = {
   "unad.calendar.badge": "UNAD",
   "unad.calendar.opens": "Abre: {name}",
   "unad.calendar.closes": "Cierra: {name}",
+  "avatar.toast.updated": "Foto de perfil actualizada.",
+  "error.avatar_invalid_type": "El archivo debe ser una imagen PNG, JPG, GIF, WEBP o BMP.",
+  "error.avatar_too_large": "La imagen no puede superar 2 MB.",
+  "error.avatar_unreadable": "No se pudo leer la imagen.",
+  "calendar.dialog.external": "Actividad de {source}",
 } as const;
 
 /**
