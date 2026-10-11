@@ -134,6 +134,12 @@ img, svg { display: block; max-width: 100%; }
 
 html, body, #root, header, aside, main { transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease; }
 
+::view-transition-old(root),
+::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+::view-transition-old(root) { z-index: 1; }
+::view-transition-new(root) { z-index: 2; }
+.theme-switching, .theme-switching * { transition: none !important; }
+
 }
 
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
