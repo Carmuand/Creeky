@@ -3,6 +3,8 @@ import type { ComponentType } from "react";
 import { CalendarDays, ClipboardList, Flame, Timer } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { useCreekyStore } from "@/hooks/useCreekyStore";
+import { useI18n } from "@/i18n";
+import type { MessageKey } from "@/i18n";
 import { addDaysISO, isoWeekKey, mondayOfWeekKey, todayISO } from "@/utils/date";
 import { cn } from "@/lib/utils";
 
@@ -17,23 +19,23 @@ type PulseSegment = "week" | "month" | "quarter";
 interface SegmentDef {
   /** Stable identifier. */
   id: PulseSegment;
-  /** Tab label. */
-  label: string;
+  /** Message key of the tab label. */
+  labelKey: MessageKey;
   /** Days covered by the segment. */
   days: number;
-  /** Delta caption shown below each value. */
-  versus: string;
-  /** Footer day label. */
-  span: string;
+  /** Message key of the delta caption shown below each value. */
+  versusKey: MessageKey;
+  /** Message key of the footer summary. */
+  footerKey: MessageKey;
 }
 
 /**
  * Segment catalog.
  */
 const SEGMENTS: SegmentDef[] = [
-  { id: "week", label: "Semana", days: 7, versus: "vs semana anterior", span: "últimos 7 días" },
-  { id: "month", label: "Mes", days: 30, versus: "vs mes anterior", span: "últimos 30 días" },
-  { id: "quarter", label: "Trimestre", days: 90, versus: "vs trimestre anterior", span: "últimos 90 días" },
+  { id: "week", labelKey: "pulse.week", days: 7, versusKey: "pulse.week.versus", footerKey: "pulse.week.footer" },
+  { id: "month", labelKey: "pulse.month", days: 30, versusKey: "pulse.month.versus", footerKey: "pulse.month.footer" },
+  { id: "quarter", labelKey: "pulse.quarter", days: 90, versusKey: "pulse.quarter.versus", footerKey: "pulse.quarter.footer" },
 ];
 
 /**
@@ -63,6 +65,9 @@ const SPARK_PAD = 3;
 
 /**
  * Builds a smooth SVG path with its area fill for the given values.
+ *
+ * @param values - Daily values to plot.
+ * @returns The line path and the closed area path.
  */
 function buildSparkPaths(values: number[]): { line: string; area: string } {
   const peak = Math.max(...values, 1);
@@ -105,6 +110,10 @@ function segmentDays(days: number): { iso: string; start: number; end: number }[
 
 /**
  * Percent change of current against previous, safe for empty baselines.
+ *
+ * @param current - Total of the current segment.
+ * @param previous - Total of the previous segment.
+ * @returns The change as a percentage.
  */
 function changePercent(current: number, previous: number): number {
   if (previous <= 0) return current > 0 ? 100 : 0;
@@ -119,6 +128,7 @@ function changePercent(current: number, previous: number): number {
  */
 export function PulseCard() {
   const { store } = useCreekyStore();
+  const { t, language } = useI18n();
   const reduceMotion = useReducedMotion() ?? false;
   const [segmentId, setSegmentId] = useState<PulseSegment>("week");
   const segment = SEGMENTS.find((item) => item.id === segmentId) ?? SEGMENTS[0]!;
@@ -189,7 +199,7 @@ export function PulseCard() {
     return [
       {
         id: "created",
-        label: "Tareas creadas",
+        label: t("pulse.kpi.created"),
         icon: ClipboardList,
         display: createdTotal.toLocaleString(),
         delta: changePercent(createdTotal, sum(createdPrevious)),
@@ -197,7 +207,7 @@ export function PulseCard() {
       },
       {
         id: "focus",
-        label: "Minutos de foco",
+        label: t("pulse.kpi.focus"),
         icon: Timer,
         display: `${focusTotal.toLocaleString()} min`,
         delta: changePercent(focusTotal, sum(focusPrevious)),
@@ -205,7 +215,7 @@ export function PulseCard() {
       },
       {
         id: "habits",
-        label: "Hábitos logrados",
+        label: t("pulse.kpi.habits"),
         icon: Flame,
         display: habitsTotal.toLocaleString(),
         delta: changePercent(habitsTotal, sum(habitsPrevious)),
@@ -213,27 +223,27 @@ export function PulseCard() {
       },
       {
         id: "due",
-        label: "Vencen en el período",
+        label: t("pulse.kpi.due"),
         icon: CalendarDays,
         display: dueTotal.toLocaleString(),
         delta: changePercent(dueTotal, sum(duePrevious)),
         series: due,
       },
     ];
-  }, [store, segment.days]);
+  }, [store, segment.days, t, language]);
 
   const createdTotal = kpis[0]?.display ?? "0";
   const focusTotal = kpis[1]?.display ?? "0 min";
 
   return (
     <div className="relative flex h-full flex-col overflow-hidden rounded-xl border border-(--border-light) bg-(--bg-primary) shadow-sm">
-      <div aria-hidden className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-(--accent) via-(--secondary) to-(--accent)" />
+      <div aria-hidden className="absolute inset-x-0 top-0 h-0.5 bg-linear-to-r from-(--accent) via-(--secondary) to-(--accent)" />
       <div className="flex flex-wrap items-center justify-between gap-2 p-3">
         <div>
-          <h3 className="text-sm font-semibold text-(--text-primary)">Pulso del espacio</h3>
-          <p className="mt-0.5 text-[11px] text-(--muted)">Actividad, foco y constancia de tu espacio.</p>
+          <h3 className="text-sm font-semibold text-(--text-primary)">{t("pulse.title")}</h3>
+          <p className="mt-0.5 text-[11px] text-(--muted)">{t("pulse.subtitle")}</p>
         </div>
-        <div className="flex gap-1 rounded-lg bg-(--bg-tertiary) p-1" role="tablist" aria-label="Segmento del pulso">
+        <div className="flex gap-1 rounded-lg bg-(--bg-tertiary) p-1" role="tablist" aria-label={t("pulse.aria.segment")}>
           {SEGMENTS.map((item) => (
             <button
               key={item.id}
@@ -243,7 +253,7 @@ export function PulseCard() {
               onClick={() => setSegmentId(item.id)}
               className={`rounded-md px-3 py-1 text-xs transition-colors ${segmentId === item.id ? "bg-(--bg-primary) font-semibold text-(--text) shadow-sm" : "text-(--muted) hover:text-(--text)"}`}
             >
-              {item.label}
+              {t(item.labelKey)}
             </button>
           ))}
         </div>
@@ -262,14 +272,14 @@ export function PulseCard() {
               </p>
               <p className="mt-1.5 text-xl font-bold text-(--text-primary)">{kpi.display}</p>
               <p className={cn("mt-0.5 text-[11px]", positive ? "font-medium text-(--secondary)" : negative ? "font-medium text-(--danger)" : "text-(--muted)")}>
-                {`${positive ? "+" : ""}${kpi.delta.toFixed(1)}% ${segment.versus}`}
+                {`${positive ? "+" : ""}${kpi.delta.toFixed(1)}% ${t(segment.versusKey)}`}
               </p>
               <svg
                 viewBox={`0 0 ${SPARK_WIDTH} ${SPARK_HEIGHT}`}
                 preserveAspectRatio="none"
                 className="mt-2 h-8 w-full"
                 role="img"
-                aria-label={`${kpi.label} por día`}
+                aria-label={t("pulse.aria.perDay", { label: kpi.label })}
               >
                 <defs>
                   <linearGradient id={`pulse-stroke-${kpi.id}`} x1="0" y1="0" x2="1" y2="0">
@@ -304,7 +314,7 @@ export function PulseCard() {
         })}
       </div>
       <div className="border-t border-(--border-light) px-3 py-2">
-        <p className="text-[11px] text-(--muted)">{`${createdTotal} tareas creadas · ${focusTotal} de foco en los ${segment.span}`}</p>
+        <p className="text-[11px] text-(--muted)">{t(segment.footerKey, { created: createdTotal, focus: focusTotal })}</p>
       </div>
     </div>
   );
