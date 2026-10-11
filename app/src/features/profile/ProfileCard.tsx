@@ -2,6 +2,7 @@ import { motion, useReducedMotion } from "motion/react";
 import { CalendarDays, Mail, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { ProfileAvatar } from "@/features/profile/ProfileAvatar";
+import { useI18n } from "@/i18n";
 import { cn } from "@/lib/utils";
 
 /**
@@ -50,14 +51,18 @@ export interface ProfileCardProps {
  * Renders an accent glow frame with reduced-motion support and
  * keeps every color bound to CSS variables so light and dark
  * themes stay monochrome with violet and lime accents.
+ *
+ * @param props - Component properties.
+ * @returns The profile card.
  */
 export function ProfileCard({ name, email, memberSince, initial, avatarUrl, onAvatarUpload, onAvatarRemove, stats, onEdit, className = "" }: ProfileCardProps) {
   const reduceMotion = useReducedMotion() ?? false;
+  const { t } = useI18n();
   const entries: Array<{ key: string; value: number; label: string }> = [
-    { key: "tasks", value: stats.tasks, label: "Tareas" },
-    { key: "completed", value: stats.completed, label: "Completadas" },
-    { key: "focusMinutes", value: stats.focusMinutes, label: "Min. de foco" },
-    { key: "habits", value: stats.habits, label: "Hábitos" },
+    { key: "tasks", value: stats.tasks, label: t("nav.tasks") },
+    { key: "completed", value: stats.completed, label: t("profile.stats.completed") },
+    { key: "focusMinutes", value: stats.focusMinutes, label: t("profile.stats.focus") },
+    { key: "habits", value: stats.habits, label: t("nav.habits") },
   ];
 
   return (
@@ -91,7 +96,7 @@ export function ProfileCard({ name, email, memberSince, initial, avatarUrl, onAv
             onRemove={onAvatarRemove ?? (() => undefined)}
           />
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-(--muted)">Perfil</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-(--muted)">{t("nav.profile")}</p>
             <h2 id="h-profile" className="truncate text-xl font-semibold text-(--text-primary)">{name}</h2>
             <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-(--muted)">
               <span className="inline-flex min-w-0 items-center gap-1.5"><Mail className="h-3.5 w-3.5 shrink-0" aria-hidden /><span className="truncate">{email}</span></span>
@@ -100,7 +105,7 @@ export function ProfileCard({ name, email, memberSince, initial, avatarUrl, onAv
           </div>
           <Button variant="secondary" size="sm" onClick={onEdit} className="shrink-0">
             <Pencil className="h-3.5 w-3.5" aria-hidden />
-            Editar
+            {t("common.edit")}
           </Button>
         </div>
         <dl className="relative grid grid-cols-4 gap-px border-t border-(--border-light) bg-(--border-light) max-[600px]:grid-cols-2">
