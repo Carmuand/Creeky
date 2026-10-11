@@ -1,15 +1,31 @@
 import { useMemo } from "react";
 import { useCreekyStore } from "@/hooks/useCreekyStore";
 import { EventManager, type Event } from "./components/EventManager";
-import { db, uid } from "@/services/storage";
+import { pushToast } from "@/hooks/useToast";
+import { errorMessage, useI18n } from "@/i18n";
+import { tasksApi } from "@/services/api";
+import { isoOf } from "@/utils/date";
+import type { Priority } from "@/types/creeky";
+import type { TaskPatch } from "@/types/pywebview";
+
+/**
+ * Priority assigned to a task for each event color.
+ */
+const COLOR_PRIORITY: Record<string, Priority> = { red: "high", orange: "medium", green: "low", purple: "none", blue: "none", pink: "none" };
 import { todayISO, addDaysISO, weekdayOfISO } from "@/utils/date";
 
 /**
- * Calendar feature - recreated with EventManager design adapted from TypeScript component.
- * Uses Creeky tasks as events, with full drag-and-drop, filters and CRUD.
+ * Calendar view that shows Creeky tasks as events, with drag and drop,
+ * filters and create, update and delete actions.
+ *
+ * @returns The calendar view.
  */
 export function CalendarView() {
-  const { store, refresh } = useCreekyStore();
+  const { store } = useCreekyStore();
+  const { t } = useI18n();
+
+  const report = (error: unknown) => pushToast(errorMessage(error), "error");
+  const timeOf = (date: Date) => date.toTimeString().slice(0, 5);
 
   const events: Event[] = useMemo(() => {
     const result: (Event & { _taskId: string; _iso: string; _bgColor: string })[] = [];
@@ -70,103 +86,69 @@ export function CalendarView() {
   }, [store.tasks, store.lists]);
 
   const handleCreate = (event: Omit<Event, "id">) => {
-    const due = event.startTime.toISOString().slice(0, 10);
-    const dueTime = event.startTime.toTimeString().slice(0, 5);
-    const duration = Math.round((event.endTime.getTime() - event.startTime.getTime()) / 60000);
-    const s = db.load();
-    const prioMap: Record<string, "high" | "medium" | "low" | "none"> = { red: "high", orange: "medium", green: "low", purple: "none", blue: "none", pink: "none" };
-    s.tasks.unshift({
-      id: uid("t"),
-      title: event.title,
-      description: event.description || "",
-      list: s.lists[0]?.id || "inbox",
-      priority: prioMap[event.color] || "none",
-      due,
-      dueTime,
-      duration,
-      repeat: [],
-      remindBefore: 15,
-      reminder: "",
-      reminded: false,
-      quadrant: "",
-      pomo: 0,
-      pomodoroBlocks: [],
-      done: false,
-      deleted: false,
-      deletedAt: null,
-      createdAt: Date.now(),
-      tags: event.tags || [],
-    });
-    db.save(s);
-    refresh();
+    const list = store.lists.find((l) => l.name === event.category) ?? store.lists[0];
+    tasksApi
+      .create({
+        title: event.title,
+        description: event.description || "",
+        list: list?.id || "inbox",
+        priority: COLOR_PRIORITY[event.color] || "none",
+        due: isoOf(event.startTime),
+        dueTime: timeOf(event.startTime),
+        duration: Math.round((event.endTime.getTime() - event.startTime.getTime()) / 60000),
+        tags: event.tags || [],
+      })
+      .catch(report);
   };
 
   const handleUpdate = (id: string, patch: Partial<Event & { _taskId: string }>) => {
-    const s = db.load();
-    const taskId = (patch as unknown as { _taskId?: string })._taskId || (s.tasks.find((x) => x.id === id) ? id : id.split("-")[0].includes("_") ? id.substring(0, id.indexOf("-", id.indexOf("_"))) : id.split("-")[0]);
-    const t = s.tasks.find((x) => x.id === (patch as unknown as { _taskId?: string })._taskId || x.id === taskId || x.id === id);
-    const target = t || s.tasks.find((x) => id.startsWith(x.id));
+    const target = store.tasks.find((x) => x.id === patch._taskId) ?? store.tasks.find((x) => x.id === id) ?? store.tasks.find((x) => id.startsWith(x.id));
     if (!target) return;
-    if (patch.title !== undefined) target.title = patch.title;
-    if (patch.description !== undefined) target.description = patch.description || "";
+    const changes: TaskPatch = {};
+    if (patch.title !== undefined) changes.title = patch.title;
+    if (patch.description !== undefined) changes.description = patch.description || "";
     if (patch.startTime) {
-      const newIso = patch.startTime.toISOString().slice(0, 10);
-      if (Array.isArray(target.repeat) && target.repeat.length) {
-        const oldIso = (patch as unknown as { _iso?: string })._iso;
-        if (oldIso && oldIso !== newIso) {
-          const oldDay = weekdayOfISO(oldIso);
-          const newDay = weekdayOfISO(newIso);
-          if (oldDay !== newDay) {
-            target.repeat = target.repeat.filter((d) => d !== oldDay);
-            if (!target.repeat.includes(newDay)) target.repeat.push(newDay);
-          }
-        } else {
-          target.due = newIso;
-          target.dueTime = patch.startTime.toTimeString().slice(0, 5);
-        }
+      const newIso = isoOf(patch.startTime);
+      const oldIso = patch._iso;
+      if (Array.isArray(target.repeat) && target.repeat.length && oldIso && oldIso !== newIso) {
+        const oldDay = weekdayOfISO(oldIso);
+        const newDay = weekdayOfISO(newIso);
+        if (oldDay !== newDay) changes.repeat = [...new Set([...target.repeat.filter((d) => d !== oldDay), newDay])];
       } else {
-        target.due = newIso;
-        target.dueTime = patch.startTime.toTimeString().slice(0, 5);
+        changes.due = newIso;
+        changes.dueTime = timeOf(patch.startTime);
       }
     }
     if (patch.endTime && patch.startTime) {
-      target.duration = Math.round((patch.endTime.getTime() - patch.startTime.getTime()) / 60000);
+      changes.duration = Math.round((patch.endTime.getTime() - patch.startTime.getTime()) / 60000);
     }
     if (patch.category) {
-      const list = s.lists.find((l) => l.name === patch.category);
-      if (list) target.list = list.id;
+      const list = store.lists.find((l) => l.name === patch.category);
+      if (list) changes.list = list.id;
     }
-    if (patch.color) {
-      const cMap: Record<string, "high" | "medium" | "low" | "none"> = { red: "high", orange: "medium", green: "low", purple: "none", blue: "none", pink: "none" };
-      if (cMap[patch.color]) target.priority = cMap[patch.color];
-    }
-    if (patch.tags) target.tags = patch.tags;
-    db.save(s);
-    refresh();
+    if (patch.color && COLOR_PRIORITY[patch.color]) changes.priority = COLOR_PRIORITY[patch.color];
+    if (patch.tags) changes.tags = patch.tags;
+    tasksApi.update(target.id, changes).catch(report);
   };
 
   const handleDelete = (id: string) => {
-    const s = db.load();
-    let t = s.tasks.find((x) => x.id === id);
-    if (!t) t = s.tasks.find((x) => id.startsWith(x.id));
-    if (t) { t.deleted = true; t.deletedAt = Date.now(); }
-    db.save(s);
-    refresh();
+    const target = store.tasks.find((x) => x.id === id) ?? store.tasks.find((x) => id.startsWith(x.id));
+    if (target) tasksApi.update(target.id, { deleted: true }).catch(report);
   };
 
   const categories = store.lists.map((l) => l.name);
   const availableTags = store.tags;
 
   return (
-    <section className="max-w-275 mx-auto flex flex-col gap-4" aria-label="Calendario">
+    <section className="max-w-275 mx-auto flex flex-col gap-4" aria-label={t("nav.calendar")}>
       <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 shadow-sm relative overflow-hidden">
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-(--accent) to-(--secondary)" />
+        <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-(--accent) to-(--secondary)" />
         <div className="mb-2 flex items-center gap-2">
           <span className="h-2 w-2 rounded-full bg-(--accent)" />
-          <h3 className="font-semibold text-(--accent)">Calendario</h3>
-          <span className="ml-auto text-xs text-(--muted)">{todayISO()} • {events.length} eventos (tareas con fecha)</span>
+          <h3 className="font-semibold text-(--accent)">{t("nav.calendar")}</h3>
+          <span className="ml-auto text-xs text-(--muted)">{t("calendar.summary", { date: todayISO(), count: events.length })}</span>
         </div>
-        <p className="text-xs text-(--muted)">Diseño recreado de EventManager — drag & drop, filtros por color/etiqueta/categoría, vistas mes/semana/día/lista, todo conectado a tus tareas.</p>
+        <p className="text-xs text-(--muted)">{t("calendar.intro")}</p>
       </div>
       <EventManager
         events={events}
