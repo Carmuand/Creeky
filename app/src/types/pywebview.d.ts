@@ -6,11 +6,15 @@ import type {
   FocusPayload,
   Habit,
   Language,
+  NotificationCategory,
   PomoLogEntry,
   Quadrant,
   Task,
   TaskList,
   Theme,
+  UnadAccount,
+  UnadAgenda,
+  UnadState,
   User,
 } from "@/types/creeky";
 
@@ -65,6 +69,26 @@ export interface WindowSize {
 }
 
 /**
+ * Outcome of exporting an encrypted backup.
+ */
+export type BackupExportResult =
+  | { cancelled: true }
+  | {
+      cancelled: false;
+      /** Path of the written file. */
+      path: string;
+      /** File size in bytes. */
+      size: number;
+      /** Recovery key shown once to the user. */
+      key: string;
+    };
+
+/**
+ * Outcome of importing an encrypted backup.
+ */
+export type BackupImportResult = { cancelled: true } | { cancelled: false; tasks: number };
+
+/**
  * Methods exposed by the Python backend through pywebview.
  */
 export interface CreekyBridgeApi {
@@ -75,7 +99,19 @@ export interface CreekyBridgeApi {
   set_window_size(width: number, height: number): Promise<BridgeResult<WindowSize>>;
   get_theme(): Promise<{ theme: Theme }>;
   get_snapshot(): Promise<BridgeResult<CreekyDB>>;
-  import_backup(data: unknown): Promise<BridgeResult<null>>;
+  export_backup(): Promise<BridgeResult<BackupExportResult>>;
+  import_backup(recoveryKey: string): Promise<BridgeResult<BackupImportResult>>;
+  set_sidebar_collapsed(collapsed: boolean): Promise<BridgeResult<{ collapsed: boolean }>>;
+  get_autostart(): Promise<BridgeResult<{ enabled: boolean }>>;
+  set_autostart(enabled: boolean): Promise<BridgeResult<{ enabled: boolean }>>;
+  set_onboarded(onboarded: boolean): Promise<BridgeResult<User>>;
+  set_notification_preference(category: NotificationCategory, enabled: boolean): Promise<BridgeResult<Record<NotificationCategory, boolean>>>;
+  unad_connect(documentType: string, document: string, password: string): Promise<BridgeResult<UnadState>>;
+  unad_disconnect(): Promise<BridgeResult<null>>;
+  unad_update_settings(patch: Partial<Pick<UnadAccount, "enabled" | "intervalMinutes" | "deadlineDays">>): Promise<BridgeResult<UnadState>>;
+  unad_add_agenda(url: string): Promise<BridgeResult<UnadAgenda>>;
+  unad_remove_agenda(agendaId: string): Promise<BridgeResult<null>>;
+  unad_sync_now(): Promise<BridgeResult<{ error: string; agendas: number }>>;
   wipe_data(): Promise<BridgeResult<null>>;
   set_theme(theme: Theme): Promise<BridgeResult<{ theme: Theme }>>;
   set_language(language: Language): Promise<BridgeResult<{ language: Language }>>;
