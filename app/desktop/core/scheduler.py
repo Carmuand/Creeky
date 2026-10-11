@@ -1,8 +1,10 @@
 """
 Background reminder scheduler.
 
-Checks due task reminders and pending daily habits, stores a notification
-for each one, shows it natively and emits events for the frontend.
+Checks the signed-in user's due task reminders and pending daily habits,
+stores a notification
+for each one, shows it natively when the user enabled that category and
+emits events for the frontend.
 """
 
 # Standard library
@@ -15,15 +17,15 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 # Project imports
-from desktop.api import window_api
-from desktop.api.notification_api import add_notification
+from desktop.api.auth_api import current_user
+from desktop.api.notification_api import add_notification, desktop_enabled
 from desktop.api.settings_api import read_language
 from desktop.config import config
 from desktop.core.events import events
 from desktop.core.messages import translate
-from desktop.core.notifier import notifier
+from desktop.core.notices import send_desktop_notice
 from desktop.database.engine import session_scope
-from desktop.database.models import Habit, Task
+from desktop.database.models import Habit, Task, User
 from desktop.database.serializers import habit_streak
 from desktop.utills.dates import current_time_hm, today_iso
 from desktop.utills.logger import log, Tags
@@ -31,12 +33,6 @@ from desktop.utills.logger import log, Tags
 _FIRST_CHECK_DELAY_SECONDS: float = 3.0
 
 PendingNotice = tuple[str, str]
-
-
-def _on_notification_clicked() -> None:
-    """Bring the window forward and ask the frontend to open the notifications view."""
-    window_api.restore_window()
-    events.emit("notification:clicked", {"view": "notifications"})
 
 
 def _collect_task_reminders(language: str, tasks: list[Task]) -> list[PendingNotice]:
@@ -83,12 +79,16 @@ def _collect_habit_reminders(language: str, habits: list[Habit]) -> list[Pending
 
 
 def check_reminders() -> None:
-    """Run one reminder pass over tasks and habits."""
+    """Run one reminder pass over the tasks and habits of the signed-in user."""
     with session_scope() as session:
+        user: User | None = current_user(session)
+        if user is None:
+            return
         language: str = read_language(session)
         tasks: list[Task] = list(
             session.scalars(
                 select(Task).where(
+                    Task.user_id == user.id,
                     Task.deleted.is_(False),
                     Task.done.is_(False),
                     Task.reminded.is_(False),
@@ -98,19 +98,26 @@ def check_reminders() -> None:
         )
         habits: list[Habit] = list(
             session.scalars(
-                select(Habit).options(selectinload(Habit.checks)).where(Habit.notify.is_(True))
+                select(Habit)
+                .options(selectinload(Habit.checks))
+                .where(Habit.user_id == user.id, Habit.notify.is_(True))
             )
         )
         task_notices: list[PendingNotice] = _collect_task_reminders(language, tasks)
         habit_notices: list[PendingNotice] = _collect_habit_reminders(language, habits)
         for title, text in task_notices + habit_notices:
-            add_notification(session, title, text, "reminder")
+            add_notification(session, user.id, title, text, "reminder")
             session.flush()
+        desktop_notices: list[PendingNotice] = []
+        if desktop_enabled(session, user.id, "tasks"):
+            desktop_notices.extend(task_notices)
+        if desktop_enabled(session, user.id, "habits"):
+            desktop_notices.extend(habit_notices)
 
     if not task_notices and not habit_notices:
         return
-    for title, text in task_notices + habit_notices:
-        notifier.send(title, text, _on_notification_clicked)
+    for title, text in desktop_notices:
+        send_desktop_notice(title, text)
     events.emit("data:changed", {"source": "reminders"})
     events.emit("reminder:fired", {"tasks": len(task_notices), "habits": len(habit_notices)})
     log(
