@@ -6,7 +6,11 @@ import { Button } from "@/components/ui/Button";
 import { TooltipSimple } from "@/components/ui/Tooltip";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { useState } from "react";
+import { useI18n } from "@/i18n";
 
+/**
+ * Properties for the {@link Quadrant} component.
+ */
 interface QuadrantProps {
   id: "q1" | "q2" | "q3" | "q4";
   title: string;
@@ -25,8 +29,12 @@ const QP = { q1: "high", q2: "medium", q3: "low", q4: "none" } as const;
 
 /**
  * Single quadrant with manual notes and auto tasks.
+ *
+ * @param props - Component properties.
+ * @returns The quadrant card.
  */
 export function Quadrant({ id, title, desc, manual, auto, store, filterText, onAddManual, onDeleteManual, onDrop, onDragOver }: QuadrantProps) {
+  const { t: tr } = useI18n();
   const [input, setInput] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -64,7 +72,7 @@ export function Quadrant({ id, title, desc, manual, auto, store, filterText, onA
           const origIdx = manual.indexOf(t);
           return (
             <div key={`${t}-${i}`} draggable onDragStart={(e) => { e.dataTransfer.setData("text/plain", `n:${id}:${origIdx}`); e.dataTransfer.effectAllowed = "move"; }} className="flex items-center gap-2 rounded-lg border border-(--border-light) bg-(--bg-secondary) px-3 py-2 text-sm">
-              <span className="rounded-full bg-(--bg-tertiary) border border-(--border-light) px-1.5 py-0.5 text-xs">Manual</span> <span className="flex-1 truncate">{t}</span>
+              <span className="rounded-full bg-(--bg-tertiary) border border-(--border-light) px-1.5 py-0.5 text-xs">{tr("matrix.manual")}</span> <span className="flex-1 truncate">{t}</span>
               <DeleteButton onConfirm={() => onDeleteManual(origIdx)} className="scale-[0.5] origin-right -my-2 -mr-1" />
             </div>
           );
@@ -72,7 +80,7 @@ export function Quadrant({ id, title, desc, manual, auto, store, filterText, onA
         {visibleAuto.map((t) => {
           const li = store.lists.find((l) => l.id === t.list);
           return (
-            <TooltipSimple key={t.id} content={`Arrastra a otro cuadrante • ${li?.name ?? t.list} • ${t.due || "sin fecha"}`} side="top">
+            <TooltipSimple key={t.id} content={tr("matrix.dragHint", { list: li?.name ?? t.list, due: t.due || tr("common.noDate") })} side="top">
               <div draggable onDragStart={(e) => { e.dataTransfer.setData("text/plain", `t:${t.id}`); e.dataTransfer.effectAllowed = "move"; }} className="flex items-center gap-2 rounded-lg border border-(--border-light) bg-(--bg-primary) px-3 py-2 text-sm hover:border-(--border-dark) hover:shadow-sm cursor-grab active:cursor-grabbing">
                 <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: listColor(store, t.list) }} />
                 <span className="flex-1 truncate font-medium">{t.title}</span>
@@ -81,11 +89,11 @@ export function Quadrant({ id, title, desc, manual, auto, store, filterText, onA
             </TooltipSimple>
           );
         })}
-        {!visibleManual.length && !visibleAuto.length ? <p className="py-2 text-center text-xs text-(--muted)">Suelta tareas aquí</p> : null}
+        {!visibleManual.length && !visibleAuto.length ? <p className="py-2 text-center text-xs text-(--muted)">{tr("matrix.dropHere")}</p> : null}
       </div>
 
       <form onSubmit={handleSubmit} className="flex gap-2 border-t border-(--border-light) bg-(--bg-secondary) p-2">
-        <Input value={input} onChange={(e) => setInput(e.target.value)} placeholder={`Añadir nota a ${title}…`} className="flex-1" />
+        <Input value={input} onChange={(e) => setInput(e.target.value)} placeholder={tr("matrix.addNote", { title })} className="flex-1" />
         <Button type="submit" variant="secondary" size="sm">+</Button>
       </form>
     </div>
