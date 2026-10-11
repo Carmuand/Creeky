@@ -1,34 +1,46 @@
 import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/Input";
+import { useI18n } from "@/i18n";
+import type { MessageKey } from "@/i18n";
 
-const ITEMS: [string, string][] = [
-  ["Primeros pasos", "Crea listas con color y emoji, añade tareas con fecha y márcalas. Todo se guarda solo."],
-  ["Atajos", "Ctrl+K buscar • Tablero para arrastrar tareas entre listas • chips para filtrar cada sección."],
-  ["Segmentos", "Hoy, Semana y Buzón crean tareas sin lista, con fecha, hora, repetición, avisos y etiquetas."],
-  ["Programar", "En cada tarea: Hoy/Mañana/Semana, hora, duración, repetir L-D y aviso previo."],
-  ["Choques", "Dos tareas no pueden ocupar la misma franja de hora: la app bloquea y avisa."],
-  ["Filosofía Creeky", "Como un arroyo: flujo continuo, sin ruido. Monocromo salvo tus listas."],
-  ["Privacidad", "Sin cuentas reales ni nube: tus datos no salen de tu PC."],
-  ["Colores y emojis", "Cada lista tiene su color y su emoji, y pinta sus tareas en el Calendario y la agenda."],
-  ["FAQ", "¿Se borra al limpiar el navegador? Sí. Exporta tu JSON en Sincronización."],
+/**
+ * Help topics as pairs of title and description message keys.
+ */
+const ITEMS: [MessageKey, MessageKey][] = [
+  ["help.start.title", "help.start.text"],
+  ["help.shortcuts.title", "help.shortcuts.text"],
+  ["help.segments.title", "help.segments.text"],
+  ["help.schedule.title", "help.schedule.text"],
+  ["help.clashes.title", "help.clashes.text"],
+  ["help.philosophy.title", "help.philosophy.text"],
+  ["help.privacy.title", "help.privacy.text"],
+  ["help.colors.title", "help.colors.text"],
+  ["help.faq.title", "help.faq.text"],
 ];
 
+/**
+ * Help view with filterable topic cards.
+ *
+ * @returns The help view.
+ */
 export function HelpView() {
+  const { t: tr, language } = useI18n();
   const [q, setQ] = useState("");
 
   const filtered = useMemo(() => {
+    const items = ITEMS.map(([titleKey, textKey]) => [tr(titleKey), tr(textKey)] as [string, string]);
     const lq = q.toLowerCase();
-    if (!lq) return ITEMS;
-    return ITEMS.filter(([t, d]) => `${t} ${d}`.toLowerCase().includes(lq));
-  }, [q]);
+    if (!lq) return items;
+    return items.filter(([t, d]) => `${t} ${d}`.toLowerCase().includes(lq));
+  }, [q, tr, language]);
 
   return (
-    <section className="max-w-275 mx-auto flex flex-col gap-4" aria-label="Ayuda">
-      <p className="text-sm text-(--muted)">Todo para dominar Creeky.</p>
+    <section className="max-w-275 mx-auto flex flex-col gap-4" aria-label={tr("nav.help")}>
+      <p className="text-sm text-(--muted)">{tr("help.intro")}</p>
 
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs font-semibold uppercase tracking-widest text-(--muted)">Filtrar:</span>
-        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ej. calendario, pomodoro…" className="max-w-70" />
+        <span className="text-xs font-semibold uppercase tracking-widest text-(--muted)">{tr("common.filterColon")}</span>
+        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr("help.filter.placeholder")} className="max-w-70" />
       </div>
 
       <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4">
@@ -39,7 +51,7 @@ export function HelpView() {
             <p className="mt-1 text-sm text-(--muted)">{d}</p>
           </div>
         ))}
-        {!filtered.length ? <p className="col-span-full py-4 text-center text-sm text-(--muted)">Sin resultados.</p> : null}
+        {!filtered.length ? <p className="col-span-full py-4 text-center text-sm text-(--muted)">{tr("help.empty")}</p> : null}
       </div>
     </section>
   );
