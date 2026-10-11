@@ -1,11 +1,16 @@
 import type { ToastItem } from "@/hooks/useToast";
+import { useI18n } from "@/i18n";
 
 /**
- * Toast component that displays a list of toast notifications in the bottom-right corner of the screen.
- * @param toasts - An array of toast items to display.
- * @param onDismiss - A callback function that is called when a toast is dismissed.
+ * Displays the toast notifications in the bottom-right corner of the screen.
+ *
+ * @param props - Component properties.
+ * @param props.toasts - Toast items to display.
+ * @param props.onDismiss - Called when a toast is dismissed.
+ * @returns The toast stack.
  */
 export function ToastContainer({ toasts, onDismiss }: { toasts: ToastItem[]; onDismiss: (id: string) => void }) {
+  const { t: translate } = useI18n();
   return (
     <div className="pointer-events-none fixed bottom-6 right-6 z-500 flex flex-col gap-2" aria-live="polite" aria-atomic="true">
       {toasts.map((t) => (
@@ -16,7 +21,7 @@ export function ToastContainer({ toasts, onDismiss }: { toasts: ToastItem[]; onD
           } border-y-(--border-medium) border-r-(--border-medium)`}
         >
           <span className="flex-1 text-sm text-(--text)">{t.message}</span>
-          <button className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-(--muted) hover:bg-(--bg-hover) hover:text-(--text) transition-colors" onClick={() => onDismiss(t.id)} aria-label="Cerrar">✕</button>
+          <button className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-(--muted) hover:bg-(--bg-hover) hover:text-(--text) transition-colors" onClick={() => onDismiss(t.id)} aria-label={translate("common.close")}>✕</button>
         </div>
       ))}
     </div>
