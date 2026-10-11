@@ -19,6 +19,7 @@ from desktop.api import (
     planner_api,
     settings_api,
     task_api,
+    unad_api,
     window_api,
 )
 from desktop.core.errors import bridge_method
@@ -55,14 +56,39 @@ class Api:
         return backup_api.get_snapshot()
 
     @bridge_method
-    def import_backup(self, data: dict[str, Any]) -> None:
-        """Replace the stored collections with a JSON backup."""
-        return backup_api.import_backup(data)
+    def export_backup(self) -> dict[str, Any]:
+        """Save an encrypted backup and return its one-time recovery key."""
+        return backup_api.export_backup()
+
+    @bridge_method
+    def import_backup(self, recovery_key: str) -> dict[str, Any]:
+        """Restore an encrypted backup chosen through a native dialog."""
+        return backup_api.import_backup(recovery_key)
 
     @bridge_method
     def wipe_data(self) -> None:
-        """Delete every account, credential and record."""
+        """Delete the signed-in account with its data and credentials."""
         return backup_api.wipe_data()
+
+    @bridge_method
+    def set_sidebar_collapsed(self, collapsed: bool) -> dict[str, bool]:
+        """Persist whether the sidebar is collapsed."""
+        return settings_api.set_sidebar_collapsed(collapsed)
+
+    @bridge_method
+    def get_autostart(self) -> dict[str, bool]:
+        """Return whether the application starts with Windows."""
+        return settings_api.get_autostart()
+
+    @bridge_method
+    def set_autostart(self, enabled: bool) -> dict[str, bool]:
+        """Register or unregister the application to start with Windows."""
+        return settings_api.set_autostart(enabled)
+
+    @bridge_method
+    def set_onboarded(self, onboarded: bool) -> dict[str, Any]:
+        """Record whether the signed-in user finished the guided tour."""
+        return auth_api.set_onboarded(onboarded)
 
     def get_theme(self) -> dict[str, str]:
         """Return the active theme for the pre-render theme script."""
@@ -255,3 +281,37 @@ class Api:
         """Record that a backup was sent through a provider."""
         return notification_api.mark_email_link_sent(provider)
 
+    @bridge_method
+    def set_notification_preference(self, category: str, enabled: bool) -> dict[str, bool]:
+        """Turn the desktop notifications of a category on or off."""
+        return notification_api.set_notification_preference(category, enabled)
+
+    @bridge_method
+    def unad_connect(self, document_type: str, document: str, password: str) -> dict[str, Any]:
+        """Verify and link the UNAD Campus account of the signed-in user."""
+        return unad_api.connect(document_type, document, password)
+
+    @bridge_method
+    def unad_disconnect(self) -> None:
+        """Unlink the UNAD Campus account."""
+        return unad_api.disconnect()
+
+    @bridge_method
+    def unad_update_settings(self, patch: dict[str, Any]) -> dict[str, Any]:
+        """Change the UNAD service switch, sync interval or deadline lead time."""
+        return unad_api.update_settings(patch)
+
+    @bridge_method
+    def unad_add_agenda(self, url: str) -> dict[str, Any]:
+        """Follow a course agenda."""
+        return unad_api.add_agenda(url)
+
+    @bridge_method
+    def unad_remove_agenda(self, agenda_id: str) -> None:
+        """Stop following a course agenda."""
+        return unad_api.remove_agenda(agenda_id)
+
+    @bridge_method
+    def unad_sync_now(self) -> dict[str, Any]:
+        """Synchronize the UNAD profile and agendas immediately."""
+        return unad_api.sync_now()
