@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 
+/**
+ * Countdown state shared by every consumer of the timer.
+ */
 type TimerState = {
   total: number;
   left: number;
@@ -7,24 +10,21 @@ type TimerState = {
   running: boolean;
 };
 
-const KEY = "creeky_pomo_timer_v1";
-
-let globalState: TimerState = (() => {
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (raw) return JSON.parse(raw) as TimerState;
-  } catch { /* ignore */ }
-  return { total: 25 * 60, left: 25 * 60, mode: 25, running: false };
-})();
+const globalState: TimerState = { total: 25 * 60, left: 25 * 60, mode: 25, running: false };
 
 const listeners = new Set<() => void>();
 let interval: number | null = null;
 
+/**
+ * Notifies every subscribed component that the timer changed.
+ */
 function persist() {
-  try { localStorage.setItem(KEY, JSON.stringify(globalState)); } catch { /* ignore */ }
   listeners.forEach((l) => l());
 }
 
+/**
+ * Starts the one-second tick when it is not already running.
+ */
 function ensureInterval() {
   if (interval) return;
   interval = window.setInterval(() => {
@@ -39,6 +39,9 @@ function ensureInterval() {
   }, 1000);
 }
 
+/**
+ * Stops the tick while the timer is paused.
+ */
 function clearIntervalIfNeeded() {
   if (!globalState.running && interval) {
     window.clearInterval(interval);
@@ -47,7 +50,10 @@ function clearIntervalIfNeeded() {
 }
 
 /**
- * Global pomodoro timer.
+ * Global Pomodoro timer kept in memory for the lifetime of the window, so
+ * it keeps counting while the user moves between views.
+ *
+ * @returns The timer state with its controls.
  */
 export function usePomodoroTimer() {
   const [, bump] = useState(0);
