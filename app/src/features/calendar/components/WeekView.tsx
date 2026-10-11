@@ -1,5 +1,6 @@
 import type { Task, CreekyDB } from "@/types/creeky";
 import { listColor } from "@/utils/task";
+import { TooltipSimple } from "@/components/ui/Tooltip";
 
 interface WeekViewProps {
   isos: string[];
@@ -27,9 +28,11 @@ export function WeekView({ isos, today, dayEvents, store }: WeekViewProps) {
             </header>
             <div className="flex flex-col gap-1 p-2">
               {evs.length ? evs.map((e) => (
-                <div key={e.id} className="truncate rounded-md border-l-[3px] bg-(--accent-light) px-1.5 py-1 text-xs" style={{ borderLeftColor: listColor(store, e.list) }} title={e.title}>
-                  {e.dueTime ? <b>{e.dueTime} </b> : null}{e.title.slice(0, 20)}{(e.repeat || []).length ? " ↻" : ""}
-                </div>
+                <TooltipSimple key={e.id} content={e.title} side="top">
+                  <div className="truncate rounded-md border-l-[3px] bg-(--accent-light) px-1.5 py-1 text-xs" style={{ borderLeftColor: listColor(store, e.list) }}>
+                    {e.dueTime ? <b>{e.dueTime} </b> : null}{e.title.slice(0, 20)}{(e.repeat || []).length ? " ↻" : ""}
+                  </div>
+                </TooltipSimple>
               )) : <p className="py-2 text-center text-xs text-(--muted)">—</p>}
             </div>
           </div>
