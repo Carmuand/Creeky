@@ -1,4 +1,4 @@
-import { bridge, mutate } from "./bridge";
+import { bridge, mutate, query } from "./bridge";
 import type { User } from "@/types/creeky";
 
 /**
@@ -42,12 +42,31 @@ export const authApi = {
   updateProfile(name: string, email: string, password: string | null): Promise<User> { return mutate(bridge().update_profile(name, email, password)); },
 
   /**
-   * Sets or removes the photo of the signed-in user.
+   * Opens a native dialog to choose a profile photo, which the backend
+   * validates and stores as a file of the signed-in user.
    *
-   * @param dataUrl - Photo as a data URL, or null to remove it.
+   * @returns True when a photo was stored, false when the dialog was cancelled.
+   */
+  async pickAvatar(): Promise<boolean> {
+    const result = await mutate(bridge().pick_avatar());
+    return !result.cancelled;
+  },
+
+  /**
+   * Loads the profile photo of the signed-in user.
+   *
+   * @returns The photo as a data URL, or null when there is none.
+   */
+  async getAvatar(): Promise<string | null> {
+    return (await query(bridge().get_avatar())).dataUrl;
+  },
+
+  /**
+   * Removes the profile photo of the signed-in user.
+   *
    * @returns The updated user.
    */
-  setAvatar(dataUrl: string | null): Promise<User> { return mutate(bridge().set_avatar(dataUrl)); },
+  removeAvatar(): Promise<User> { return mutate(bridge().remove_avatar()); },
 
   /**
    * Records whether the signed-in user finished or skipped the guided tour.
