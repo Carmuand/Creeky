@@ -65,7 +65,7 @@ export function NotificationsView() {
         <Button variant="secondary" size="sm" onClick={markAll}>{t("notifications.markAll")}</Button>
       </div>
 
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap gap-1.5" data-tour="notif-filters">
         {(["all", "unread", "reminder", "calendar", "unad", "system"] as const).map((v) => (
           <button key={v} onClick={() => setView(v)} className={`rounded-full border px-3 py-1 text-xs ${view === v ? "bg-(--accent) border-(--accent) text-white font-semibold" : "border-(--border-medium) bg-(--bg-primary) text-(--muted) hover:border-(--accent)"}`}>
             {v === "unread" ? t(FILTER_KEYS[v], { count: unread }) : t(FILTER_KEYS[v])}
