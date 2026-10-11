@@ -3,6 +3,8 @@ import type { ComponentType } from "react";
 import { SiApple, SiGmail } from "react-icons/si";
 import { Link2, Mail, Send, Unlink } from "lucide-react";
 import { useCreekyStore } from "@/hooks/useCreekyStore";
+import { errorMessage, useI18n } from "@/i18n";
+import { emailLinksApi } from "@/services/api";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Modal, ModalBody, ModalFooter, ModalHeader } from "@/components/ui/Modal";
@@ -12,8 +14,6 @@ import {
   buildBackupSubject,
   buildComposeUrl,
   isValidEmail,
-  loadEmailLinks,
-  saveEmailLinks,
 } from "@/features/sync/emailProviders";
 import type { BackupSummary, EmailProviderId } from "@/features/sync/emailProviders";
 import { cn } from "@/lib/utils";
@@ -32,11 +32,14 @@ const PROVIDER_ICONS: Record<EmailProviderId, ComponentType<{ className?: string
  *
  * Each provider card links the user's own address and sends a backup
  * by downloading the JSON file and opening the provider's compose flow
- * with subject and body prefilled.
+ * with subject and body prefilled. Links are stored by the backend.
+ *
+ * @returns The email backup section.
  */
 export function EmailSyncSection() {
   const { store } = useCreekyStore();
-  const [links, setLinks] = useState(loadEmailLinks);
+  const { t, locale } = useI18n();
+  const links = store.emailLinks;
   const [linking, setLinking] = useState<EmailProviderId | null>(null);
   const [draftEmail, setDraftEmail] = useState("");
   const [formError, setFormError] = useState("");
@@ -49,14 +52,11 @@ export function EmailSyncSection() {
       completed: alive.filter((task) => task.done).length,
       habits: store.habits.length,
       sizeKb: (JSON.stringify(store).length / 1024).toFixed(1),
-      dateLabel: new Date().toLocaleString(),
+      dateLabel: new Date().toLocaleString(locale),
     };
-  }, [store]);
+  }, [store, locale]);
 
-  const persist = (next: typeof links) => {
-    setLinks(next);
-    saveEmailLinks(next);
-  };
+  const providerName = (provider: EmailProviderId) => EMAIL_PROVIDERS.find((item) => item.id === provider)?.name ?? provider;
 
   const openLink = (provider: EmailProviderId) => {
     setLinking(provider);
@@ -71,26 +71,27 @@ export function EmailSyncSection() {
     setFormError("");
   };
 
-  const confirmLink = () => {
+  const confirmLink = async () => {
     if (!linking) return;
     const email = draftEmail.trim();
     if (!isValidEmail(email)) {
-      setFormError("Escribe un correo válido.");
+      setFormError(t("error.invalid_email"));
       return;
     }
-    const next = links.some((link) => link.provider === linking)
-      ? links.map((link) => (link.provider === linking ? { ...link, email } : link))
-      : [...links, { provider: linking, email, linkedAt: Date.now() }];
-    persist(next);
-    const providerName = EMAIL_PROVIDERS.find((provider) => provider.id === linking)?.name ?? linking;
-    setNotice(`${providerName} vinculado a ${email}.`);
-    closeLink();
+    try {
+      await emailLinksApi.save(linking, email);
+      setNotice(t("email.notice.linked", { provider: providerName(linking), email }));
+      closeLink();
+    } catch (error) {
+      setFormError(errorMessage(error));
+    }
   };
 
   const unlink = (provider: EmailProviderId) => {
-    persist(links.filter((link) => link.provider !== provider));
-    const providerName = EMAIL_PROVIDERS.find((item) => item.id === provider)?.name ?? provider;
-    setNotice(`${providerName} desvinculado.`);
+    emailLinksApi
+      .remove(provider)
+      .then(() => setNotice(t("email.notice.unlinked", { provider: providerName(provider) })))
+      .catch((error: unknown) => setNotice(errorMessage(error)));
   };
 
   const downloadBackup = () => {
@@ -112,31 +113,30 @@ export function EmailSyncSection() {
       return;
     }
     downloadBackup();
-    const subject = buildBackupSubject(summary);
-    const body = buildBackupBody(summary);
+    const subject = buildBackupSubject(t, summary);
+    const body = buildBackupBody(t, summary);
     const url = buildComposeUrl(provider, link.email, subject, body);
     if (provider === "apple") {
       window.location.href = url;
     } else {
       window.open(url, "_blank", "noopener,noreferrer");
     }
-    persist(links.map((item) => (item.provider === provider ? { ...item, lastSentAt: Date.now() } : item)));
-    const providerName = EMAIL_PROVIDERS.find((item) => item.id === provider)?.name ?? provider;
-    setNotice(`Copia descargada y redacción abierta en ${providerName} para ${link.email}. Adjunta el archivo antes de enviar.`);
+    emailLinksApi.markSent(provider).catch(() => undefined);
+    setNotice(t("email.notice.sent", { provider: providerName(provider), email: link.email }));
   };
 
   const linkingProvider = EMAIL_PROVIDERS.find((provider) => provider.id === linking) ?? null;
 
   return (
     <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 shadow-sm relative overflow-hidden">
-      <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-(--accent) via-(--secondary) to-(--accent)" />
+      <div className="absolute top-0 left-0 right-0 h-0.5 bg-linear-to-r from-(--accent) via-(--secondary) to-(--accent)" />
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <h3 className="font-semibold">Correo electrónico</h3>
-          <p className="mt-1 text-xs text-(--muted)">Vincula Gmail, Outlook o Apple Mail para enviarte copias de seguridad. Sin servidores: el archivo se descarga y se abre la redacción en tu proveedor.</p>
+          <h3 className="font-semibold">{t("email.title")}</h3>
+          <p className="mt-1 text-xs text-(--muted)">{t("email.intro")}</p>
         </div>
         <span className="rounded-full bg-(--bg-tertiary) px-2.5 py-1 text-[11px] font-semibold text-(--muted)">
-          {links.length} de {EMAIL_PROVIDERS.length} vinculados
+          {t("email.linkedCount", { count: links.length, total: EMAIL_PROVIDERS.length })}
         </span>
       </div>
 
@@ -170,16 +170,16 @@ export function EmailSyncSection() {
                       linked ? "bg-(--secondary-light) text-(--secondary)" : "bg-(--bg-tertiary) text-(--muted)",
                     )}
                   >
-                    {linked ? "Vinculado" : "No vinculado"}
+                    {linked ? t("email.linked") : t("email.notLinked")}
                   </span>
                 </div>
               </div>
-              <p className="text-xs text-(--muted)">{provider.tagline}</p>
+              <p className="text-xs text-(--muted)">{t(provider.taglineKey)}</p>
               {link ? (
                 <div className="min-w-0 rounded-lg bg-(--bg-secondary) px-2.5 py-2">
                   <p className="truncate text-xs font-medium text-(--text-primary)">{link.email}</p>
                   <p className="mt-0.5 text-[11px] text-(--muted)">
-                    {link.lastSentAt ? `Último envío: ${new Date(link.lastSentAt).toLocaleString()}` : "Aún no has enviado copias"}
+                    {link.lastSentAt ? t("email.lastSent", { date: new Date(link.lastSentAt).toLocaleString(locale) }) : t("email.neverSent")}
                   </p>
                 </div>
               ) : null}
@@ -188,17 +188,17 @@ export function EmailSyncSection() {
                   <>
                     <Button variant="secondary" size="sm" onClick={() => sendBackup(provider.id)}>
                       <Send className="h-3.5 w-3.5" aria-hidden />
-                      Enviar copia
+                      {t("email.send")}
                     </Button>
                     <Button variant="ghost" size="sm" onClick={() => unlink(provider.id)}>
                       <Unlink className="h-3.5 w-3.5" aria-hidden />
-                      Desvincular
+                      {t("email.unlink")}
                     </Button>
                   </>
                 ) : (
                   <Button variant="primary" size="sm" onClick={() => openLink(provider.id)}>
                     <Link2 className="h-3.5 w-3.5" aria-hidden />
-                    Vincular {provider.name}
+                    {t("email.linkProvider", { provider: provider.name })}
                   </Button>
                 )}
               </div>
@@ -210,8 +210,8 @@ export function EmailSyncSection() {
       <Modal open={linking !== null} onClose={closeLink}>
         <ModalHeader
           icon="✉️"
-          title={linkingProvider ? `Vincular ${linkingProvider.name}` : "Vincular correo"}
-          subtitle="Usaremos esta dirección para abrir la redacción con tu copia."
+          title={linkingProvider ? t("email.linkProvider", { provider: linkingProvider.name }) : t("email.modal.title")}
+          subtitle={t("email.modal.subtitle")}
           onClose={closeLink}
         />
         <ModalBody>
@@ -221,23 +221,23 @@ export function EmailSyncSection() {
             </div>
           ) : null}
           <label className="flex flex-col gap-1.5 text-xs font-medium text-(--text-soft)">
-            Tu correo de {linkingProvider?.name ?? "la cuenta"}
+            {t("email.modal.label", { provider: linkingProvider?.name ?? t("email.modal.account") })}
             <Input
               id="email-link-address"
               type="email"
               value={draftEmail}
               onChange={(event) => setDraftEmail(event.target.value)}
-              placeholder="tu@correo.com"
+              placeholder={t("auth.email.placeholder")}
             />
           </label>
-          <p className="text-[11px] text-(--muted)">Al vincular aceptas que la copia se envíe a esta dirección mediante tu proveedor.</p>
+          <p className="text-[11px] text-(--muted)">{t("email.modal.consent")}</p>
         </ModalBody>
         <ModalFooter>
           <Button variant="secondary" onClick={closeLink}>
-            Cancelar
+            {t("common.cancel")}
           </Button>
-          <Button variant="primary" onClick={confirmLink}>
-            Vincular
+          <Button variant="primary" onClick={() => { void confirmLink(); }}>
+            {t("email.modal.submit")}
           </Button>
         </ModalFooter>
       </Modal>
