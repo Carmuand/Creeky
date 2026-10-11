@@ -80,6 +80,7 @@ export function CinematicThemeSwitcher({ theme, onToggle, className = "" }: Cine
     <TooltipSimple content={isDark ? t("theme.light") : t("theme.dark")} side="bottom">
       <motion.button
         type="button"
+        data-tour="theme"
         onClick={handlePress}
         aria-label={isDark ? t("theme.switchToLight") : t("theme.switchToDark")}
         whileTap={reduceMotion ? undefined : { scale: 0.88 }}
