@@ -1,49 +1,31 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
+import { useCreekyStore } from "@/hooks/useCreekyStore";
+import { pushToast } from "@/hooks/useToast";
+import { errorMessage } from "@/i18n";
+import { settingsApi } from "@/services/api/system.api";
+import type { FocusPayload } from "@/types/creeky";
 
-export interface FocusPayload {
-  id: string;
-  title: string;
-}
-
-const KEY = "creeky_focus";
-
-function readFocus(): FocusPayload | null {
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (typeof parsed === "string") return { id: "", title: parsed };
-    if (parsed && typeof parsed.title === "string") return { id: parsed.id ?? "", title: parsed.title };
-    return null;
-  } catch {
-    return null;
-  }
-}
+export type { FocusPayload };
 
 /**
- * useCreekyFocus — manages Pomodoro focus task persisted in localStorage.
+ * Hook for the task focused in the Pomodoro view, persisted by the backend.
+ *
+ * @returns The focused task with functions to change and clear it.
  */
-export function useCreekyFocus() {
-  const [focus, setFocusState] = useState<FocusPayload | null>(() => readFocus());
+export function useCreekyFocus(): {
+  focus: FocusPayload | null;
+  setFocus: (payload: FocusPayload | null) => void;
+  clear: () => void;
+  focusId: string | null;
+} {
+  const { store } = useCreekyStore();
+  const focus = store.focus;
 
   const setFocus = useCallback((payload: FocusPayload | null) => {
-    if (payload) {
-      localStorage.setItem(KEY, JSON.stringify(payload));
-    } else {
-      localStorage.removeItem(KEY);
-    }
-    setFocusState(payload);
+    void settingsApi.setFocus(payload).catch((error: unknown) => pushToast(errorMessage(error), "error"));
   }, []);
 
   const clear = useCallback(() => setFocus(null), [setFocus]);
 
-  useEffect(() => {
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === KEY) setFocusState(readFocus());
-    };
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-  }, []);
-
-  return { focus, setFocus, clear, focusId: focus?.id ?? null };
+  return { focus, setFocus, clear, focusId: focus?.id || null };
 }
