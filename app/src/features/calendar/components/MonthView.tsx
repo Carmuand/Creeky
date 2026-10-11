@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Task } from "@/types/creeky";
 import { listColor } from "@/utils/task";
+import { TooltipSimple } from "@/components/ui/Tooltip";
 
 import type { CreekyDB } from "@/types/creeky";
 
@@ -36,11 +37,13 @@ export function MonthView({ year, month, today, dayEvents, store }: MonthViewPro
           <div key={iso} className={`bg-(--bg-primary) p-1.5 min-h-19.5 overflow-hidden ${isToday ? "ring-2 ring-inset ring-(--accent)" : ""}`}>
             <div className="mb-1 text-xs font-semibold">{d}</div>
             {evs.slice(0, 2).map((e) => (
-              <div key={e.id} className="mb-1 flex items-center gap-1 rounded-md border-l-[3px] bg-(--accent-light) px-1 py-0.5 text-[11px] truncate" style={{ borderLeftColor: listColor(store, e.list) }} title={`${e.title}${e.dueTime ? ` ${e.dueTime}` : ""}`}>
+              <TooltipSimple key={e.id} content={`${e.title}${e.dueTime ? ` ${e.dueTime}` : ""}`} side="top">
+              <div className="mb-1 flex items-center gap-1 rounded-md border-l-[3px] bg-(--accent-light) px-1 py-0.5 text-[11px] truncate" style={{ borderLeftColor: listColor(store, e.list) }}>
                 <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: listColor(store, e.list) }} />
                 {e.dueTime ? <b className="text-[11px]">{e.dueTime}</b> : null}
                 <span className="truncate">{e.title.slice(0, 12)}{(e.repeat || []).length ? " ↻" : ""}</span>
               </div>
+              </TooltipSimple>
             ))}
             {evs.length > 2 ? (
               <>
