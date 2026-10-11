@@ -1,7 +1,11 @@
-﻿import * as React from "react";
+import * as React from "react";
 import { Icon } from "@/components/icons/Icon";
 import { TooltipSimple } from "@/components/ui/Tooltip";
+import { useI18n } from "@/i18n";
 
+/**
+ * Views reachable from the navigation.
+ */
 export type CreekyView =
   | "tasks"
   | "calendar"
@@ -12,23 +16,40 @@ export type CreekyView =
   | "search"
   | "sync"
   | "notifications"
+  | "settings"
   | "help"
   | "profile";
 
+/**
+ * Properties for the {@link Sidebar} component.
+ */
 interface SidebarProps {
+  /** Active view. */
   view: CreekyView;
+  /** Called when a view is chosen. */
   onSelect: (v: CreekyView) => void;
+  /** Counters shown next to each entry, keyed by badge id. */
   badges: Record<string, number>;
+  /** Initial rendered in the user button. */
   userInitial: string;
+  /** Called when the user signs out. */
   onLogout?: () => void;
+  /** Whether the sidebar shows icons only. */
   collapsed: boolean;
+  /** Called to expand or collapse the sidebar. */
   onToggleCollapse: () => void;
+  /** Whether the sidebar is open on small screens. */
   mobileOpen: boolean;
 }
 
-
-
+/**
+ * Main navigation sidebar with collapsible sections and the user menu.
+ *
+ * @param props - Component properties.
+ * @returns The navigation sidebar.
+ */
 export function Sidebar({ view, onSelect, badges, userInitial, onLogout, collapsed, onToggleCollapse, mobileOpen }: SidebarProps) {
+  const { t } = useI18n();
   const [userOpen, setUserOpen] = React.useState(false);
   const sidebarRef = React.useRef<HTMLElement>(null);
   const prevView = React.useRef(view);
@@ -95,7 +116,7 @@ export function Sidebar({ view, onSelect, badges, userInitial, onLogout, collaps
         collapsed ? "w-18" : "w-70"
       } ${mobileOpen ? "translate-x-0 shadow-xl" : "-translate-x-full md:translate-x-0"} md:shadow-none`}
       role="navigation"
-      aria-label="Navegación principal"
+      aria-label={t("nav.aria.main")}
     >
       <div className={`flex items-center border-b border-(--border-light) ${collapsed ? "justify-center px-2 py-3" : "justify-between pl-4 pr-5 py-4"}`} style={{ minHeight: 64 }}>
         {!collapsed ? (
@@ -107,9 +128,9 @@ export function Sidebar({ view, onSelect, badges, userInitial, onLogout, collaps
             <span className="text-[20px] font-bold tracking-tight">Creeky</span>
           </div>
         ) : null}
-        <TooltipSimple content={collapsed ? "Expandir" : "Colapsar"} side={collapsed ? "right" : "bottom"} align="center" sideOffset={8}>
+        <TooltipSimple content={collapsed ? t("nav.expand") : t("nav.collapse")} side={collapsed ? "right" : "bottom"} align="center" sideOffset={8}>
           <button
-            aria-label={collapsed ? "Expandir sidebar" : "Colapsar sidebar"}
+            aria-label={collapsed ? t("nav.expandSidebar") : t("nav.collapseSidebar")}
             aria-expanded={!collapsed}
             onClick={onToggleCollapse}
             className={`flex items-center justify-center rounded-md text-(--muted) transition-colors hover:bg-(--bg-hover) hover:text-(--text) ${collapsed ? "h-10 w-10" : "h-8 w-8"}`}
@@ -127,36 +148,37 @@ export function Sidebar({ view, onSelect, badges, userInitial, onLogout, collaps
             ? "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-transparent hover:[&::-webkit-scrollbar-thumb]:bg-(--muted-3)"
             : ""
         }`}
-        aria-label="Secciones principales"
+        aria-label={t("nav.aria.sections")}
       >
         <ul className="flex flex-col gap-6">
           <li>
-            <span className={`mb-2 block px-3 text-[11px] font-semibold uppercase tracking-widest ${collapsed ? "hidden" : "text-(--accent)"}`}>Principal</span>
+            <span className={`mb-2 block px-3 text-[11px] font-semibold uppercase tracking-widest ${collapsed ? "hidden" : "text-(--accent)"}`}>{t("nav.section.main")}</span>
             <ul className="flex flex-col gap-1">
-              {item("tasks", "Tareas", "tasks", "tasks-badge", "accent")}
-              {item("calendar", "Calendario", "calendar", "badge-calendar", "accent")}
+              {item("tasks", t("nav.tasks"), "tasks", "tasks-badge", "accent")}
+              {item("calendar", t("nav.calendar"), "calendar", "badge-calendar", "accent")}
             </ul>
           </li>
           <li>
-            <span className={`mb-2 block px-3 text-[11px] font-semibold uppercase tracking-widest ${collapsed ? "hidden" : "text-(--secondary)"}`}>Productividad</span>
+            <span className={`mb-2 block px-3 text-[11px] font-semibold uppercase tracking-widest ${collapsed ? "hidden" : "text-(--secondary)"}`}>{t("nav.section.productivity")}</span>
             <ul className="flex flex-col gap-1">
-              {item("pomodoro", "Pomodoro", "clock", "badge-pomodoro", "secondary")}
-              {item("eisenhower", "Matriz Eisenhower", "eisenhower", "badge-eisenhower", "secondary")}
-              {item("habits", "Hábitos", "users", "badge-habits", "secondary")}
+              {item("pomodoro", t("nav.pomodoro"), "clock", "badge-pomodoro", "secondary")}
+              {item("eisenhower", t("nav.eisenhower"), "eisenhower", "badge-eisenhower", "secondary")}
+              {item("habits", t("nav.habits"), "users", "badge-habits", "secondary")}
             </ul>
           </li>
           <li>
-            <span className={`mb-2 block px-3 text-[11px] font-semibold uppercase tracking-widest ${collapsed ? "hidden" : "text-(--accent)"}`}>Herramientas</span>
+            <span className={`mb-2 block px-3 text-[11px] font-semibold uppercase tracking-widest ${collapsed ? "hidden" : "text-(--accent)"}`}>{t("nav.section.tools")}</span>
             <ul className="flex flex-col gap-1">
-              {item("countdown", "Cuenta regresiva", "clock", "badge-countdown", "accent")}
-              {item("search", "Búsqueda", "search", undefined, "accent")}
+              {item("countdown", t("nav.countdown"), "clock", "badge-countdown", "accent")}
+              {item("search", t("nav.search"), "search", undefined, "accent")}
             </ul>
           </li>
           <li>
-            <span className={`mb-2 block px-3 text-[11px] font-semibold uppercase tracking-widest ${collapsed ? "hidden" : "text-(--secondary)"}`}>Sistema</span>
+            <span className={`mb-2 block px-3 text-[11px] font-semibold uppercase tracking-widest ${collapsed ? "hidden" : "text-(--secondary)"}`}>{t("nav.section.system")}</span>
             <ul className="flex flex-col gap-1">
-              {item("sync", "Sincronización", "sync", undefined, "secondary")}
-              {item("notifications", "Notificaciones", "bell", "notif-badge", "secondary")}
+              {item("sync", t("nav.sync"), "sync", undefined, "secondary")}
+              {item("notifications", t("nav.notifications"), "bell", "notif-badge", "secondary")}
+              {item("settings", t("nav.settings"), "gear", undefined, "secondary")}
             </ul>
           </li>
         </ul>
@@ -164,7 +186,7 @@ export function Sidebar({ view, onSelect, badges, userInitial, onLogout, collaps
 
       <div className="flex flex-col items-center border-t border-(--border-light) p-3">
         {collapsed ? (
-          <TooltipSimple content="Ayuda" side="right" align="center" sideOffset={10}>
+          <TooltipSimple content={t("nav.help")} side="right" align="center" sideOffset={10}>
             <button className={navLink(view === "help")} data-page="help" onClick={() => onSelect("help")}>
               <span className="flex h-5.5 w-5.5 items-center justify-center" aria-hidden="true"><Icon name="help" size={18} /></span>
             </button>
@@ -172,7 +194,7 @@ export function Sidebar({ view, onSelect, badges, userInitial, onLogout, collaps
         ) : (
           <button className={navLink(view === "help")} data-page="help" onClick={() => onSelect("help")}>
             <span className="flex h-5.5 w-5.5 items-center justify-center" aria-hidden="true"><Icon name="help" size={18} /></span>
-            <span>Ayuda</span>
+            <span>{t("nav.help")}</span>
           </button>
         )}
 
@@ -181,7 +203,7 @@ export function Sidebar({ view, onSelect, badges, userInitial, onLogout, collaps
             className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-(--accent-border) bg-(--accent-light) text-[15px] font-semibold text-(--accent) transition-colors hover:bg-(--accent) hover:text-white"
             aria-expanded={userOpen}
             aria-haspopup="true"
-            aria-label="Menú de usuario"
+            aria-label={t("nav.userMenu")}
             onClick={(e) => { e.stopPropagation(); setUserOpen((o) => !o); }}
           >
             <span>{userInitial}</span>
@@ -189,12 +211,12 @@ export function Sidebar({ view, onSelect, badges, userInitial, onLogout, collaps
           <div className={`${userOpen ? "flex" : "hidden"} absolute mb-2 flex-col overflow-hidden rounded-lg border border-(--border-medium) bg-(--bg-primary) shadow-lg ${collapsed ? "left-[calc(100%+8px)] right-auto bottom-0 w-47.5" : "bottom-full left-1/2 -translate-x-1/2 w-47.5"}`} role="menu">
             <button className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-(--text-soft) hover:bg-(--bg-hover) hover:text-(--text)" role="menuitem" onClick={() => { setUserOpen(false); onSelect("profile"); }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5 shrink-0"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
-              <span>Perfil</span>
+              <span>{t("nav.profile")}</span>
             </button>
             <div className="h-px bg-(--border-light)" />
             <button className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-[#C62828] hover:bg-[rgba(198,40,40,0.08)]" role="menuitem" onClick={() => { setUserOpen(false); onLogout?.(); }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5 shrink-0"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
-              <span>Cerrar sesión</span>
+              <span>{t("nav.signOut")}</span>
             </button>
           </div>
         </div>
