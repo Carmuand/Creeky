@@ -1,3 +1,5 @@
+import { useI18n } from "@/i18n";
+
 /**
  * Properties for the {@link Pagination} component.
  */
@@ -18,8 +20,12 @@ interface PaginationProps {
 
 /**
  * Reusable pagination with prev/next and numbered buttons.
+ *
+ * @param props - Component properties.
+ * @returns The pagination controls, or null when there is a single page.
  */
 export function Pagination({ page, totalPages, onPageChange, totalItems, pageSize, className = "" }: PaginationProps) {
+  const { t } = useI18n();
   if (totalPages <= 1) return null;
 
   const pages: (number | "ellipsis")[] = [];
@@ -33,7 +39,7 @@ export function Pagination({ page, totalPages, onPageChange, totalItems, pageSiz
     <div className={`flex flex-wrap items-center justify-between gap-3 ${className}`}>
       {totalItems !== undefined && pageSize !== undefined ? (
         <span className="text-xs text-(--muted)">
-          {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, totalItems)} de {totalItems}
+          {t("pagination.range", { from: (page - 1) * pageSize + 1, to: Math.min(page * pageSize, totalItems), total: totalItems })}
         </span>
       ) : <span />}
 
@@ -42,7 +48,7 @@ export function Pagination({ page, totalPages, onPageChange, totalItems, pageSiz
           onClick={() => onPageChange(Math.max(1, page - 1))}
           disabled={page <= 1}
           className="flex h-8 w-8 items-center justify-center rounded-lg border border-(--border-medium) bg-(--bg-primary) text-(--muted) hover:bg-(--bg-hover) hover:text-(--text) disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          aria-label="Página anterior"
+          aria-label={t("pagination.previous")}
         >
           ‹
         </button>
@@ -66,7 +72,7 @@ export function Pagination({ page, totalPages, onPageChange, totalItems, pageSiz
           onClick={() => onPageChange(Math.min(totalPages, page + 1))}
           disabled={page >= totalPages}
           className="flex h-8 w-8 items-center justify-center rounded-lg border border-(--border-medium) bg-(--bg-primary) text-(--muted) hover:bg-(--bg-hover) hover:text-(--text) disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          aria-label="Página siguiente"
+          aria-label={t("pagination.next")}
         >
           ›
         </button>
