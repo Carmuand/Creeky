@@ -1,6 +1,7 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import type { CreekyDB, Task } from "@/types/creeky";
-import { PRIO_META, REMIND_OPTIONS, WEEKDAYS } from "@/types/creeky";
+import { useI18n } from "@/i18n";
+import { usePrioMeta, useRemindOptions, useWeekdays } from "@/i18n/labels";
 import { Icon } from "@/components/icons/Icon";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
@@ -9,16 +10,29 @@ import { Select } from "@/components/ui/Select";
 import { TooltipSimple } from "@/components/ui/Tooltip";
 import { todayISO, addDaysISO } from "@/utils/date";
 
+/**
+ * Properties for the {@link TaskDetail} component.
+ */
 interface TaskDetailProps {
   task: Task;
   store: CreekyDB;
-  onSave: (patch: Partial<Task>) => boolean;
+  onSave: (patch: Partial<Task>) => Promise<boolean>;
   onRepeatToggle: (day: number) => void;
   onMove: (listId: string) => void;
 }
 
+/**
+ * Inline editor for the schedule, priority, list and tags of a task.
+ *
+ * @param props - Component properties.
+ * @returns The inline detail form.
+ */
 export function TaskDetail({ task, store, onSave, onRepeatToggle: _onRepeatToggle, onMove }: TaskDetailProps) {
   void _onRepeatToggle;
+  const { t } = useI18n();
+  const PRIO_META = usePrioMeta();
+  const REMIND_OPTIONS = useRemindOptions();
+  const WEEKDAYS = useWeekdays();
   const [form, setForm] = useState({
     description: task.description,
     due: task.due || "",
@@ -45,7 +59,7 @@ export function TaskDetail({ task, store, onSave, onRepeatToggle: _onRepeatToggl
 
   const handleSave = () => {
     const tags = form.tags.split(",").map((x) => x.trim().toLowerCase()).filter(Boolean);
-    onSave({
+    void onSave({
       description: form.description,
       due: form.due,
       dueTime: form.dueTime,
@@ -59,20 +73,20 @@ export function TaskDetail({ task, store, onSave, onRepeatToggle: _onRepeatToggl
 
   return (
     <div className="mt-2 flex flex-col gap-3 rounded-lg border border-(--border-light) bg-(--bg-secondary) p-3">
-      <Textarea value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} placeholder="Descripción…" rows={2} />
+      <Textarea value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} placeholder={t("task.description.placeholder")} rows={2} />
 
-      <div className="flex flex-wrap gap-1.5" role="group" aria-label="Fecha rápida">
-        <button className="rounded-full border border-(--border-medium) bg-(--bg-primary) px-3 py-1 text-xs text-(--muted) hover:border-(--accent) hover:text-(--accent) transition-colors" onClick={() => setForm((p) => ({ ...p, due: todayISO() }))}>Hoy</button>
-        <button className="rounded-full border border-(--border-medium) bg-(--bg-primary) px-3 py-1 text-xs text-(--muted) hover:border-(--accent) hover:text-(--accent) transition-colors" onClick={() => setForm((p) => ({ ...p, due: addDaysISO(todayISO(), 1) }))}>Mañana</button>
-        <button className="rounded-full border border-(--border-medium) bg-(--bg-primary) px-3 py-1 text-xs text-(--muted) hover:border-(--accent) hover:text-(--accent) transition-colors" onClick={() => setForm((p) => ({ ...p, due: addDaysISO(todayISO(), 7) }))}>Esta semana</button>
-        <button className="rounded-full border border-(--border-medium) bg-(--bg-primary) px-3 py-1 text-xs text-(--muted) hover:border-(--accent) hover:text-(--accent) transition-colors" onClick={() => setForm((p) => ({ ...p, due: "" }))}>Sin fecha</button>
+      <div className="flex flex-wrap gap-1.5" role="group" aria-label={t("task.quickDate")}>
+        <button className="rounded-full border border-(--border-medium) bg-(--bg-primary) px-3 py-1 text-xs text-(--muted) hover:border-(--accent) hover:text-(--accent) transition-colors" onClick={() => setForm((p) => ({ ...p, due: todayISO() }))}>{t("common.today")}</button>
+        <button className="rounded-full border border-(--border-medium) bg-(--bg-primary) px-3 py-1 text-xs text-(--muted) hover:border-(--accent) hover:text-(--accent) transition-colors" onClick={() => setForm((p) => ({ ...p, due: addDaysISO(todayISO(), 1) }))}>{t("common.tomorrow")}</button>
+        <button className="rounded-full border border-(--border-medium) bg-(--bg-primary) px-3 py-1 text-xs text-(--muted) hover:border-(--accent) hover:text-(--accent) transition-colors" onClick={() => setForm((p) => ({ ...p, due: addDaysISO(todayISO(), 7) }))}>{t("task.thisWeek")}</button>
+        <button className="rounded-full border border-(--border-medium) bg-(--bg-primary) px-3 py-1 text-xs text-(--muted) hover:border-(--accent) hover:text-(--accent) transition-colors" onClick={() => setForm((p) => ({ ...p, due: "" }))}>{t("common.noDateShort")}</button>
       </div>
 
       <div className="flex flex-wrap gap-2">
         <label className="flex items-center gap-1.5 text-xs text-(--text-soft)"><Icon name="calendar" size={16} /> <Input type="date" value={form.due} onChange={(e) => setForm((p) => ({ ...p, due: e.target.value }))} className="w-auto" /></label>
         <label className="flex items-center gap-1.5 text-xs text-(--text-soft)"><Icon name="clock" size={16} /> <Input type="time" value={form.dueTime} onChange={(e) => setForm((p) => ({ ...p, dueTime: e.target.value }))} className="w-auto" /></label>
         <div className="flex items-center gap-1.5 text-xs text-(--text-soft)">
-          <span>Duración</span>
+          <span>{t("task.duration")}</span>
           <div className="min-w-27.5">
             <Select value={form.duration} onChange={(v) => setForm((p) => ({ ...p, duration: v }))} options={[15, 30, 45, 60, 90, 120].map((d) => ({ value: String(d), label: `${d} min` }))} />
           </div>
@@ -80,10 +94,10 @@ export function TaskDetail({ task, store, onSave, onRepeatToggle: _onRepeatToggl
       </div>
 
       <div className="flex flex-wrap items-center gap-1.5 text-xs">
-        <span className="font-semibold text-(--text-soft)">Repetir:</span>
+        <span className="font-semibold text-(--text-soft)">{t("task.repeatColon")}</span>
         {WEEKDAYS.map((w) => (
-          <TooltipSimple key={w.v} content={`Repetir ${w.label}`} side="top">
-            <button className={`flex h-7 w-7 items-center justify-center rounded-full border text-xs font-bold transition-colors ${form.repeat.includes(w.v) ? "bg-(--accent) border-(--accent) text-white" : "border-(--border-medium) text-(--muted) hover:border-(--accent)"}`} onClick={() => setForm((p) => ({ ...p, repeat: p.repeat.includes(w.v) ? p.repeat.filter((x) => x !== w.v) : [...p.repeat, w.v] }))} aria-label={`Repetir ${w.label}`}>{w.label}</button>
+          <TooltipSimple key={w.v} content={t("task.repeatOn", { day: w.label })} side="top">
+            <button className={`flex h-7 w-7 items-center justify-center rounded-full border text-xs font-bold transition-colors ${form.repeat.includes(w.v) ? "bg-(--accent) border-(--accent) text-white" : "border-(--border-medium) text-(--muted) hover:border-(--accent)"}`} onClick={() => setForm((p) => ({ ...p, repeat: p.repeat.includes(w.v) ? p.repeat.filter((x) => x !== w.v) : [...p.repeat, w.v] }))} aria-label={t("task.repeatOn", { day: w.label })}>{w.label}</button>
           </TooltipSimple>
         ))}
       </div>
@@ -91,14 +105,14 @@ export function TaskDetail({ task, store, onSave, onRepeatToggle: _onRepeatToggl
       <div className="flex flex-wrap gap-2">
         <div className="flex items-center gap-1.5 text-xs text-(--text-soft)">
           <Icon name="bell" size={16} />
-          <span>Avisar</span>
+          <span>{t("task.remind")}</span>
           <div className="min-w-35">
             <Select value={form.remindBefore} onChange={(v) => setForm((p) => ({ ...p, remindBefore: v }))} options={REMIND_OPTIONS.map((o) => ({ value: String(o.v), label: o.label }))} />
           </div>
         </div>
         <div className="flex items-center gap-1.5 text-xs text-(--text-soft)">
           <span className="flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white shrink-0" style={{ background: PRIO_META[form.priority].color }}>{PRIO_META[form.priority].mark}</span>
-          <span>Prioridad</span>
+          <span>{t("common.priority")}</span>
           <div className="min-w-37.5">
             <Select
               value={form.priority}
@@ -112,7 +126,7 @@ export function TaskDetail({ task, store, onSave, onRepeatToggle: _onRepeatToggl
       <div className="flex flex-wrap gap-2">
         <div className="flex items-center gap-1.5 text-xs text-(--text-soft)">
           <Icon name="box" size={16} />
-          <span>Mover a</span>
+          <span>{t("task.moveTo")}</span>
           <div className="min-w-40">
             <Select value={task.list} onChange={(v) => onMove(v)} options={store.lists.map((l) => ({ value: l.id, label: `${l.icon} ${l.name}` }))} />
           </div>
@@ -120,8 +134,8 @@ export function TaskDetail({ task, store, onSave, onRepeatToggle: _onRepeatToggl
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <Input value={form.tags} onChange={(e) => setForm((p) => ({ ...p, tags: e.target.value }))} list="tag-options" placeholder="Etiquetas, separadas por coma…" className="flex-1 min-w-40" />
-        <Button variant="primary" size="sm" onClick={handleSave}>Guardar</Button>
+        <Input value={form.tags} onChange={(e) => setForm((p) => ({ ...p, tags: e.target.value }))} list="tag-options" placeholder={t("task.tags.placeholderLong")} className="flex-1 min-w-40" />
+        <Button variant="primary" size="sm" onClick={handleSave}>{t("common.save")}</Button>
       </div>
     </div>
   );
