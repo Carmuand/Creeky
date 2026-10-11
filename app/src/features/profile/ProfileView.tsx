@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useCreekyStore } from "@/hooks/useCreekyStore";
-import { db } from "@/services/storage";
-import { PRIO_META } from "@/types/creeky";
+import { pushToast } from "@/hooks/useToast";
+import { errorMessage, useI18n } from "@/i18n";
+import { usePrioMeta } from "@/i18n/labels";
+import { authApi } from "@/services/api";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
@@ -13,17 +15,22 @@ import { PulseCard } from "@/features/profile/PulseCard";
 import { ListDonut } from "@/features/profile/ListDonut";
 import type { DonutSegment } from "@/features/profile/ListDonut";
 
+/**
+ * Profile view with the account card, statistics and preferences.
+ *
+ * @returns The profile view.
+ */
 export function ProfileView() {
-  const { store, refresh } = useCreekyStore();
+  const { store } = useCreekyStore();
+  const { t, locale } = useI18n();
+  const PRIO_META = usePrioMeta();
   const [range, setRange] = useState<"all" | "week">("all");
   const [name, setName] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
 
-  const user = useMemo(() => {
-    if (!store.session) return null;
-    return store.users.find((u) => u.id === store.session) || null;
-  }, [store]);
+  const user = store.user;
+  const report = (error: unknown) => pushToast(errorMessage(error), "error");
 
   const weekAgo = Date.now() - 7 * 864e5;
   const alive = useMemo(() => store.tasks.filter((t) => !t.deleted && (range === "all" || (t.createdAt || 0) >= weekAgo)), [store.tasks, range]);
@@ -36,7 +43,7 @@ export function ProfileView() {
     return {
       id: value,
       label: meta.label,
-      detail: `${finished} de ${group.length}`,
+      detail: t("profile.priority.detail", { done: finished, total: group.length }),
       percent: group.length ? (finished / group.length) * 100 : 0,
       color: meta.color,
     };
@@ -60,12 +67,7 @@ export function ProfileView() {
 
   const handleSave = () => {
     if (!user) return;
-    const s = db.load();
-    const full = s.users.find((x) => x.id === user.id);
-    if (!full) return;
-    full.name = name.trim() || full.name;
-    db.save(s);
-    refresh();
+    authApi.updateProfile(name.trim() || user.name, user.email, null).catch(report);
     setIsEditing(false);
   };
 
@@ -76,34 +78,24 @@ export function ProfileView() {
 
   const handleAvatarUpload = (dataUrl: string) => {
     if (!user || !dataUrl) return;
-    const s = db.load();
-    const full = s.users.find((x) => x.id === user.id);
-    if (!full) return;
-    full.avatar = dataUrl;
-    db.save(s);
-    refresh();
+    authApi.setAvatar(dataUrl).catch(report);
   };
 
   const handleAvatarRemove = () => {
     if (!user) return;
-    const s = db.load();
-    const full = s.users.find((x) => x.id === user.id);
-    if (!full) return;
-    delete full.avatar;
-    db.save(s);
-    refresh();
+    authApi.setAvatar(null).catch(report);
   };
 
-  if (!user) return <div className="p-6 text-sm text-(--muted)">No hay sesión activa.</div>;
+  if (!user) return <div className="p-6 text-sm text-(--muted)">{t("profile.noSession")}</div>;
 
   return (
     <section className="max-w-275 mx-auto flex flex-col gap-4" aria-labelledby="h-profile">
       <ProfileCard
-        name={user.name || "Usuario"}
+        name={user.name || t("profile.fallbackName")}
         email={user.email}
-        memberSince={`Miembro desde ${new Date(user.created).toLocaleDateString()}`}
+        memberSince={t("profile.memberSince", { date: new Date(user.created).toLocaleDateString(locale) })}
         initial={(user.name || "U")[0].toUpperCase()}
-        avatarUrl={user.avatar}
+        avatarUrl={user.avatar ?? undefined}
         onAvatarUpload={handleAvatarUpload}
         onAvatarRemove={handleAvatarRemove}
         stats={{ tasks: alive.length, completed: done, focusMinutes: focusMin, habits: store.habits.length }}
@@ -111,11 +103,9 @@ export function ProfileView() {
       />
       <ProfileEditModal
         open={editOpen}
-        userId={user.id}
         defaultName={user.name || ""}
         defaultEmail={user.email}
         onClose={() => setEditOpen(false)}
-        onSaved={refresh}
       />
 
       <div className="grid grid-cols-2 gap-3 max-[1000px]:grid-cols-1">
@@ -128,23 +118,23 @@ export function ProfileView() {
           onRangeChange={setRange}
           bars={priorityRings}
           footerValue={priorityBlended}
-          title="Por prioridad"
-          subtitle="Tareas completadas por nivel de prioridad."
-          footerLabel="Promedio de completadas"
+          title={t("profile.priority.title")}
+          subtitle={t("profile.priority.subtitle")}
+          footerLabel={t("profile.priority.footer")}
         />
       </div>
 
       <div className="rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 shadow-sm">
-        <h3 className="font-semibold">Preferencias</h3>
-        <p className="mt-1 text-xs text-(--muted)">Tema monocromo (blanco ↔ negro) por ahora. El color se añadirá después.</p>
+        <h3 className="font-semibold">{t("profile.prefs.title")}</h3>
+        <p className="mt-1 text-xs text-(--muted)">{t("profile.prefs.text")}</p>
         <div className="mt-3 grid grid-cols-2 gap-4 max-[600px]:grid-cols-1">
-          <div className="flex flex-col gap-1.5"><label className="text-xs font-medium text-(--text-soft)">Nombre</label><Input id="pf-name" value={name} onChange={(e) => { setName(e.target.value); if (!isEditing) setIsEditing(true); }} onFocus={() => setIsEditing(true)} placeholder="Tu nombre" /></div>
-          <div className="flex flex-col gap-1.5"><label className="text-xs font-medium text-(--text-soft)">Vista inicial</label><Select value="Tareas" onChange={() => {}} options={[{ value: "Tareas", label: "Tareas" }, { value: "Calendario", label: "Calendario" }, { value: "Pomodoro", label: "Pomodoro" }]} /></div>
+          <div className="flex flex-col gap-1.5"><label className="text-xs font-medium text-(--text-soft)">{t("common.name")}</label><Input id="pf-name" value={name} onChange={(e) => { setName(e.target.value); if (!isEditing) setIsEditing(true); }} onFocus={() => setIsEditing(true)} placeholder={t("auth.name.placeholder")} /></div>
+          <div className="flex flex-col gap-1.5"><label className="text-xs font-medium text-(--text-soft)">{t("profile.prefs.initialView")}</label><Select value="tasks" onChange={() => {}} options={[{ value: "tasks", label: t("nav.tasks") }, { value: "calendar", label: t("nav.calendar") }, { value: "pomodoro", label: t("nav.pomodoro") }]} /></div>
         </div>
         {isEditing ? (
           <div className="mt-4 flex justify-end gap-2">
-            <Button variant="secondary" onClick={handleCancel}>Cancelar</Button>
-            <Button variant="primary" onClick={handleSave}>Guardar</Button>
+            <Button variant="secondary" onClick={handleCancel}>{t("common.cancel")}</Button>
+            <Button variant="primary" onClick={handleSave}>{t("common.save")}</Button>
           </div>
         ) : null}
       </div>
