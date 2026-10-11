@@ -57,6 +57,11 @@ class AppConfig:
         return self.data_dir / self.database_filename
 
     @property
+    def avatars_dir(self) -> Path:
+        """Directory that holds the profile photo of each user."""
+        return self.data_dir / "avatars"
+
+    @property
     def credential_service(self) -> str:
         """Service name used for entries in the system credential manager."""
         return self.app_name
