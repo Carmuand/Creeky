@@ -1,7 +1,10 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback } from "react";
 import type { MouseEvent } from "react";
+import { flushSync } from "react-dom";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Moon, Sun } from "lucide-react";
+import { TooltipSimple } from "@/components/ui/Tooltip";
+import { useI18n } from "@/i18n";
 import { cn } from "@/lib/utils";
 import type { Theme } from "@/hooks/useTheme";
 
@@ -18,60 +21,67 @@ export interface CinematicThemeSwitcherProps {
 }
 
 /**
- * Ripple origin in viewport coordinates.
+ * Duration of the circular reveal, in milliseconds.
  */
-interface RippleOrigin {
-  /** Horizontal viewport coordinate. */
-  x: number;
-  /** Vertical viewport coordinate. */
-  y: number;
-  /** Theme that will be revealed by the ripple. */
-  next: Theme;
-}
+const REVEAL_DURATION_MS = 520;
+
+/**
+ * Class set on the root element while the theme is switching so color
+ * transitions do not blend with the reveal.
+ */
+const SWITCHING_CLASS = "theme-switching";
 
 /**
  * Cinematic theme switcher with a circular reveal.
  *
- * Keeps the same 36px footprint as the previous TopBar button while
- * adding a sun-to-moon morph and a full-screen circular wipe tinted
- * with Creeky accent variables.
+ * The reveal uses the View Transitions API: the browser snapshots the old
+ * theme, the new theme is applied in a single synchronous update, and the
+ * new snapshot is uncovered from the pointer position. No overlay element
+ * is involved, so the page can never stay covered or tinted when the
+ * animation is interrupted. Browsers without the API switch instantly.
+ *
+ * @param props - Component properties.
+ * @returns The theme toggle button.
  */
 export function CinematicThemeSwitcher({ theme, onToggle, className = "" }: CinematicThemeSwitcherProps) {
   const reduceMotion = useReducedMotion() ?? false;
-  const [ripple, setRipple] = useState<RippleOrigin | null>(null);
-  const timers = useRef<Array<ReturnType<typeof setTimeout>>>([]);
-
-  const clearTimers = useCallback(() => {
-    for (const timer of timers.current) clearTimeout(timer);
-    timers.current = [];
-  }, []);
+  const { t } = useI18n();
 
   const handlePress = useCallback(
     (event: MouseEvent<HTMLButtonElement>) => {
-      const next: Theme = theme === "dark" ? "light" : "dark";
-      if (reduceMotion) {
+      const root = document.documentElement;
+      if (reduceMotion || typeof document.startViewTransition !== "function") {
         onToggle();
         return;
       }
-      clearTimers();
-      setRipple({ x: event.clientX, y: event.clientY, next });
-      timers.current.push(
-        setTimeout(() => onToggle(), 200),
-        setTimeout(() => setRipple(null), 750),
-      );
+      const x = event.clientX;
+      const y = event.clientY;
+      const radius = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y));
+      root.classList.add(SWITCHING_CLASS);
+      const transition = document.startViewTransition(() => {
+        flushSync(() => onToggle());
+      });
+      transition.ready
+        .then(() => {
+          root.animate(
+            { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${radius}px at ${x}px ${y}px)`] },
+            { duration: REVEAL_DURATION_MS, easing: "cubic-bezier(0.32, 0.72, 0, 1)", pseudoElement: "::view-transition-new(root)" },
+          );
+        })
+        .catch(() => undefined);
+      void transition.finished.catch(() => undefined).finally(() => root.classList.remove(SWITCHING_CLASS));
     },
-    [theme, onToggle, reduceMotion, clearTimers],
+    [onToggle, reduceMotion],
   );
 
   const isDark = theme === "dark";
 
   return (
-    <>
+    <TooltipSimple content={isDark ? t("theme.light") : t("theme.dark")} side="bottom">
       <motion.button
         type="button"
         onClick={handlePress}
-        aria-label={isDark ? "Cambiar a tema claro" : "Cambiar a tema oscuro"}
-        title={isDark ? "Tema claro" : "Tema oscuro"}
+        aria-label={isDark ? t("theme.switchToLight") : t("theme.switchToDark")}
         whileTap={reduceMotion ? undefined : { scale: 0.88 }}
         transition={{ type: "spring", stiffness: 520, damping: 20 }}
         className={cn(
@@ -116,31 +126,6 @@ export function CinematicThemeSwitcher({ theme, onToggle, className = "" }: Cine
           </span>
         ) : null}
       </motion.button>
-      <AnimatePresence>
-        {ripple ? (
-          <motion.span
-            key="cinematic-wipe"
-            aria-hidden
-            className="pointer-events-none fixed z-[80] rounded-full"
-            style={{
-              left: ripple.x,
-              top: ripple.y,
-              width: 24,
-              height: 24,
-              x: "-50%",
-              y: "-50%",
-              background:
-                ripple.next === "dark"
-                  ? "radial-gradient(circle, #0a0a0f 0%, rgba(94,70,138,0.85) 55%, rgba(94,70,138,0.25) 75%, transparent 100%)"
-                  : "radial-gradient(circle, #ffffff 0%, rgba(128,96,179,0.45) 55%, rgba(152,201,28,0.25) 75%, transparent 100%)",
-            }}
-            initial={{ scale: 0, opacity: 0.9 }}
-            animate={{ scale: 160, opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.7, ease: [0.32, 0.72, 0, 1] }}
-          />
-        ) : null}
-      </AnimatePresence>
-    </>
+    </TooltipSimple>
   );
 }
