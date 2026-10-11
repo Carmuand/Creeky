@@ -1,5 +1,5 @@
 """
-Tasks API.
+Tasks API. Every call works on the data of the signed-in user.
 """
 
 # Standard library
@@ -7,14 +7,15 @@ from __future__ import annotations
 from typing import Any
 
 # Third-party
-from sqlalchemy import delete, func, select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 # Project imports
+from desktop.api.auth_api import require_user
 from desktop.core.errors import ApiError
 from desktop.database.engine import session_scope
 from desktop.database.models import PomodoroBlock, Tag, Task, TaskList, TaskRepeatDay
-from desktop.database.seed import INBOX_LIST_ID
+from desktop.database.seed import INBOX_ALIAS
 from desktop.database.serializers import serialize_task
 from desktop.utills.dates import new_id, now_ms
 
@@ -49,50 +50,72 @@ def normalize_tag_names(names: Any) -> list[str]:
     return result
 
 
-def resolve_tags(session: Session, names: Any) -> list[Tag]:
-    """Return the tags with the given names, creating the missing ones."""
+def resolve_tags(session: Session, user_id: str, names: Any) -> list[Tag]:
+    """Return the user's tags with the given names, creating the missing ones."""
     clean: list[str] = normalize_tag_names(names)
     if not clean:
         return []
     existing: dict[str, Tag] = {
-        tag.name: tag for tag in session.scalars(select(Tag).where(Tag.name.in_(clean)))
+        tag.name: tag
+        for tag in session.scalars(
+            select(Tag).where(Tag.user_id == user_id, Tag.name.in_(clean))
+        )
     }
-    next_position: int = (session.scalar(select(func.max(Tag.position))) or 0) + 1
+    next_position: int = (
+        session.scalar(select(func.max(Tag.position)).where(Tag.user_id == user_id)) or 0
+    ) + 1
     tags: list[Tag] = []
     for name in clean:
         tag: Tag | None = existing.get(name)
         if tag is None:
-            tag = Tag(name=name, position=next_position)
+            tag = Tag(user_id=user_id, name=name, position=next_position)
             next_position += 1
             session.add(tag)
         tags.append(tag)
     return tags
 
 
-def fallback_list_id(session: Session, excluded: str | None = None) -> str | None:
-    """Return the inbox list, or the first list, ignoring the excluded one."""
-    query = select(TaskList.id).order_by(TaskList.position)
-    if excluded is not None:
-        query = query.where(TaskList.id != excluded)
-    ids: list[str] = list(session.scalars(query))
-    if INBOX_LIST_ID in ids:
-        return INBOX_LIST_ID
-    return ids[0] if ids else None
+def find_list(session: Session, user_id: str, list_id: Any) -> TaskList | None:
+    """Return one of the user's lists, resolving the inbox alias."""
+    if not isinstance(list_id, str) or not list_id:
+        return None
+    if list_id == INBOX_ALIAS:
+        return session.scalar(
+            select(TaskList).where(TaskList.user_id == user_id, TaskList.is_inbox.is_(True))
+        )
+    return session.scalar(
+        select(TaskList).where(TaskList.user_id == user_id, TaskList.id == list_id)
+    )
 
 
-def _resolve_list_id(session: Session, list_id: Any) -> str:
-    """Return a valid list identifier, falling back when the requested one is missing."""
-    if isinstance(list_id, str) and session.get(TaskList, list_id) is not None:
-        return list_id
-    fallback: str | None = fallback_list_id(session)
-    if fallback is None:
+def fallback_list(session: Session, user_id: str, excluded: str | None = None) -> TaskList | None:
+    """Return the user's inbox, or their first list, ignoring the excluded one."""
+    lists: list[TaskList] = [
+        task_list
+        for task_list in session.scalars(
+            select(TaskList).where(TaskList.user_id == user_id).order_by(TaskList.position)
+        )
+        if task_list.id != excluded
+    ]
+    inbox: TaskList | None = next((item for item in lists if item.is_inbox), None)
+    return inbox or (lists[0] if lists else None)
+
+
+def _resolve_list(session: Session, user_id: str, list_id: Any) -> TaskList:
+    """Return a valid list of the user, falling back when the requested one is missing."""
+    task_list: TaskList | None = find_list(session, user_id, list_id) or fallback_list(
+        session, user_id
+    )
+    if task_list is None:
         raise ApiError("list_not_found")
-    return fallback
+    return task_list
 
 
-def _get_task(session: Session, task_id: str) -> Task:
-    """Return a task or fail when it does not exist."""
-    task: Task | None = session.get(Task, task_id)
+def get_task(session: Session, user_id: str, task_id: str) -> Task:
+    """Return one of the user's tasks or fail when it does not exist."""
+    task: Task | None = session.scalar(
+        select(Task).where(Task.user_id == user_id, Task.id == task_id)
+    )
     if task is None:
         raise ApiError("task_not_found")
     return task
@@ -119,10 +142,10 @@ def apply_task_patch(session: Session, task: Task, patch: dict[str, Any]) -> Non
     if "priority" in patch:
         task.priority = patch["priority"] if patch["priority"] in PRIORITIES else "none"
     if "list" in patch:
-        task.list_id = _resolve_list_id(session, patch["list"])
+        task.task_list = _resolve_list(session, task.user_id, patch["list"])
     if "deleted" in patch:
         deleted: bool = bool(patch["deleted"])
-        if deleted != task.deleted:
+        if deleted != bool(task.deleted):
             task.deleted_at = now_ms() if deleted else None
         task.deleted = deleted
     if "repeat" in patch:
@@ -142,7 +165,7 @@ def apply_task_patch(session: Session, task: Task, patch: dict[str, Any]) -> Non
             if block.get("type") in BLOCK_TYPES
         ]
     if "tags" in patch:
-        task.tags = resolve_tags(session, patch["tags"])
+        task.tags = resolve_tags(session, task.user_id, patch["tags"])
 
 
 def create_task(payload: dict[str, Any]) -> dict[str, Any]:
@@ -151,16 +174,21 @@ def create_task(payload: dict[str, Any]) -> dict[str, Any]:
     if not title:
         raise ApiError("title_required")
     with session_scope() as session:
-        first_position: int = session.scalar(select(func.min(Task.position))) or 0
+        user_id: str = require_user(session).id
+        first_position: int = (
+            session.scalar(select(func.min(Task.position)).where(Task.user_id == user_id)) or 0
+        )
         task: Task = Task(
             id=new_id("t"),
+            user_id=user_id,
             title=title,
-            list_id=_resolve_list_id(session, payload.get("list")),
+            task_list=_resolve_list(session, user_id, payload.get("list")),
             created_at=now_ms(),
             position=first_position - 1,
         )
         session.add(task)
-        apply_task_patch(session, task, {**payload, "title": title})
+        patch: dict[str, Any] = {key: value for key, value in payload.items() if key != "list"}
+        apply_task_patch(session, task, {**patch, "title": title})
         session.flush()
         return serialize_task(task)
 
@@ -168,7 +196,7 @@ def create_task(payload: dict[str, Any]) -> dict[str, Any]:
 def update_task(task_id: str, patch: dict[str, Any]) -> dict[str, Any]:
     """Update the given fields of a task."""
     with session_scope() as session:
-        task: Task = _get_task(session, task_id)
+        task: Task = get_task(session, require_user(session).id, task_id)
         if "title" in patch and not str(patch["title"] or "").strip():
             raise ApiError("title_required")
         apply_task_patch(session, task, patch)
@@ -179,22 +207,16 @@ def update_task(task_id: str, patch: dict[str, Any]) -> dict[str, Any]:
 def delete_task(task_id: str) -> None:
     """Permanently delete a task."""
     with session_scope() as session:
-        session.delete(_get_task(session, task_id))
+        session.delete(get_task(session, require_user(session).id, task_id))
 
 
 def empty_trash() -> int:
     """Permanently delete every task in the trash and return how many were removed."""
     with session_scope() as session:
-        trashed: list[Task] = list(session.scalars(select(Task).where(Task.deleted.is_(True))))
+        user_id: str = require_user(session).id
+        trashed: list[Task] = list(
+            session.scalars(select(Task).where(Task.user_id == user_id, Task.deleted.is_(True)))
+        )
         for task in trashed:
             session.delete(task)
         return len(trashed)
-
-
-def clear_tasks(session: Session) -> None:
-    """Delete every task together with its dependent rows."""
-    for task in session.scalars(select(Task)):
-        session.delete(task)
-    session.flush()
-    session.execute(delete(TaskRepeatDay))
-    session.execute(delete(PomodoroBlock))
