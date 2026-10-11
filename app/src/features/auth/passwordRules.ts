@@ -1,3 +1,5 @@
+import type { MessageKey } from "@/i18n";
+
 /**
  * Password policy for account registration.
  */
@@ -18,8 +20,8 @@ export const PASSWORD_MAX_LENGTH = 15;
 export interface PasswordRule {
   /** Stable identifier. */
   id: "length" | "lowercase" | "uppercase" | "number" | "symbol";
-  /** User-facing description shown in the checklist. */
-  label: string;
+  /** Message key of the description shown in the checklist. */
+  labelKey: MessageKey;
   /** Returns true when the value satisfies the requirement. */
   test: (value: string) => boolean;
 }
@@ -30,27 +32,27 @@ export interface PasswordRule {
 export const PASSWORD_RULES: PasswordRule[] = [
   {
     id: "length",
-    label: "De 8 a 15 caracteres",
+    labelKey: "auth.rule.length",
     test: (value: string) => value.length >= PASSWORD_MIN_LENGTH && value.length <= PASSWORD_MAX_LENGTH,
   },
   {
     id: "lowercase",
-    label: "Una letra minúscula (a–z)",
+    labelKey: "auth.rule.lowercase",
     test: (value: string) => /[a-z]/.test(value),
   },
   {
     id: "uppercase",
-    label: "Una letra mayúscula (A–Z)",
+    labelKey: "auth.rule.uppercase",
     test: (value: string) => /[A-Z]/.test(value),
   },
   {
     id: "number",
-    label: "Un número (0–9)",
+    labelKey: "auth.rule.number",
     test: (value: string) => /[0-9]/.test(value),
   },
   {
     id: "symbol",
-    label: "Un símbolo (!@#$%…)",
+    labelKey: "auth.rule.symbol",
     test: (value: string) => /[^A-Za-z0-9\s]/.test(value),
   },
 ];
@@ -67,13 +69,19 @@ export interface PasswordRuleResult {
 
 /**
  * Evaluates every requirement against the given value.
+ *
+ * @param value - Password being typed.
+ * @returns Each requirement with its result.
  */
 export function evaluatePassword(value: string): PasswordRuleResult[] {
   return PASSWORD_RULES.map((rule) => ({ rule, passed: rule.test(value) }));
 }
 
 /**
- * Returns true when the value satisfies every requirement.
+ * Tells whether the value satisfies every requirement.
+ *
+ * @param value - Password being typed.
+ * @returns True when all requirements pass.
  */
 export function isPasswordValid(value: string): boolean {
   return PASSWORD_RULES.every((rule) => rule.test(value));
