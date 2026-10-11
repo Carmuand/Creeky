@@ -81,7 +81,7 @@ export function SettingsView() {
     <section className="max-w-275 mx-auto flex flex-col gap-4" aria-label={t("nav.settings")}>
       <p className="text-sm text-(--muted)">{t("settings.intro")}</p>
 
-      <div className="flex flex-wrap gap-1 rounded-lg bg-(--bg-tertiary) p-1 w-fit" role="tablist" aria-label={t("nav.settings")}>
+      <div className="flex flex-wrap gap-1 rounded-lg bg-(--bg-tertiary) p-1 w-fit" role="tablist" aria-label={t("nav.settings")} data-tour="settings-tabs">
         {tabs.map((item) => {
           const Icon = item.icon;
           return (
