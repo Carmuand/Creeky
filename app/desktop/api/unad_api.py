@@ -33,7 +33,7 @@ from desktop.database.models import UnadAccount, UnadActivity, UnadAgenda
 from desktop.unad.client import DOCUMENT_TYPES
 from desktop.unad.parser import extract_agenda_code
 from desktop.unad.schemas import CampusProfile, CourseAgenda
-from desktop.utills.dates import new_id
+from desktop.utills.dates import new_id, now_ms
 from desktop.utills.logger import log, Tags
 
 _AGENDA_COLORS: tuple[str, ...] = (
@@ -150,7 +150,8 @@ def connect(document_type: str, document: str, password: str) -> dict[str, Any]:
 
     The credentials are verified by signing in and reading the profile
     before anything is stored. The password goes to the system credential
-    manager and the synchronization service is asked to run.
+    manager. Linking counts as the first synchronization, so the service
+    does not sign in again until the interval elapses.
 
     Returns:
         The UNAD state of the user.
@@ -180,11 +181,11 @@ def connect(document_type: str, document: str, password: str) -> dict[str, Any]:
         account.document = clean_document
         account.enabled = True
         account.last_error = ""
+        account.last_sync_at = now_ms()
         apply_profile(account, profile)
         session.flush()
         state: dict[str, Any] = serialize_unad(session, user_id)
     log("SUCCESS", Tags.UNAD, f"UNAD account linked for {user_id}")
-    unad_service.request_sync()
     return state
 
 
