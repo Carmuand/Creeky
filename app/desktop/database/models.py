@@ -6,7 +6,17 @@ Relational models for the Creeky database.
 from __future__ import annotations
 
 # Third-party
-from sqlalchemy import BigInteger, Boolean, Column, ForeignKey, Integer, String, Table, Text
+from sqlalchemy import (
+    BigInteger,
+    Boolean,
+    Column,
+    ForeignKey,
+    Integer,
+    String,
+    Table,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -32,14 +42,17 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     avatar: Mapped[str | None] = mapped_column(Text, nullable=True, default=None)
     created_at: Mapped[int] = mapped_column(BigInteger)
+    onboarded: Mapped[bool] = mapped_column(Boolean, default=False)
 
 
 class TaskList(Base):
-    """List that groups tasks and gives them a color and an icon."""
+    """List that groups the tasks of a user and gives them a color and an icon."""
 
     __tablename__ = "task_lists"
 
     id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    is_inbox: Mapped[bool] = mapped_column(Boolean, default=False)
     name: Mapped[str] = mapped_column(String(120))
     description: Mapped[str] = mapped_column(Text, default="")
     color: Mapped[str] = mapped_column(String(16), default="#616161")
@@ -50,12 +63,14 @@ class TaskList(Base):
 
 
 class Tag(Base):
-    """Label that can be attached to any number of tasks."""
+    """Label of a user that can be attached to any number of their tasks."""
 
     __tablename__ = "tags"
+    __table_args__ = (UniqueConstraint("user_id", "name", name="uq_tags_user_name"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    name: Mapped[str] = mapped_column(String(80), unique=True, index=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(80), index=True)
     position: Mapped[int] = mapped_column(Integer, default=0)
 
     tasks: Mapped[list[Task]] = relationship(secondary=task_tags, back_populates="tags")
@@ -67,6 +82,7 @@ class Task(Base):
     __tablename__ = "tasks"
 
     id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     title: Mapped[str] = mapped_column(Text)
     description: Mapped[str] = mapped_column(Text, default="")
     list_id: Mapped[str] = mapped_column(ForeignKey("task_lists.id"), index=True)
@@ -126,6 +142,7 @@ class Habit(Base):
     __tablename__ = "habits"
 
     id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     name: Mapped[str] = mapped_column(String(160))
     best_streak: Mapped[int] = mapped_column(Integer, default=0)
     notify: Mapped[bool] = mapped_column(Boolean, default=True)
@@ -155,6 +172,7 @@ class MatrixNote(Base):
     __tablename__ = "matrix_notes"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     quadrant: Mapped[str] = mapped_column(String(2), index=True)
     text: Mapped[str] = mapped_column(Text)
     position: Mapped[int] = mapped_column(Integer, default=0)
@@ -166,6 +184,7 @@ class Countdown(Base):
     __tablename__ = "countdowns"
 
     id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     title: Mapped[str] = mapped_column(Text)
     date: Mapped[str] = mapped_column(String(10))
     created_at: Mapped[int] = mapped_column(BigInteger)
@@ -177,6 +196,7 @@ class PomodoroSession(Base):
     __tablename__ = "pomodoro_sessions"
 
     id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     date: Mapped[str] = mapped_column(String(10), index=True)
     timestamp: Mapped[int] = mapped_column(BigInteger)
     mode: Mapped[str] = mapped_column(String(8))
@@ -193,6 +213,7 @@ class Notification(Base):
     __tablename__ = "notifications"
 
     id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     title: Mapped[str] = mapped_column(Text)
     text: Mapped[str] = mapped_column(Text, default="")
     kind: Mapped[str] = mapped_column(String(16), default="system")
@@ -205,14 +226,120 @@ class EmailLink(Base):
 
     __tablename__ = "email_links"
 
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
     provider: Mapped[str] = mapped_column(String(16), primary_key=True)
     email: Mapped[str] = mapped_column(String(255))
     linked_at: Mapped[int] = mapped_column(BigInteger)
     last_sent_at: Mapped[int | None] = mapped_column(BigInteger, nullable=True, default=None)
 
 
+class NotificationPreference(Base):
+    """Whether a user receives desktop notifications of a category."""
+
+    __tablename__ = "notification_preferences"
+
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    category: Mapped[str] = mapped_column(String(32), primary_key=True)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+
+
+class UnadAccount(Base):
+    """
+    UNAD Campus account linked by a user, with the profile read from the portal.
+
+    The portal password lives in the system credential manager.
+    """
+
+    __tablename__ = "unad_accounts"
+
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    document_type: Mapped[str] = mapped_column(String(4), default="CC")
+    document: Mapped[str] = mapped_column(String(32))
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    interval_minutes: Mapped[int] = mapped_column(Integer, default=30)
+    deadline_days: Mapped[int] = mapped_column(Integer, default=2)
+    last_sync_at: Mapped[int | None] = mapped_column(BigInteger, nullable=True, default=None)
+    last_error: Mapped[str] = mapped_column(String(64), default="")
+    campus_user_id: Mapped[int] = mapped_column(Integer, default=0)
+    full_name: Mapped[str] = mapped_column(String(255), default="")
+    first_name: Mapped[str] = mapped_column(String(120), default="")
+    second_name: Mapped[str] = mapped_column(String(120), default="")
+    first_surname: Mapped[str] = mapped_column(String(120), default="")
+    second_surname: Mapped[str] = mapped_column(String(120), default="")
+    institutional_email: Mapped[str] = mapped_column(String(255), default="")
+    notification_email: Mapped[str] = mapped_column(String(255), default="")
+    personal_email: Mapped[str] = mapped_column(String(255), default="")
+    phone: Mapped[str] = mapped_column(String(64), default="")
+    birth_date: Mapped[str] = mapped_column(String(32), default="")
+    marital_status: Mapped[str] = mapped_column(String(64), default="")
+    blood_type: Mapped[str] = mapped_column(String(16), default="")
+    zone: Mapped[str] = mapped_column(String(64), default="")
+    stratum: Mapped[str] = mapped_column(String(16), default="")
+    address: Mapped[str] = mapped_column(String(255), default="")
+    profile_updated_at: Mapped[int | None] = mapped_column(
+        BigInteger, nullable=True, default=None
+    )
+
+
+class UnadAgenda(Base):
+    """Course agenda a user follows, scraped from its public page."""
+
+    __tablename__ = "unad_agendas"
+    __table_args__ = (UniqueConstraint("user_id", "code", name="uq_unad_agendas_user_code"),)
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    code: Mapped[str] = mapped_column(String(16))
+    url: Mapped[str] = mapped_column(Text)
+    name: Mapped[str] = mapped_column(Text, default="")
+    credits: Mapped[str] = mapped_column(Text, default="")
+    period: Mapped[str] = mapped_column(Text, default="")
+    color: Mapped[str] = mapped_column(String(16), default="#0277BD")
+    position: Mapped[int] = mapped_column(Integer, default=0)
+    synced_at: Mapped[int | None] = mapped_column(BigInteger, nullable=True, default=None)
+
+    activities: Mapped[list[UnadActivity]] = relationship(
+        back_populates="agenda", cascade="all, delete-orphan", order_by="UnadActivity.position"
+    )
+
+
+class UnadActivity(Base):
+    """Activity of a followed agenda, with its normalized dates and reminder flags."""
+
+    __tablename__ = "unad_activities"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    agenda_id: Mapped[str] = mapped_column(
+        ForeignKey("unad_agendas.id", ondelete="CASCADE"), index=True
+    )
+    position: Mapped[int] = mapped_column(Integer, default=0)
+    section: Mapped[str] = mapped_column(Text, default="")
+    moment: Mapped[str] = mapped_column(String(64), default="")
+    rac: Mapped[str] = mapped_column(String(64), default="")
+    name: Mapped[str] = mapped_column(Text)
+    description: Mapped[str] = mapped_column(Text, default="")
+    activity_type: Mapped[str] = mapped_column(String(64), default="")
+    weight: Mapped[str] = mapped_column(String(32), default="")
+    start_raw: Mapped[str] = mapped_column(String(64), default="")
+    end_raw: Mapped[str] = mapped_column(String(64), default="")
+    starts_at: Mapped[str] = mapped_column(String(16), default="", index=True)
+    ends_at: Mapped[str] = mapped_column(String(16), default="", index=True)
+    alert: Mapped[str] = mapped_column(Text, default="")
+    feedback: Mapped[str] = mapped_column(Text, default="")
+    notified_opening: Mapped[bool] = mapped_column(Boolean, default=False)
+    notified_deadline: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    agenda: Mapped[UnadAgenda] = relationship(back_populates="activities")
+
+
 class Setting(Base):
-    """Key-value application preference."""
+    """Key-value preference shared by every account on this computer."""
 
     __tablename__ = "settings"
 
