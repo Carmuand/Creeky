@@ -23,7 +23,8 @@ import { useCreekyEvents } from "@/hooks/useCreekyEvents";
 import { useCreekyStore } from "@/hooks/useCreekyStore";
 import { useToast } from "@/hooks/useToast";
 import { errorMessage, useI18n } from "@/i18n";
-import { authApi } from "@/services/api";
+import { authApi, settingsApi } from "@/services/api";
+import { OnboardingTour } from "@/features/onboarding/OnboardingTour";
 import { todayISO } from "@/utils/date";
 import { occursOn } from "@/utils/task";
 import { APP_VERSION } from "@/types/creeky";
@@ -42,7 +43,8 @@ export default function App() {
   const { t } = useI18n();
   const badges = useBadges(store);
 
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsedOverride, setCollapsedOverride] = useState<boolean | null>(null);
+  const collapsed = collapsedOverride ?? store.settings.sidebarCollapsed;
   const user = store.user;
 
   useCreekyEvents(ready, {
@@ -53,6 +55,12 @@ export default function App() {
     },
     onNavigate: (target) => { if (isCreekyView(target)) setView(target); },
   });
+
+  const handleToggleCollapse = useCallback(() => {
+    const next = !collapsed;
+    setCollapsedOverride(next);
+    void settingsApi.setSidebarCollapsed(next).catch(() => undefined);
+  }, [collapsed]);
 
   const handleAuthed = useCallback(() => { push(t("auth.toast.signedIn"), "success"); }, [push, t]);
   const handleLogout = useCallback(() => {
@@ -121,10 +129,11 @@ export default function App() {
       <div className="flex h-screen w-screen flex-col overflow-hidden bg-(--bg-secondary) text-(--text)">
         <TitleBar bridgeReady={ready} title="Creeky" />
         <div className="flex flex-1 min-h-0">
-          <AppLayout view={view} onViewChange={setView} title={t(VIEW_TITLE_KEYS[view])} badges={badges} userInitial={(user.name || "U")[0]?.toUpperCase()} onLogout={handleLogout} collapsed={collapsed} onToggleCollapse={() => setCollapsed((c) => !c)}>
+          <AppLayout view={view} onViewChange={setView} title={t(VIEW_TITLE_KEYS[view])} badges={badges} userInitial={(user.name || "U")[0]?.toUpperCase()} onLogout={handleLogout} collapsed={collapsed} onToggleCollapse={handleToggleCollapse}>
             {renderView()}
           </AppLayout>
         </div>
+        <OnboardingTour active={!user.onboarded} onNavigate={setView} />
         <ToastContainer toasts={toasts} onDismiss={dismiss} />
         <span className="fixed bottom-1 right-2 text-[10px] text-(--muted) opacity-60">v{APP_VERSION}</span>
       </div>
