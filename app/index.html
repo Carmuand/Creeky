@@ -5,6 +5,42 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Creeky - Tu productividad organizada" />
     <title>Creeky</title>
+    <script>
+      (function () {
+        function applyTheme(theme) {
+          var root = document.documentElement
+          root.setAttribute('data-theme', theme)
+          root.classList.toggle('dark', theme === 'dark')
+          root.style.colorScheme = theme
+        }
+        var match = (location.search + location.hash).match(/[?&#]theme=(light|dark)/)
+        if (match) {
+          try {
+            localStorage.setItem('theme', match[1])
+          } catch (error) {}
+          applyTheme(match[1])
+          return
+        }
+        try {
+          var saved = localStorage.getItem('theme')
+          if (saved === 'light' || saved === 'dark') {
+            applyTheme(saved)
+            return
+          }
+        } catch (error) {}
+        var api = window.pywebview && window.pywebview.api
+        if (api && api.get_theme) {
+          api.get_theme().then(function (result) {
+            if (result && (result.theme === 'light' || result.theme === 'dark')) {
+              try {
+                localStorage.setItem('theme', result.theme)
+              } catch (error) {}
+              applyTheme(result.theme)
+            }
+          }).catch(function () {})
+        }
+      })()
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
