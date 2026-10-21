@@ -3,6 +3,8 @@ python-dotenv
 colorama
 screeninfo
 pywebview
+pystray
+pillow
 sqlalchemy
 keyring
 desktop-notifier
