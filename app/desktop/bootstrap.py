@@ -27,8 +27,10 @@ from desktop.api import settings_api, window_api
 from desktop.config import config
 from desktop.core.api import Api
 from desktop.core.events import events
+from desktop.core import autostart
 from desktop.core.notifier import notifier
 from desktop.core.scheduler import scheduler
+from desktop.core.tray import tray
 from desktop.core.unad_service import unad_service
 from desktop.database.engine import init_database, session_scope
 from desktop.utills.logger import log, Tags
@@ -109,13 +111,56 @@ def get_centered_position(width: int, height: int) -> tuple[int, int]:
         return 0, 0
 
 
-def _on_loaded(window: webview.Window) -> None:
-    """Attach the event bus, re-center on the current monitor and start services."""
+def _on_loaded(
+    window: webview.Window,
+    language: str,
+    minimize_on_close: bool,
+    start_hidden: bool,
+) -> None:
+    """
+    Attach the event bus, re-center on the current monitor and start services.
+
+    Args:
+        window: Main pywebview window.
+        language: Language for the tray labels.
+        minimize_on_close: Whether closing the window keeps the app in the tray.
+        start_hidden: Whether the window was created hidden at sign-in.
+    """
     log("SUCCESS", Tags.WINDOW, "Page loaded - event bus attached")
     events.attach(window)
     window_api.center_window(window)
     scheduler.start()
     unad_service.start()
+    if minimize_on_close or start_hidden:
+        started: bool = tray.start(
+            window,
+            language,
+            close_to_tray=minimize_on_close,
+            visible=not start_hidden,
+        )
+        if start_hidden and not started:
+            log("WARNING", Tags.TRAY, "Tray unavailable; showing the window instead")
+            window.show()
+
+
+def _on_closing(window: webview.Window) -> bool:
+    """
+    Hide the window instead of closing it when minimize on close is active.
+
+    Args:
+        window: Main window that pywebview is about to close.
+
+    Returns:
+        ``False`` to cancel the close and keep the application in the tray,
+        ``True`` to let the close continue when quitting or when the tray is
+        not handling the close.
+    """
+    if tray.is_quitting() or not tray.is_close_to_tray():
+        return True
+    window.hide()
+    tray.notify_window_hidden()
+    log("INFO", Tags.TRAY, "Window hidden to the tray")
+    return False
 
 
 def bootstrap() -> None:
@@ -123,9 +168,14 @@ def bootstrap() -> None:
     log("INFO", Tags.MAIN, f"Starting {config.app_name}")
 
     init_database()
+    autostart.sync_command()
     notifier.start()
 
     theme: str = settings_api.get_theme()["theme"]
+    language: str = settings_api.get_language()["language"]
+    startup_options: dict[str, bool] = settings_api.get_startup_options()
+    minimize_on_close: bool = startup_options["minimizeOnClose"]
+    start_hidden: bool = autostart.started_at_login() and startup_options["startMinimized"]
     background_color: str = config.theme_backgrounds.get(
         theme, config.theme_backgrounds[config.default_theme]
     )
@@ -162,12 +212,17 @@ def bootstrap() -> None:
         frameless=config.frameless,
         easy_drag=config.easy_drag,
         background_color=background_color,
+        hidden=start_hidden,
     )
 
-    window.events.loaded += lambda: _on_loaded(window)
+    window.events.loaded += lambda: _on_loaded(
+        window, language, minimize_on_close, start_hidden
+    )
+    window.events.closing += _on_closing
 
     log("SUCCESS", Tags.MAIN, "Window created - starting webview loop")
     webview.start(debug=config.debug)
+    tray.stop()
     scheduler.stop()
     unad_service.stop()
     log("INFO", Tags.MAIN, "Webview loop exited - bye!")
