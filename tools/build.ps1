@@ -60,7 +60,7 @@ $WorkDir = Join-Path $BuildDir "work"
 $OutputDir = Join-Path $BuildDir $AppName
 $ExecutableName = "$AppName.exe"
 $Executable = Join-Path $OutputDir $ExecutableName
-$RequiredModules = @("PyInstaller", "webview", "sqlalchemy", "keyring", "desktop_notifier", "cryptography", "requests", "bs4")
+$RequiredModules = @("PyInstaller", "webview", "pystray", "sqlalchemy", "keyring", "desktop_notifier", "cryptography", "requests", "bs4")
 
 function Write-Step([string]$Message) {
     Write-Host ""
@@ -208,6 +208,7 @@ $pyinstallerArgs = @(
     "--specpath", $BuildDir,
     "--add-data", "$FrontendDist;dist",
     "--collect-submodules", "desktop",
+    "--collect-submodules", "pystray",
     "--collect-submodules", "desktop_notifier",
     "--collect-data", "desktop_notifier",
     "--collect-submodules", "winrt",
