@@ -62,6 +62,11 @@ class AppConfig:
         return self.data_dir / "avatars"
 
     @property
+    def sounds_dir(self) -> Path:
+        """Directory that holds imported alarm sounds."""
+        return self.data_dir / "sounds"
+
+    @property
     def credential_service(self) -> str:
         """Service name used for entries in the system credential manager."""
         return self.app_name
