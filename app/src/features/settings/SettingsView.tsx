@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { ComponentType } from "react";
 import { ES, US } from "country-flag-icons/react/3x2";
-import { BellRing, Check, GraduationCap, Languages, Monitor, Power } from "lucide-react";
+import { BellRing, Check, GraduationCap, Languages, Monitor, Power, Volume2 } from "lucide-react";
 import { useCreekyStore } from "@/hooks/useCreekyStore";
 import { pushToast } from "@/hooks/useToast";
 import { applyLanguage, errorMessage, t as translate, useI18n } from "@/i18n";
@@ -11,13 +11,14 @@ import { cn } from "@/lib/utils";
 import type { Language } from "@/types/creeky";
 import { WindowSizeSection } from "@/features/settings/WindowSizeSection";
 import { StartupSection } from "@/features/settings/StartupSection";
+import { SoundSection } from "@/features/settings/SoundSection";
 import { NotificationSettingsSection } from "@/features/settings/NotificationSettingsSection";
 import { UnadSection } from "@/features/settings/UnadSection";
 
 /**
  * Tabs available in the settings view.
  */
-type SettingsTab = "language" | "window" | "startup" | "notifications" | "unad";
+type SettingsTab = "language" | "window" | "startup" | "sound" | "notifications" | "unad";
 
 /**
  * Language option shown in the language tab.
@@ -73,6 +74,7 @@ export function SettingsView() {
     { id: "language", label: t("settings.tab.language"), icon: Languages },
     { id: "window", label: t("settings.tab.window"), icon: Monitor },
     { id: "startup", label: t("settings.tab.startup"), icon: Power },
+    { id: "sound", label: t("settings.tab.sound"), icon: Volume2 },
     { id: "notifications", label: t("nav.notifications"), icon: BellRing },
     { id: "unad", label: t("settings.tab.unad"), icon: GraduationCap },
   ];
@@ -136,6 +138,8 @@ export function SettingsView() {
         <WindowSizeSection />
       ) : tab === "startup" ? (
         <StartupSection />
+      ) : tab === "sound" ? (
+        <SoundSection />
       ) : tab === "notifications" ? (
         <NotificationSettingsSection />
       ) : (
