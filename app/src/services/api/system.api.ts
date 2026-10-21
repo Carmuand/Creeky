@@ -1,6 +1,6 @@
 import { bridge, mutate, query } from "./bridge";
 import type { CreekyDB, EmailLink, FocusPayload, Language, NotificationCategory, Theme } from "@/types/creeky";
-import type { BackupExportResult, BackupImportResult, NotificationInput } from "@/types/pywebview";
+import type { BackupExportResult, BackupImportResult, NotificationInput, StartupOptions } from "@/types/pywebview";
 
 /**
  * Snapshot, backup and wipe calls.
@@ -80,6 +80,84 @@ export const settingsApi = {
   setAutostart(enabled: boolean): Promise<{ enabled: boolean }> { return query(bridge().set_autostart(enabled)); },
 
   /**
+   * Loads the Pomodoro alarm preferences.
+   *
+   * @returns Stored alarm preferences.
+   */
+  getPomodoroAlarm(): Promise<{ enabled: boolean; volume: number; sound: string; repeat: boolean; repeatCount: number; repeatDuration: number }> {
+    return query(bridge().get_pomodoro_alarm());
+  },
+
+  /**
+   * Persists whether the Pomodoro alarm plays on session completion.
+   *
+   * @param enabled - Whether the alarm is enabled.
+   * @returns The stored state.
+   */
+  setPomodoroAlarmEnabled(enabled: boolean): Promise<{ enabled: boolean }> {
+    return query(bridge().set_pomodoro_alarm_enabled(enabled));
+  },
+
+  /**
+   * Persists the Pomodoro alarm volume.
+   *
+   * @param volume - Volume from 0 to 100.
+   * @returns The stored volume.
+   */
+  setPomodoroAlarmVolume(volume: number): Promise<{ volume: number }> {
+    return query(bridge().set_pomodoro_alarm_volume(volume));
+  },
+
+  /**
+   * Persists the file name of the Pomodoro alarm sound.
+   *
+   * @param sound - Sound file name.
+   * @returns The stored sound.
+   */
+  setPomodoroAlarmSound(sound: string): Promise<{ sound: string }> {
+    return query(bridge().set_pomodoro_alarm_sound(sound));
+  },
+
+  setPomodoroAlarmRepeat(enabled: boolean): Promise<{ repeat: boolean }> {
+    return query(bridge().set_pomodoro_alarm_repeat(enabled));
+  },
+
+  setPomodoroAlarmRepeatCount(count: number): Promise<{ repeatCount: number }> {
+    return query(bridge().set_pomodoro_alarm_repeat_count(count));
+  },
+
+  setPomodoroAlarmRepeatDuration(seconds: number): Promise<{ repeatDuration: number }> {
+    return query(bridge().set_pomodoro_alarm_repeat_duration(seconds));
+  },
+
+  /**
+   * Loads the startup behavior preferences.
+   *
+   * @returns Stored startup options.
+   */
+  getStartupOptions(): Promise<StartupOptions> { return query(bridge().get_startup_options()); },
+
+  /**
+   * Persists whether the app should start hidden with Windows.
+   *
+   * @param enabled - Whether it should start minimized at sign-in.
+   * @returns The stored state.
+   */
+  setStartMinimized(enabled: boolean): Promise<{ startMinimized: boolean }> {
+    return query(bridge().set_start_minimized(enabled));
+  },
+
+  /**
+   * Persists whether closing the window keeps the app in the tray.
+   *
+   * @param enabled - Whether closing should hide the window to the tray.
+   * @returns The stored state.
+   */
+  setMinimizeOnClose(enabled: boolean): Promise<{ minimizeOnClose: boolean }> {
+    return query(bridge().set_minimize_on_close(enabled));
+  },
+
+  /**
    * Persists or clears the Pomodoro focus task.
    *
    * @param focus - Task to focus, or null to clear it.
@@ -153,4 +231,66 @@ export const emailLinksApi = {
    * @returns Promise resolved once the link is updated.
    */
   markSent(provider: string): Promise<null> { return mutate(bridge().mark_email_link_sent(provider)); },
+};
+
+/**
+ * Sound storage and playback calls.
+ */
+export const soundsApi = {
+  /**
+   * Lists the available alarm sounds.
+   *
+   * @returns Available sounds.
+   */
+  list(): Promise<{ name: string; label: string; trimStart: number; trimEnd: number; builtin: boolean }[]> { return query(bridge().list_sounds()); },
+
+  /**
+   * Loads a sound as a data URL for playback.
+   *
+   * @param name - Sound file name.
+   * @returns The data URL.
+   */
+  getDataUrl(name: string): Promise<{ dataUrl: string; trimStart: number; trimEnd: number }> { return query(bridge().get_sound_data_url(name)); },
+
+  /**
+   * Lets the user import an audio file through a native dialog.
+   *
+   * @returns The stored file name, or a cancelled result.
+   */
+  pick(): Promise<{ cancelled: true } | { cancelled: false; name: string; label: string; trimStart: number; trimEnd: number }> {
+    return query(bridge().pick_sound());
+  },
+
+  /**
+   * Renames the display label of an imported sound.
+   *
+   * @param name - Sound file name.
+   * @param label - New display label.
+   * @returns The updated sound.
+   */
+  rename(name: string, label: string): Promise<{ name: string; label: string }> {
+    return query(bridge().rename_sound(name, label));
+  },
+
+  /**
+   * Persists the trim range of an imported sound.
+   *
+   * @param name - Sound file name.
+   * @param trimStart - Trim start in seconds.
+   * @param trimEnd - Trim end in seconds (0 means the full sound).
+   * @returns The updated sound.
+   */
+  setTrim(name: string, trimStart: number, trimEnd: number): Promise<{ name: string; trimStart: number; trimEnd: number }> {
+    return query(bridge().set_sound_trim(name, trimStart, trimEnd));
+  },
+
+  /**
+   * Deletes an imported sound.
+   *
+   * @param name - Sound file name.
+   * @returns The deletion result.
+   */
+  delete(name: string): Promise<{ deleted: boolean }> {
+    return query(bridge().delete_sound(name));
+  },
 };
