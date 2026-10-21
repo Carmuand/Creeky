@@ -97,6 +97,65 @@ def pick_avatar() -> dict[str, Any]:
         return {"cancelled": False, "user": serialize_user(user)}
 
 
+def pick_avatar_raw() -> dict[str, Any]:
+    """Let the user choose a photo and return it as a data URL without storing it."""
+    if not webview.windows:
+        raise ApiError("dialog_unavailable")
+    chosen: Any = webview.windows[0].create_file_dialog(
+        webview.FileDialog.OPEN, file_types=_FILE_TYPES
+    )
+    if not chosen:
+        return {"cancelled": True}
+    source: Path = Path(chosen if isinstance(chosen, str) else chosen[0])
+    extension: str = source.suffix.lower()
+    if extension not in _MIME_TYPES:
+        raise ApiError("avatar_invalid_type")
+    try:
+        size: int = source.stat().st_size
+    except OSError as error:
+        raise ApiError("avatar_unreadable") from error
+    if size > MAX_AVATAR_BYTES:
+        raise ApiError("avatar_too_large")
+    try:
+        encoded: str = base64.b64encode(source.read_bytes()).decode("ascii")
+    except OSError as error:
+        raise ApiError("avatar_unreadable") from error
+    mime: str = _MIME_TYPES.get(extension, "image/png")
+    return {"cancelled": False, "dataUrl": f"data:{mime};base64,{encoded}"}
+
+
+def set_avatar(data_url: str) -> dict[str, Any]:
+    """Store a cropped profile photo provided as a data URL."""
+    if not data_url or not data_url.startswith("data:image/"):
+        raise ApiError("avatar_invalid_type")
+    header: str
+    encoded: str
+    header, encoded = data_url.split(",", 1)
+    mime: str = header.split(";")[0].split(":")[1]
+    extension: str = ".png"
+    if "jpeg" in mime or "jpg" in mime:
+        extension = ".jpg"
+    elif "webp" in mime:
+        extension = ".webp"
+    try:
+        raw: bytes = base64.b64decode(encoded)
+    except (ValueError, base64.binascii.Error) as error:
+        raise ApiError("avatar_unreadable") from error
+    with session_scope() as session:
+        user: User = require_user(session)
+        _remove_file(user)
+        config.avatars_dir.mkdir(parents=True, exist_ok=True)
+        filename: str = f"{user.id}{extension}"
+        try:
+            (config.avatars_dir / filename).write_bytes(raw)
+        except OSError as error:
+            log("ERROR", Tags.AUTH, f"Could not store avatar: {error!r}")
+            raise ApiError("avatar_unreadable") from error
+        user.avatar = filename
+        log("SUCCESS", Tags.AUTH, f"Avatar stored for {user.id}")
+        return serialize_user(user)
+
+
 def get_avatar() -> dict[str, str | None]:
     """Return the photo of the signed-in user as a data URL, or None when there is none."""
     with session_scope() as session:
