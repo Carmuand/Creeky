@@ -27,6 +27,9 @@ _MESSAGES: dict[str, dict[str, str]] = {
         "unad_deadline_today": "\"{name}\" de {course} cierra hoy a las {time}.",
         "unad_deadline": "\"{name}\" de {course} cierra en {days} día(s), el {end}.",
         "unad_login_failed": "El campus rechazó tus credenciales. Revísalas en Configuración.",
+        "tray_open": "Abrir Creeky",
+        "tray_background": "en segundo plano",
+        "tray_quit": "Salir",
     },
     "en": {
         "task_reminder_title": "It's time!",
@@ -49,6 +52,9 @@ _MESSAGES: dict[str, dict[str, str]] = {
         "unad_deadline_today": "\"{name}\" from {course} closes today at {time}.",
         "unad_deadline": "\"{name}\" from {course} closes in {days} day(s), on {end}.",
         "unad_login_failed": "The campus rejected your credentials. Check them in Settings.",
+        "tray_open": "Open Creeky",
+        "tray_background": "running in the background",
+        "tray_quit": "Quit",
     },
 }
 
