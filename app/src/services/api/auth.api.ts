@@ -47,9 +47,13 @@ export const authApi = {
    *
    * @returns True when a photo was stored, false when the dialog was cancelled.
    */
-  async pickAvatar(): Promise<boolean> {
-    const result = await mutate(bridge().pick_avatar());
-    return !result.cancelled;
+  async pickAvatarRaw(): Promise<string | null> {
+    const result = await query(bridge().pick_avatar_raw());
+    return result.cancelled ? null : result.dataUrl;
+  },
+
+  async setAvatar(dataUrl: string): Promise<User> {
+    return mutate(bridge().set_avatar(dataUrl));
   },
 
   /**

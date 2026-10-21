@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { ProfileCard } from "@/features/profile/ProfileCard";
 import { ProfileEditModal } from "@/features/profile/ProfileEditModal";
+import { AvatarCropModal } from "@/features/profile/AvatarCropModal";
 import { GoalBars } from "@/features/profile/GoalRings";
 import type { GoalBarDatum } from "@/features/profile/GoalRings";
 import { PulseCard } from "@/features/profile/PulseCard";
@@ -32,6 +33,7 @@ export function ProfileView() {
   const [name, setName] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [cropImage, setCropImage] = useState<string | null>(null);
 
   const user = store.user;
   const avatarUrl = useAvatar();
@@ -82,7 +84,19 @@ export function ProfileView() {
   };
 
   const handleAvatarUpload = () => {
-    authApi.pickAvatar().then((stored) => { if (stored) pushToast(t("avatar.toast.updated"), "success"); }).catch(report);
+    authApi.pickAvatarRaw().then((dataUrl) => {
+      if (dataUrl) setCropImage(dataUrl);
+    }).catch(report);
+  };
+
+  const handleAvatarCropConfirm = (dataUrl: string) => {
+    authApi.setAvatar(dataUrl).then(() => {
+      setCropImage(null);
+      pushToast(t("avatar.toast.updated"), "success");
+    }).catch((error) => {
+      setCropImage(null);
+      report(error);
+    });
   };
 
   const handleAvatarRemove = () => {
@@ -109,6 +123,12 @@ export function ProfileView() {
         defaultName={user.name || ""}
         defaultEmail={user.email}
         onClose={() => setEditOpen(false)}
+      />
+      <AvatarCropModal
+        open={cropImage !== null}
+        imageSrc={cropImage}
+        onConfirm={handleAvatarCropConfirm}
+        onCancel={() => setCropImage(null)}
       />
 
       <div className="flex w-fit gap-1 rounded-lg bg-(--bg-tertiary) p-1" role="tablist" aria-label={t("nav.profile")} data-tour="profile-tabs">

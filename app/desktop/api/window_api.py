@@ -11,6 +11,7 @@ import webview
 
 # Project imports
 from desktop.core.errors import ApiError
+from desktop.core.tray import tray
 from desktop.database.engine import session_scope
 from desktop.utills.logger import log, Tags
 from desktop.utills.window_sizes import (
@@ -37,17 +38,32 @@ def minimize_window() -> None:
 
 
 def restore_window() -> None:
-    """Restore the pywebview window and bring it to the foreground."""
+    """Restore the pywebview window, bring it to the foreground and sync the tray."""
     try:
         if webview.windows:
             webview.windows[0].restore()
             webview.windows[0].show()
+            tray.notify_window_visible()
     except Exception as error:
         log("ERROR", Tags.WINDOW, f"restore_window failed: {error!r}")
 
 
+def hide_window() -> None:
+    """Hide the pywebview window and tell the tray it is now in the background."""
+    try:
+        if webview.windows:
+            webview.windows[0].hide()
+            tray.notify_window_hidden()
+            log("INFO", Tags.WINDOW, "Window hidden to the tray")
+    except Exception as error:
+        log("ERROR", Tags.WINDOW, f"hide_window failed: {error!r}")
+
+
 def close_window() -> None:
-    """Destroy the pywebview window and exit the application."""
+    """Hide the window when minimize on close is active; otherwise destroy it."""
+    if tray.is_close_to_tray() and not tray.is_quitting():
+        hide_window()
+        return
     try:
         if webview.windows:
             log("INFO", Tags.WINDOW, "Window close requested")

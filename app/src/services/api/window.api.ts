@@ -25,7 +25,8 @@ export const windowApi = {
   minimizeWindow(): Promise<void> { return bridge().minimize_window(); },
 
   /**
-   * Closes the application window.
+   * Requests the window to close. When "Minimize on close" is enabled the
+   * window is hidden and the application keeps running in the tray.
    *
    * @returns Promise resolved once the request is sent.
    */

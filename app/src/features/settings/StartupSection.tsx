@@ -3,28 +3,35 @@ import { pushToast } from "@/hooks/useToast";
 import { errorMessage, useI18n } from "@/i18n";
 import { authApi, settingsApi } from "@/services/api";
 import { Button } from "@/components/ui/Button";
-import { cn } from "@/lib/utils";
+import { Switch } from "@/components/ui/Switch";
 
 /**
  * Startup section of the settings view. It toggles whether Creeky starts
- * with Windows, which the backend records in the user's Run registry key,
- * and lets the user replay the guided tour.
+ * with Windows, whether it starts minimized, and whether closing the
+ * window keeps it running in the tray. It also lets the user replay the
+ * guided tour.
  *
  * @returns The startup section.
  */
 export function StartupSection() {
   const { t } = useI18n();
-  const [enabled, setEnabled] = useState(false);
+  const [autostart, setAutostart] = useState(false);
+  const [startMinimized, setStartMinimized] = useState(false);
+  const [minimizeOnClose, setMinimizeOnClose] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    settingsApi
-      .getAutostart()
-      .then((result) => {
+    Promise.all([
+      settingsApi.getAutostart(),
+      settingsApi.getStartupOptions(),
+    ])
+      .then(([autostartResult, options]) => {
         if (cancelled) return;
-        setEnabled(result.enabled);
+        setAutostart(autostartResult.enabled);
+        setStartMinimized(options.startMinimized);
+        setMinimizeOnClose(options.minimizeOnClose);
         setLoaded(true);
       })
       .catch((error: unknown) => {
@@ -37,14 +44,46 @@ export function StartupSection() {
     };
   }, []);
 
-  const handleToggle = () => {
+  const handleToggleAutostart = () => {
     if (busy || !loaded) return;
     setBusy(true);
     settingsApi
-      .setAutostart(!enabled)
+      .setAutostart(!autostart)
       .then((result) => {
-        setEnabled(result.enabled);
+        setAutostart(result.enabled);
         pushToast(result.enabled ? t("settings.startup.toast.on") : t("settings.startup.toast.off"), "success");
+      })
+      .catch((error: unknown) => pushToast(errorMessage(error), "error"))
+      .finally(() => setBusy(false));
+  };
+
+  const handleToggleStartMinimized = () => {
+    if (busy || !loaded || !autostart) return;
+    setBusy(true);
+    settingsApi
+      .setStartMinimized(!startMinimized)
+      .then((result) => {
+        setStartMinimized(result.startMinimized);
+        pushToast(
+          result.startMinimized ? t("settings.startup.minimized.toast.on") : t("settings.startup.minimized.toast.off"),
+          "success",
+        );
+      })
+      .catch((error: unknown) => pushToast(errorMessage(error), "error"))
+      .finally(() => setBusy(false));
+  };
+
+  const handleToggleMinimizeOnClose = () => {
+    if (busy || !loaded) return;
+    setBusy(true);
+    settingsApi
+      .setMinimizeOnClose(!minimizeOnClose)
+      .then((result) => {
+        setMinimizeOnClose(result.minimizeOnClose);
+        pushToast(
+          result.minimizeOnClose ? t("settings.startup.close.toast.on") : t("settings.startup.close.toast.off"),
+          "success",
+        );
       })
       .catch((error: unknown) => pushToast(errorMessage(error), "error"))
       .finally(() => setBusy(false));
@@ -64,22 +103,47 @@ export function StartupSection() {
             <h3 className="font-semibold">{t("settings.startup.title")}</h3>
             <p className="mt-1 text-xs text-(--muted)">{t("settings.startup.text")}</p>
           </div>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={enabled}
-            aria-label={t("settings.startup.title")}
+          <Switch
+            checked={autostart}
+            onChange={handleToggleAutostart}
+            label={t("settings.startup.title")}
             disabled={busy || !loaded}
-            onClick={handleToggle}
-            className={cn(
-              "relative h-6 w-11 shrink-0 rounded-full border transition-colors disabled:cursor-not-allowed disabled:opacity-60",
-              enabled ? "border-(--accent) bg-(--accent)" : "border-(--border-medium) bg-(--bg-tertiary)",
-            )}
-          >
-            <span aria-hidden className={cn("absolute top-0.5 h-4.5 w-4.5 rounded-full bg-white shadow transition-[left]", enabled ? "left-5.5" : "left-0.5")} />
-          </button>
+          />
         </div>
-        <p className="mt-3 text-[11px] text-(--muted)">{enabled ? t("settings.startup.on") : t("settings.startup.off")}</p>
+        <p className="mt-3 text-[11px] text-(--muted)">{autostart ? t("settings.startup.on") : t("settings.startup.off")}</p>
+
+        <div className="mt-4 border-t border-(--border-light) pt-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <h4 className="text-sm font-semibold">{t("settings.startup.minimized.title")}</h4>
+              <p className="mt-1 text-xs text-(--muted)">{t("settings.startup.minimized.text")}</p>
+            </div>
+            <Switch
+              checked={startMinimized}
+              onChange={handleToggleStartMinimized}
+              label={t("settings.startup.minimized.title")}
+              disabled={busy || !loaded || !autostart}
+            />
+          </div>
+          {!autostart ? (
+            <p className="mt-2 text-[11px] text-(--muted)">{t("settings.startup.minimized.requires")}</p>
+          ) : null}
+        </div>
+
+        <div className="mt-4 border-t border-(--border-light) pt-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <h4 className="text-sm font-semibold">{t("settings.startup.close.title")}</h4>
+              <p className="mt-1 text-xs text-(--muted)">{t("settings.startup.close.text")}</p>
+            </div>
+            <Switch
+              checked={minimizeOnClose}
+              onChange={handleToggleMinimizeOnClose}
+              label={t("settings.startup.close.title")}
+              disabled={busy || !loaded}
+            />
+          </div>
+        </div>
       </div>
 
       <div className="relative overflow-hidden rounded-xl border border-(--border-light) bg-(--bg-primary) p-4 shadow-sm">

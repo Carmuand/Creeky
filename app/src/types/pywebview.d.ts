@@ -89,6 +89,16 @@ export type BackupExportResult =
 export type BackupImportResult = { cancelled: true } | { cancelled: false; tasks: number };
 
 /**
+ * Startup behavior preferences.
+ */
+export interface StartupOptions {
+  /** Whether the app opens hidden in the tray when Windows signs in. */
+  startMinimized: boolean;
+  /** Whether closing the window keeps the app running in the tray. */
+  minimizeOnClose: boolean;
+}
+
+/**
  * Methods exposed by the Python backend through pywebview.
  */
 export interface CreekyBridgeApi {
@@ -104,6 +114,22 @@ export interface CreekyBridgeApi {
   set_sidebar_collapsed(collapsed: boolean): Promise<BridgeResult<{ collapsed: boolean }>>;
   get_autostart(): Promise<BridgeResult<{ enabled: boolean }>>;
   set_autostart(enabled: boolean): Promise<BridgeResult<{ enabled: boolean }>>;
+  get_startup_options(): Promise<BridgeResult<StartupOptions>>;
+  set_start_minimized(enabled: boolean): Promise<BridgeResult<{ startMinimized: boolean }>>;
+  set_minimize_on_close(enabled: boolean): Promise<BridgeResult<{ minimizeOnClose: boolean }>>;
+  get_pomodoro_alarm(): Promise<BridgeResult<{ enabled: boolean; volume: number; sound: string; repeat: boolean; repeatCount: number; repeatDuration: number }>>;
+  set_pomodoro_alarm_enabled(enabled: boolean): Promise<BridgeResult<{ enabled: boolean }>>;
+  set_pomodoro_alarm_volume(volume: number): Promise<BridgeResult<{ volume: number }>>;
+  set_pomodoro_alarm_sound(sound: string): Promise<BridgeResult<{ sound: string }>>;
+  set_pomodoro_alarm_repeat(enabled: boolean): Promise<BridgeResult<{ repeat: boolean }>>;
+  set_pomodoro_alarm_repeat_count(count: number): Promise<BridgeResult<{ repeatCount: number }>>;
+  set_pomodoro_alarm_repeat_duration(seconds: number): Promise<BridgeResult<{ repeatDuration: number }>>;
+  list_sounds(): Promise<BridgeResult<{ name: string; label: string; trimStart: number; trimEnd: number; builtin: boolean }[]>>;
+  get_sound_data_url(name: string): Promise<BridgeResult<{ dataUrl: string; trimStart: number; trimEnd: number }>>;
+  pick_sound(): Promise<BridgeResult<{ cancelled: true } | { cancelled: false; name: string; label: string; trimStart: number; trimEnd: number }>>;
+  set_sound_trim(name: string, trimStart: number, trimEnd: number): Promise<BridgeResult<{ name: string; trimStart: number; trimEnd: number }>>;
+  rename_sound(name: string, label: string): Promise<BridgeResult<{ name: string; label: string }>>;
+  delete_sound(name: string): Promise<BridgeResult<{ deleted: boolean }>>;
   set_onboarded(onboarded: boolean): Promise<BridgeResult<User>>;
   set_notification_preference(category: NotificationCategory, enabled: boolean): Promise<BridgeResult<Record<NotificationCategory, boolean>>>;
   unad_connect(documentType: string, document: string, password: string): Promise<BridgeResult<UnadState>>;
@@ -121,6 +147,8 @@ export interface CreekyBridgeApi {
   sign_out(): Promise<BridgeResult<null>>;
   update_profile(name: string, email: string, password: string | null): Promise<BridgeResult<User>>;
   pick_avatar(): Promise<BridgeResult<{ cancelled: true } | { cancelled: false; user: User }>>;
+  pick_avatar_raw(): Promise<BridgeResult<{ cancelled: true } | { cancelled: false; dataUrl: string }>>;
+  set_avatar(dataUrl: string): Promise<BridgeResult<User>>;
   get_avatar(): Promise<BridgeResult<{ dataUrl: string | null }>>;
   remove_avatar(): Promise<BridgeResult<User>>;
   create_task(payload: TaskPatch): Promise<BridgeResult<Task>>;

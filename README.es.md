@@ -32,6 +32,7 @@ Creeky es una aplicación de escritorio para Windows de productividad personal q
 - **Cuenta regresiva** para eventos manuales y automática para tareas con fecha.
 - **Búsqueda** en vivo por título, descripción y etiquetas, con filtros por lista, prioridad y estado.
 - **Notificaciones** dentro de la app y como notificaciones nativas de Windows para alarmas de tareas y hábitos.
+- **Bandeja del sistema** que mantiene la app en segundo plano: cerrar la ventana la oculta y el menú de la bandeja permite restaurarla o salir.
 - **Integración con la UNAD** que inicia sesión en el Campus Virtual, muestra tu perfil del campus y sincroniza las agendas de tus cursos en el calendario, con avisos cuando una actividad abre o está por cerrar.
 - **Copias cifradas** exportadas a un archivo `.dat` con una clave de recuperación de un solo uso, importables en cualquier cuenta.
 - **Perfil** con estadísticas por lista y prioridad, racha y foco.

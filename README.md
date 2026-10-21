@@ -32,6 +32,7 @@ Creeky is a personal productivity desktop app for Windows that keeps tasks, time
 - **Countdown** for manual events and automatically for dated tasks.
 - **Search** as you type by title, description and tags, with list, priority and state filters.
 - **Notifications** in the app and as native Windows notifications for task alarms and habits.
+- **System tray** for optional background operation: start minimized with Windows and keep Creeky running in the tray when you close the window.
 - **UNAD integration** that signs in to the UNAD Virtual Campus, shows your campus profile and syncs your course agendas into the calendar, with reminders when an activity opens or is about to close.
 - **Encrypted backups** exported to a `.dat` file with a one-time recovery key, importable on any account.
 - **Profile** with statistics per list and priority, streak and focus.

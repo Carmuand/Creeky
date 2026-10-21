@@ -19,6 +19,7 @@ from desktop.api import (
     notification_api,
     planner_api,
     settings_api,
+    sound_api,
     task_api,
     unad_api,
     window_api,
@@ -38,7 +39,7 @@ class Api:
         return window_api.minimize_window()
 
     def close_window(self) -> None:
-        """Destroy the pywebview window and exit the application."""
+        """Hide the window when minimize on close is active; otherwise destroy it."""
         return window_api.close_window()
 
     @bridge_method
@@ -85,6 +86,101 @@ class Api:
     def set_autostart(self, enabled: bool) -> dict[str, bool]:
         """Register or unregister the application to start with Windows."""
         return settings_api.set_autostart(enabled)
+
+    @bridge_method
+    def list_sounds(self) -> list[dict[str, str]]:
+        """Return the available alarm sounds."""
+        return sound_api.list_sounds()
+
+    @bridge_method
+    def get_sound_data_url(self, name: str) -> dict[str, str]:
+        """Return a sound file as a base64 data URL for playback."""
+        return sound_api.get_sound_data_url(name)
+
+    @bridge_method
+    def pick_sound(self) -> dict[str, str] | dict[str, bool]:
+        """Let the user choose an audio file through a native dialog and store it."""
+        return sound_api.pick_sound()
+
+    @bridge_method
+    def set_sound_trim(self, name: str, trim_start: float, trim_end: float) -> dict[str, Any]:
+        """Persist the trim range of an imported sound."""
+        return sound_api.set_sound_trim(name, trim_start, trim_end)
+
+    @bridge_method
+    def rename_sound(self, name: str, label: str) -> dict[str, str]:
+        """Rename the display label of an imported sound."""
+        return sound_api.rename_sound(name, label)
+
+    @bridge_method
+    def delete_sound(self, name: str) -> dict[str, bool]:
+        """Delete an imported sound and its metadata."""
+        return sound_api.delete_sound(name)
+
+    @bridge_method
+    def get_startup_options(self) -> dict[str, bool]:
+        """Return the startup behavior preferences."""
+        return settings_api.get_startup_options()
+
+    @bridge_method
+    def set_start_minimized(self, enabled: bool) -> dict[str, bool]:
+        """Persist whether the app starts minimized with Windows."""
+        return settings_api.set_start_minimized(enabled)
+
+    @bridge_method
+    def set_minimize_on_close(self, enabled: bool) -> dict[str, bool]:
+        """Persist whether closing the window keeps the app in the tray."""
+        return settings_api.set_minimize_on_close(enabled)
+
+    @bridge_method
+    def get_pomodoro_alarm(self) -> dict[str, Any]:
+        """Return the Pomodoro alarm preferences."""
+        return settings_api.get_pomodoro_alarm()
+
+    @bridge_method
+    def set_pomodoro_alarm_enabled(self, enabled: bool) -> dict[str, bool]:
+        """Persist whether the Pomodoro alarm plays on session completion."""
+        return settings_api.set_pomodoro_alarm_enabled(enabled)
+
+    @bridge_method
+    def set_pomodoro_alarm_volume(self, volume: int) -> dict[str, int]:
+        """Persist the Pomodoro alarm volume, clamped to the 0-100 range."""
+        return settings_api.set_pomodoro_alarm_volume(volume)
+
+    @bridge_method
+    def set_pomodoro_alarm_sound(self, sound: str) -> dict[str, str]:
+        """Persist the file name of the Pomodoro alarm sound."""
+        return settings_api.set_pomodoro_alarm_sound(sound)
+
+    @bridge_method
+    def set_pomodoro_alarm_repeat(self, enabled: bool) -> dict[str, bool]:
+        """Persist whether the Pomodoro alarm repeats."""
+        return settings_api.set_pomodoro_alarm_repeat(enabled)
+
+    @bridge_method
+    def set_pomodoro_alarm_repeat_count(self, count: int) -> dict[str, int]:
+        """Persist the number of alarm repetitions."""
+        return settings_api.set_pomodoro_alarm_repeat_count(count)
+
+    @bridge_method
+    def set_pomodoro_alarm_repeat_duration(self, seconds: int) -> dict[str, int]:
+        """Persist the alarm repeat duration in seconds."""
+        return settings_api.set_pomodoro_alarm_repeat_duration(seconds)
+
+    @bridge_method
+    def list_sounds(self) -> list[dict[str, str]]:
+        """Return the available alarm sounds."""
+        return sound_api.list_sounds()
+
+    @bridge_method
+    def get_sound_data_url(self, name: str) -> dict[str, str]:
+        """Return a sound file as a base64 data URL for playback."""
+        return sound_api.get_sound_data_url(name)
+
+    @bridge_method
+    def pick_sound(self) -> dict[str, str] | dict[str, bool]:
+        """Let the user choose an audio file through a native dialog and store it."""
+        return sound_api.pick_sound()
 
     @bridge_method
     def set_onboarded(self, onboarded: bool) -> dict[str, Any]:
@@ -134,6 +230,16 @@ class Api:
     def pick_avatar(self) -> dict[str, Any]:
         """Choose a profile photo through a native dialog and store it."""
         return avatar_api.pick_avatar()
+
+    @bridge_method
+    def pick_avatar_raw(self) -> dict[str, Any]:
+        """Let the user choose a photo and return it as a data URL."""
+        return avatar_api.pick_avatar_raw()
+
+    @bridge_method
+    def set_avatar(self, data_url: str) -> dict[str, Any]:
+        """Store a cropped profile photo provided as a data URL."""
+        return avatar_api.set_avatar(data_url)
 
     @bridge_method
     def get_avatar(self) -> dict[str, str | None]:

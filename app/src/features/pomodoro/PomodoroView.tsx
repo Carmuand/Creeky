@@ -6,7 +6,7 @@ import { todayISO } from "@/utils/date";
 import { occursOn, listColor } from "@/utils/task";
 import { pushToast } from "@/hooks/useToast";
 import { errorMessage, useI18n } from "@/i18n";
-import { notificationsApi, pomodoroApi, tasksApi } from "@/services/api";
+import { notificationsApi, pomodoroApi, settingsApi, soundsApi, tasksApi } from "@/services/api";
 import { TooltipSimple } from "@/components/ui/Tooltip";
 import { Button } from "@/components/ui/Button";
 import { DeleteButton } from "@/components/ui/delete-button";
@@ -63,7 +63,41 @@ export function PomodoroView() {
         return notificationsApi.create([{ title: tr("notif.pomodoro.session"), text: tr("notif.pomodoro.sessionText", { title: result.task.title, count: result.task.pomo }), kind: "system" }]);
       })
       .catch(report);
-    void new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=").play().catch(() => undefined);
+    (async () => {
+      try {
+        const alarm = await settingsApi.getPomodoroAlarm();
+        if (!alarm.enabled) return;
+        const { dataUrl, trimStart, trimEnd } = await soundsApi.getDataUrl(alarm.sound);
+        const audio = new Audio(dataUrl);
+        audio.volume = alarm.volume / 100;
+        const start = trimStart > 0 ? trimStart : 0;
+        const end = trimEnd > 0 ? trimEnd : 0;
+        const repeatCount = alarm.repeat ? Math.max(1, alarm.repeatCount) : 1;
+        const repeatDuration = alarm.repeat ? alarm.repeatDuration : 0;
+        let plays = 0;
+        const startedAt = Date.now();
+        const playNext = () => {
+          if (plays >= repeatCount) return;
+          if (repeatDuration > 0 && (Date.now() - startedAt) / 1000 >= repeatDuration) return;
+          plays += 1;
+          audio.currentTime = start;
+          audio.play().catch(() => undefined);
+        };
+        audio.addEventListener("timeupdate", () => {
+          const limit = end > 0 ? end : audio.duration;
+          if (limit > 0 && audio.currentTime >= limit) {
+            audio.pause();
+            playNext();
+          }
+        });
+        audio.addEventListener("ended", () => {
+          playNext();
+        });
+        playNext();
+      } catch {
+        // Ignore playback errors; the session was already logged.
+      }
+    })();
   }, [left, running, mode, focus]);
 
   const handleFocusDone = () => {
