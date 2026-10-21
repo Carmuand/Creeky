@@ -53,6 +53,7 @@ class Tags(StrEnum):
     EVENTS = "EVENTS"
     NOTIFIER = "NOTIFIER"
     SCHEDULER = "SCHEDULER"
+    TRAY = "TRAY"
     UNAD = "UNAD"
 
 
