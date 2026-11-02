@@ -338,6 +338,29 @@ class UnadActivity(Base):
     agenda: Mapped[UnadAgenda] = relationship(back_populates="activities")
 
 
+class UnadCipas(Base):
+    """Scheduled CIPAS class of a course, with its meeting data and reminder flag."""
+
+    __tablename__ = "unad_cipas"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    course_code: Mapped[str] = mapped_column(String(32), default="", index=True)
+    course_name: Mapped[str] = mapped_column(Text, default="")
+    group_name: Mapped[str] = mapped_column(Text, default="")
+    confirmation: Mapped[str] = mapped_column(String(64), default="")
+    summary: Mapped[str] = mapped_column(Text, default="")
+    scenario: Mapped[str] = mapped_column(Text, default="")
+    topic: Mapped[str] = mapped_column(Text, default="")
+    additional_info: Mapped[str] = mapped_column(Text, default="")
+    link: Mapped[str] = mapped_column(Text, default="")
+    date_raw: Mapped[str] = mapped_column(String(160), default="")
+    starts_at: Mapped[str] = mapped_column(String(16), default="", index=True)
+    ends_at: Mapped[str] = mapped_column(String(16), default="", index=True)
+    position: Mapped[int] = mapped_column(Integer, default=0)
+    notified_start: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
 class Setting(Base):
     """Key-value preference shared by every account on this computer."""
 
