@@ -16,6 +16,11 @@ export type Quadrant = "q1" | "q2" | "q3" | "q4" | "";
 export type Theme = "light" | "dark";
 
 /**
+ * Color style applied to the application and navigation icons.
+ */
+export type IconTheme = "purple" | "green" | "gray" | "black" | "purple-green" | "green-purple";
+
+/**
  * Interface language.
  */
 export type Language = "es" | "en";
@@ -219,7 +224,7 @@ export interface FocusPayload {
  * Category of desktop notifications the user can switch on or off.
  * `desktop` is the master switch.
  */
-export type NotificationCategory = "desktop" | "tasks" | "habits" | "pomodoro" | "unad_changes" | "unad_opening" | "unad_deadline";
+export type NotificationCategory = "desktop" | "tasks" | "habits" | "pomodoro" | "unad_changes" | "unad_opening" | "unad_deadline" | "unad_cipas";
 
 /**
  * Activity of a followed UNAD course agenda.
@@ -280,6 +285,38 @@ export interface UnadAgenda {
 }
 
 /**
+ * Scheduled CIPAS class of a UNAD course.
+ */
+export interface UnadCipasSession {
+  /** Stable identifier. */
+  id: number;
+  /** Course code, such as 80017. */
+  courseCode: string;
+  /** Course name. */
+  courseName: string;
+  /** CIPAS group name, such as CIPAS PM/CC. */
+  groupName: string;
+  /** Enrollment confirmation number. */
+  confirmation: string;
+  /** Enrollment status text shown by the portal. */
+  summary: string;
+  /** Meeting scenario. */
+  scenario: string;
+  /** Topic of the class. */
+  topic: string;
+  /** Additional information shown by the portal. */
+  additionalInfo: string;
+  /** Meeting URL, or an empty string when the portal has none. */
+  link: string;
+  /** Date range as written by the portal. */
+  dateRaw: string;
+  /** Start as YYYY-MM-DDTHH:mm, or empty. */
+  startsAt: string;
+  /** End as YYYY-MM-DDTHH:mm, or empty. */
+  endsAt: string;
+}
+
+/**
  * Settings and status of the linked UNAD Campus account.
  */
 export interface UnadAccount {
@@ -335,6 +372,8 @@ export interface UnadState {
   profile: UnadProfile | null;
   /** Followed agendas. */
   agendas: UnadAgenda[];
+  /** Scheduled CIPAS classes. */
+  cipas: UnadCipasSession[];
 }
 
 /**
@@ -368,7 +407,7 @@ export interface CreekyDB {
   /** Desktop notification switches per category. */
   notificationPrefs: Record<NotificationCategory, boolean>;
   /** Stored preferences. */
-  settings: { theme: Theme; language: Language; sidebarCollapsed: boolean };
+  settings: { theme: Theme; language: Language; sidebarCollapsed: boolean; iconTheme: IconTheme };
 }
 
 /**
