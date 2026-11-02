@@ -107,8 +107,35 @@ export function CalendarView() {
         }
       }
     }
+    for (const session of store.unad.cipas) {
+      if (!session.startsAt || !session.endsAt) continue;
+      const course = session.courseName || session.courseCode;
+      const agenda = store.unad.agendas.find((item) => item.code === session.courseCode);
+      const details = [
+        { label: t("unad.cipas.group"), value: session.groupName },
+        { label: t("unad.cipas.confirmation"), value: session.confirmation },
+        { label: t("unad.cipas.scenario"), value: session.scenario },
+        { label: t("unad.cipas.topic"), value: session.topic },
+        { label: t("unad.cipas.info"), value: session.additionalInfo },
+      ].filter((item) => item.value);
+      result.push({
+        id: `cipas-${session.id}`,
+        title: t("unad.calendar.cipas", { topic: session.topic || session.groupName }),
+        startTime: new Date(session.startsAt),
+        endTime: new Date(session.endsAt),
+        color: "blue",
+        category: course,
+        tags: [],
+        _bgColor: agenda?.color ?? "#0277BD",
+        readOnly: true,
+        sourceLabel: unadLabel,
+        description: session.summary,
+        details,
+        url: session.link || undefined,
+      });
+    }
     return result;
-  }, [store.tasks, store.lists, store.unad.agendas, t]);
+  }, [store.tasks, store.lists, store.unad.agendas, store.unad.cipas, t]);
 
   const handleCreate = (event: Omit<Event, "id">) => {
     const list = store.lists.find((l) => l.name === event.category) ?? store.lists[0];
