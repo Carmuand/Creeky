@@ -202,6 +202,11 @@ class Api:
         return settings_api.set_language(language)
 
     @bridge_method
+    def set_icon_theme(self, icon_theme: str) -> dict[str, str]:
+        """Persist the active icon theme."""
+        return settings_api.set_icon_theme(icon_theme)
+
+    @bridge_method
     def set_focus(self, focus: dict[str, Any] | None) -> None:
         """Persist or clear the Pomodoro focus task."""
         return settings_api.set_focus(focus)
