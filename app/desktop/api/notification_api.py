@@ -29,6 +29,7 @@ DESKTOP_CATEGORIES: tuple[str, ...] = (
     "unad_changes",
     "unad_opening",
     "unad_deadline",
+    "unad_cipas",
 )
 EMAIL_PROVIDERS: tuple[str, ...] = ("gmail", "outlook", "apple")
 
