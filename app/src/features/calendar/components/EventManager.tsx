@@ -8,7 +8,7 @@ import { Modal, ModalBody, ModalFooter, ModalHeader } from "@/components/ui/Moda
 import { Dropdown, DropdownItem } from "@/components/ui/Dropdown";
 import { useI18n } from "@/i18n";
 import type { MessageKey } from "@/i18n";
-import { ArrowRight, GraduationCap } from "lucide-react";
+import { ArrowRight, GraduationCap, ExternalLink } from "lucide-react";
 import { ChevronLeft, ChevronRight, Plus, Calendar, Clock, Grid3x3, List, Search, Filter, X } from "lucide-react";
 
 /**
@@ -33,6 +33,8 @@ export interface Event {
   sourceLabel?: string;
   /** Extra lines shown in the details of a read-only event. */
   details?: { label: string; value: string }[];
+  /** External URL offered as an action in the details, such as a meeting link. */
+  url?: string;
 }
 
 /**
@@ -462,9 +464,11 @@ function splitDescription(text: string): { label: string; body: string }[] {
  * @returns The event details.
  */
 function EventDetails({ event }: { event: Event }) {
-  const { locale } = useI18n();
+  const { locale, t } = useI18n();
   const color = eventColor(event);
-  const moment = event.endTime.toLocaleString(locale, { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
+  const moment = event.startTime.getTime() === event.endTime.getTime()
+    ? event.endTime.toLocaleString(locale, { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })
+    : `${event.startTime.toLocaleString(locale, { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })} – ${event.endTime.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}`;
   const sections = event.description ? splitDescription(event.description) : [];
   return (
     <div className="flex flex-col gap-4">
@@ -502,6 +506,18 @@ function EventDetails({ event }: { event: Event }) {
             </div>
           ))}
         </div>
+      ) : null}
+      {event.url ? (
+        <a
+          href={event.url}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+          style={{ background: color }}
+        >
+          <ExternalLink className="h-4 w-4" aria-hidden />
+          {t("unad.cipas.join")}
+        </a>
       ) : null}
     </div>
   );
