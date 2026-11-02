@@ -21,10 +21,12 @@ from desktop.unad.schemas import XajaxCommand
 from desktop.utills.logger import log, Tags
 
 BASE_URL: Final[str] = "https://campus0a.unad.edu.co/campus/"
+COURSES_URL: Final[str] = "https://campus0b.unad.edu.co/campus/miscursos.php"
 PROFILE_PATH: Final[str] = "perfilusuario.php"
 SESSION_COOKIE: Final[str] = "PHPSESSID"
 REQUEST_TIMEOUT: Final[int] = 30
 LOGIN_FUNCTION: Final[str] = "f17_Login_RevisaDoc"
+COURSES_ATTEMPTS: Final[int] = 2
 DOCUMENT_TYPES: Final[tuple[str, ...]] = ("CC", "TI", "CE", "PA")
 DEFAULT_HEADERS: Final[dict[str, str]] = {
     "User-Agent": (
@@ -212,6 +214,27 @@ class CampusClient:
     def fetch_profile_html(self) -> bytes:
         """Return the raw profile page of the authenticated user."""
         return self._request("GET", BASE_URL + PROFILE_PATH).content
+
+    def fetch_courses_html(self) -> bytes:
+        """
+        Return the raw courses page, which lists the CIPAS of every course.
+
+        The first request after signing in sometimes serves a transition
+        page instead of the course table, so the page is requested again
+        until it contains the courses.
+
+        Raises:
+            CampusUnreachable: When the page is missing or cannot be reached.
+        """
+        html: bytes = b""
+        for _ in range(COURSES_ATTEMPTS):
+            response: requests.Response = self._request("GET", COURSES_URL)
+            if response.status_code != 200:
+                raise CampusUnreachable(f"courses status {response.status_code}")
+            html = response.content
+            if b"tablaCursos" in html:
+                return html
+        return html
 
     def fetch_agenda_html(self, url: str) -> bytes:
         """
