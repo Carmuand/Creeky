@@ -1,5 +1,5 @@
 import { bridge, mutate, query } from "./bridge";
-import type { CreekyDB, EmailLink, FocusPayload, Language, NotificationCategory, Theme } from "@/types/creeky";
+import type { CreekyDB, EmailLink, FocusPayload, IconTheme, Language, NotificationCategory, Theme } from "@/types/creeky";
 import type { BackupExportResult, BackupImportResult, NotificationInput, StartupOptions } from "@/types/pywebview";
 
 /**
@@ -47,6 +47,14 @@ export const settingsApi = {
    * @returns The stored theme.
    */
   setTheme(theme: Theme): Promise<{ theme: Theme }> { return query(bridge().set_theme(theme)); },
+
+  /**
+   * Persists the active icon theme.
+   *
+   * @param iconTheme - Icon theme to store.
+   * @returns The stored icon theme.
+   */
+  setIconTheme(iconTheme: IconTheme): Promise<{ iconTheme: IconTheme }> { return query(bridge().set_icon_theme(iconTheme)); },
 
   /**
    * Persists the active language.
