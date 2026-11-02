@@ -29,7 +29,7 @@ from desktop.core.unad_service import (
     verify_credentials,
 )
 from desktop.database.engine import session_scope
-from desktop.database.models import UnadAccount, UnadActivity, UnadAgenda
+from desktop.database.models import UnadAccount, UnadActivity, UnadAgenda, UnadCipas
 from desktop.unad.client import DOCUMENT_TYPES
 from desktop.unad.parser import extract_agenda_code
 from desktop.unad.schemas import CampusProfile, CourseAgenda
@@ -83,13 +83,32 @@ def _serialize_agenda(agenda: UnadAgenda) -> dict[str, Any]:
     }
 
 
+def _serialize_cipas(cipas: UnadCipas) -> dict[str, Any]:
+    """Return a scheduled CIPAS class."""
+    return {
+        "id": cipas.id,
+        "courseCode": cipas.course_code,
+        "courseName": cipas.course_name,
+        "groupName": cipas.group_name,
+        "confirmation": cipas.confirmation,
+        "summary": cipas.summary,
+        "scenario": cipas.scenario,
+        "topic": cipas.topic,
+        "additionalInfo": cipas.additional_info,
+        "link": cipas.link,
+        "dateRaw": cipas.date_raw,
+        "startsAt": cipas.starts_at,
+        "endsAt": cipas.ends_at,
+    }
+
+
 def serialize_unad(session: Session, user_id: str) -> dict[str, Any]:
     """
     Return the UNAD state of a user for the frontend store.
 
     Returns:
-        Whether an account is linked, its settings, the campus profile and
-        the followed agendas.
+        Whether an account is linked, its settings, the campus profile,
+        the followed agendas and the scheduled CIPAS classes.
     """
     account: UnadAccount | None = session.get(UnadAccount, user_id)
     agendas: list[UnadAgenda] = list(
@@ -100,8 +119,21 @@ def serialize_unad(session: Session, user_id: str) -> dict[str, Any]:
             .order_by(UnadAgenda.position)
         )
     )
+    cipas: list[UnadCipas] = list(
+        session.scalars(
+            select(UnadCipas)
+            .where(UnadCipas.user_id == user_id)
+            .order_by(UnadCipas.starts_at)
+        )
+    )
     if account is None:
-        return {"connected": False, "account": None, "profile": None, "agendas": []}
+        return {
+            "connected": False,
+            "account": None,
+            "profile": None,
+            "agendas": [],
+            "cipas": [],
+        }
     return {
         "connected": True,
         "account": {
@@ -133,6 +165,7 @@ def serialize_unad(session: Session, user_id: str) -> dict[str, Any]:
             "updatedAt": account.profile_updated_at,
         },
         "agendas": [_serialize_agenda(agenda) for agenda in agendas],
+        "cipas": [_serialize_cipas(item) for item in cipas],
     }
 
 
@@ -198,6 +231,8 @@ def disconnect() -> None:
             session.delete(account)
         for agenda in session.scalars(select(UnadAgenda).where(UnadAgenda.user_id == user_id)):
             session.delete(agenda)
+        for cipas in session.scalars(select(UnadCipas).where(UnadCipas.user_id == user_id)):
+            session.delete(cipas)
     credentials.delete_unad_password(user_id)
     log("INFO", Tags.UNAD, f"UNAD account unlinked for {user_id}")
 
