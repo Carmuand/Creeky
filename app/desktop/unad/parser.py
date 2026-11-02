@@ -5,13 +5,15 @@ Parsers for the UNAD Campus profile page and the course agenda pages.
 # Standard library
 from __future__ import annotations
 import re
+import unicodedata
+from datetime import datetime, timedelta
 from typing import Final
 
 # Third-party
-from bs4 import BeautifulSoup, Tag
+from bs4 import BeautifulSoup, NavigableString, Tag
 
 # Project imports
-from desktop.unad.schemas import AgendaActivity, CampusProfile, CourseAgenda
+from desktop.unad.schemas import AgendaActivity, CampusProfile, CipasGroup, CipasSession, CourseAgenda
 
 AGENDA_URL_PATTERN: Final[re.Pattern[str]] = re.compile(
     r"^https://[a-z0-9.-]+\.unad\.edu\.co/.+/([0-9]+)\.htm$", re.IGNORECASE
@@ -26,6 +28,36 @@ _DATE_PATTERN: Final[re.Pattern[str]] = re.compile(
 )
 _CREDITS_PATTERN: Final[re.Pattern[str]] = re.compile(
     r"\s+\([^)]+\)\s*-\s*[0-9]+\s+de\s+[0-9]+\s+cr[ée]ditos?$"
+)
+_CIPAS_MONTHS: Final[dict[str, int]] = {
+    "enero": 1,
+    "febrero": 2,
+    "marzo": 3,
+    "abril": 4,
+    "mayo": 5,
+    "junio": 6,
+    "julio": 7,
+    "agosto": 8,
+    "septiembre": 9,
+    "setiembre": 9,
+    "octubre": 10,
+    "noviembre": 11,
+    "diciembre": 12,
+}
+_CIPAS_RANGE_PATTERN: Final[re.Pattern[str]] = re.compile(
+    r"(\d{1,2})\s+de\s+([A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+)\s+de\s+(\d{4})\s+"
+    r"(\d{1,2}):(\d{2})\s*(AM|PM)\s+(?:A|a)\s+"
+    r"(\d{1,2}):(\d{2})\s*(AM|PM)",
+    re.IGNORECASE,
+)
+_CIPAS_LINK_PATTERN: Final[re.Pattern[str]] = re.compile(r"https?://[^\s<>\"']+", re.IGNORECASE)
+_CIPAS_LABELS: Final[tuple[str, ...]] = (
+    "Escenario",
+    "Temática",
+    "Información adicional",
+)
+_COURSE_CODE_PATTERN: Final[re.Pattern[str]] = re.compile(
+    r"redirmd\(\s*\d+\s*,\s*\d+\s*,\s*(\d+)", re.IGNORECASE
 )
 
 
@@ -216,3 +248,197 @@ def parse_agenda(html: bytes | str, code: str) -> CourseAgenda:
             )
         )
     return CourseAgenda(code=code, name=name, credits=credits, period=period, activities=activities)
+
+
+def _normalized_text(text: str) -> str:
+    """Return the text without accents, in lower case."""
+    decomposed: str = unicodedata.normalize("NFD", text)
+    return decomposed.encode("ascii", "ignore").decode("ascii").lower()
+
+
+def _hour_24(hour_text: str, meridiem: str) -> int:
+    """Convert a twelve-hour clock value to its twenty-four-hour equivalent."""
+    hour: int = int(hour_text) % 12
+    return hour + 12 if meridiem.upper() == "PM" else hour
+
+
+def parse_cipas_range(text: str) -> tuple[str, str]:
+    """
+    Convert a CIPAS date range such as ``Martes 3 de Noviembre de 2026 04:00 PM A 05:30 PM``.
+
+    Args:
+        text: Text that contains the range.
+
+    Returns:
+        The start and end as ``YYYY-MM-DDTHH:MM``, or two empty strings when
+        the text has no readable range.
+    """
+    match: re.Match[str] | None = _CIPAS_RANGE_PATTERN.search(text or "")
+    if match is None:
+        return "", ""
+    (
+        day_text,
+        month_text,
+        year_text,
+        start_hour_text,
+        start_minute_text,
+        start_meridiem,
+        end_hour_text,
+        end_minute_text,
+        end_meridiem,
+    ) = match.groups()
+    month: int | None = _CIPAS_MONTHS.get(_normalized_text(month_text))
+    if month is None:
+        return "", ""
+    try:
+        start: datetime = datetime(
+            int(year_text),
+            month,
+            int(day_text),
+            _hour_24(start_hour_text, start_meridiem),
+            int(start_minute_text),
+        )
+        end: datetime = datetime(
+            int(year_text),
+            month,
+            int(day_text),
+            _hour_24(end_hour_text, end_meridiem),
+            int(end_minute_text),
+        )
+    except ValueError:
+        return "", ""
+    if end <= start:
+        end += timedelta(days=1)
+    return start.strftime("%Y-%m-%dT%H:%M"), end.strftime("%Y-%m-%dT%H:%M")
+
+
+def _cipas_field(text: str, label: str) -> str:
+    """Return the value that follows a labeled field of a CIPAS paragraph."""
+    labels: str = "|".join(re.escape(item) for item in _CIPAS_LABELS)
+    pattern: re.Pattern[str] = re.compile(
+        rf"{re.escape(label)}:\s*(.*?)(?=\s+(?:{labels}):|$)", re.IGNORECASE
+    )
+    match: re.Match[str] | None = pattern.search(text)
+    return match.group(1).strip(" .") if match else ""
+
+
+def _cipas_link(paragraph: Tag, text: str) -> str:
+    """Return the meeting URL of a CIPAS paragraph, when it has one."""
+    for anchor in paragraph.find_all("a"):
+        href: str = str(anchor.get("href") or "").strip()
+        if href.startswith(("http://", "https://")):
+            return href
+    match: re.Match[str] | None = _CIPAS_LINK_PATTERN.search(text)
+    return match.group(0).rstrip(".,;:)") if match else ""
+
+
+def _course_name(card: Tag) -> str:
+    """Return the course name from the header of a course card."""
+    header: Tag | None = card.select_one(".card__nombre b")
+    if header is None:
+        return ""
+    parts: list[str] = []
+    for child in header.contents:
+        if isinstance(child, Tag):
+            classes: list[str] = [str(name) for name in child.get("class") or []]
+            if "curso__clasificacion-enlaces" in classes:
+                break
+            text: str = child.get_text(" ", strip=True)
+        elif isinstance(child, NavigableString):
+            text = str(child).strip()
+        else:
+            continue
+        if text:
+            parts.append(text)
+    return " ".join(parts).strip()
+
+
+def _course_code(card: Tag) -> str:
+    """Return the numeric course code from the header of a course card."""
+    button: Tag | None = card.select_one(".card__nombre button")
+    if button is None:
+        return ""
+    text: str = button.get_text(" ", strip=True)
+    if text.isdigit():
+        return text
+    match: re.Match[str] | None = _COURSE_CODE_PATTERN.search(str(button.get("onclick") or ""))
+    return match.group(1) if match else ""
+
+
+def _parse_cipas_group(details: Tag, course_code: str, course_name: str) -> CipasGroup | None:
+    """Parse one CIPAS block of a course card, or return None when it has no classes."""
+    title: Tag | None = details.select_one(".titulos b")
+    group_name: str = title.get_text(" ", strip=True) if title is not None else ""
+    if "CIPAS" not in group_name.upper():
+        return None
+    summary_tag: Tag | None = details.select_one(".container--lower p")
+    summary: str = summary_tag.get_text(" ", strip=True) if summary_tag is not None else ""
+    details_text: str = details.get_text(" ", strip=True)
+    confirmation_match: re.Match[str] | None = re.search(
+        r"Número de comprobación:\s*([\d.,]+)", details_text, re.IGNORECASE
+    )
+    confirmation: str = confirmation_match.group(1) if confirmation_match else ""
+    sessions: list[CipasSession] = []
+    for paragraph in details.select("p.container"):
+        text: str = paragraph.get_text(" ", strip=True)
+        starts_at, ends_at = parse_cipas_range(text)
+        if not starts_at:
+            continue
+        date_raw: str = re.split(
+            r"\s+(?:Escenario|Temática|Información adicional):", text, maxsplit=1
+        )[0].strip()
+        sessions.append(
+            CipasSession(
+                date_raw=date_raw,
+                starts_at=starts_at,
+                ends_at=ends_at,
+                scenario=_cipas_field(text, "Escenario"),
+                topic=_cipas_field(text, "Temática"),
+                additional_info=_cipas_field(text, "Información adicional"),
+                link=_cipas_link(paragraph, text),
+            )
+        )
+    if not sessions:
+        return None
+    return CipasGroup(
+        course_code=course_code or course_name,
+        course_name=course_name or course_code,
+        group_name=group_name,
+        confirmation=confirmation,
+        summary=summary,
+        sessions=sessions,
+    )
+
+
+def parse_cipas_courses(html: bytes | str) -> list[CipasGroup]:
+    """
+    Parse the CIPAS groups of every course on the courses page.
+
+    Args:
+        html: Raw page of ``miscursos.php``.
+
+    Raises:
+        ValueError: When the page does not contain the course table.
+    """
+    soup: BeautifulSoup = BeautifulSoup(html, "html.parser")
+    table: Tag | None = soup.select_one("div#div_f04detalle")
+    if table is None:
+        table = next(
+            (
+                item
+                for item in soup.select("div.tablaCursos")
+                if item.select_one("div.card-curso") is not None
+            ),
+            None,
+        )
+    if table is None:
+        raise ValueError("courses table not found")
+    groups: list[CipasGroup] = []
+    for card in table.select("div.card-curso"):
+        course_name: str = _course_name(card)
+        course_code: str = _course_code(card)
+        for details in card.select("details"):
+            group: CipasGroup | None = _parse_cipas_group(details, course_code, course_name)
+            if group is not None:
+                groups.append(group)
+    return groups
