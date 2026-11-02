@@ -18,6 +18,7 @@ from desktop.api.auth_api import current_user, delete_account, require_user
 from desktop.api.notification_api import DESKTOP_CATEGORIES, read_preferences
 from desktop.api.settings_api import (
     read_focus,
+    read_icon_theme,
     read_language,
     read_sidebar_collapsed,
     read_theme,
@@ -67,7 +68,7 @@ def get_snapshot() -> dict[str, Any]:
             "focus": read_focus(session, user.id) if user is not None else None,
             "unad": serialize_unad(session, user.id)
             if user is not None
-            else {"connected": False, "account": None, "profile": None, "agendas": []},
+            else {"connected": False, "account": None, "profile": None, "agendas": [], "cipas": []},
             "notificationPrefs": read_preferences(session, user.id)
             if user is not None
             else {category: True for category in DESKTOP_CATEGORIES},
@@ -75,6 +76,7 @@ def get_snapshot() -> dict[str, Any]:
                 "theme": read_theme(session),
                 "language": read_language(session),
                 "sidebarCollapsed": read_sidebar_collapsed(session),
+                "iconTheme": read_icon_theme(session),
             },
         }
 
