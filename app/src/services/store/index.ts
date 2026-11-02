@@ -1,4 +1,5 @@
 import { applyLanguage } from "@/i18n";
+import { applyIconThemeState } from "@/lib/iconTheme";
 import { dataApi } from "@/services/api/system.api";
 import { onMutation } from "@/services/api/bridge";
 import type { CreekyDB } from "@/types/creeky";
@@ -18,9 +19,9 @@ const EMPTY_STORE: CreekyDB = {
   notifications: [],
   emailLinks: [],
   focus: null,
-  unad: { connected: false, account: null, profile: null, agendas: [] },
-  notificationPrefs: { desktop: true, tasks: true, habits: true, pomodoro: true, unad_changes: true, unad_opening: true, unad_deadline: true },
-  settings: { theme: "light", language: "es", sidebarCollapsed: true },
+  unad: { connected: false, account: null, profile: null, agendas: [], cipas: [] },
+  notificationPrefs: { desktop: true, tasks: true, habits: true, pomodoro: true, unad_changes: true, unad_opening: true, unad_deadline: true, unad_cipas: true },
+  settings: { theme: "light", language: "es", sidebarCollapsed: true, iconTheme: "purple-green" },
 };
 
 let snapshot: CreekyDB = EMPTY_STORE;
@@ -68,6 +69,7 @@ async function load(): Promise<void> {
   snapshot = next;
   hydrated = true;
   applyLanguage(next.settings.language);
+  applyIconThemeState(next.settings.iconTheme);
   listeners.forEach((listener) => listener());
 }
 
