@@ -34,6 +34,7 @@ class AppConfig:
 
     default_theme: str = "light"
     default_language: str = "es"
+    default_icon_theme: str = "purple-green"
     theme_backgrounds: dict[str, str] = field(
         default_factory=lambda: {"light": "#fafafa", "dark": "#11111a"}
     )
