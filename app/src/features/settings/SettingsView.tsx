@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { ComponentType } from "react";
 import { ES, US } from "country-flag-icons/react/3x2";
-import { BellRing, Check, GraduationCap, Languages, Monitor, Power, Volume2 } from "lucide-react";
+import { BellRing, Check, GraduationCap, Languages, Monitor, Palette, Power, Volume2 } from "lucide-react";
 import { useCreekyStore } from "@/hooks/useCreekyStore";
 import { pushToast } from "@/hooks/useToast";
 import { applyLanguage, errorMessage, t as translate, useI18n } from "@/i18n";
@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import type { Language } from "@/types/creeky";
 import { WindowSizeSection } from "@/features/settings/WindowSizeSection";
 import { StartupSection } from "@/features/settings/StartupSection";
+import { IconThemeSection } from "@/features/settings/IconThemeSection";
 import { SoundSection } from "@/features/settings/SoundSection";
 import { NotificationSettingsSection } from "@/features/settings/NotificationSettingsSection";
 import { UnadSection } from "@/features/settings/UnadSection";
@@ -18,7 +19,7 @@ import { UnadSection } from "@/features/settings/UnadSection";
 /**
  * Tabs available in the settings view.
  */
-type SettingsTab = "language" | "window" | "startup" | "sound" | "notifications" | "unad";
+type SettingsTab = "language" | "icons" | "window" | "startup" | "sound" | "notifications" | "unad";
 
 /**
  * Language option shown in the language tab.
@@ -72,6 +73,7 @@ export function SettingsView() {
 
   const tabs: { id: SettingsTab; label: string; icon: ComponentType<{ className?: string }> }[] = [
     { id: "language", label: t("settings.tab.language"), icon: Languages },
+    { id: "icons", label: t("settings.tab.icons"), icon: Palette },
     { id: "window", label: t("settings.tab.window"), icon: Monitor },
     { id: "startup", label: t("settings.tab.startup"), icon: Power },
     { id: "sound", label: t("settings.tab.sound"), icon: Volume2 },
@@ -134,6 +136,8 @@ export function SettingsView() {
             })}
           </div>
         </div>
+      ) : tab === "icons" ? (
+        <IconThemeSection />
       ) : tab === "window" ? (
         <WindowSizeSection />
       ) : tab === "startup" ? (
