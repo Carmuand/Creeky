@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Icon } from "@/components/icons/Icon";
+import { NavIcon } from "@/components/icons/NavIcon";
 import { TooltipSimple } from "@/components/ui/Tooltip";
 import { useAvatar } from "@/hooks/useAvatar";
 import { useI18n } from "@/i18n";
@@ -90,8 +90,8 @@ export function Sidebar({ view, onSelect, badges, userInitial, onLogout, collaps
     const showBadge = badgeKey !== undefined && count > 0;
     const button = (
       <button className={navLink(active, variant)} data-page={v} onClick={() => onSelect(v)}>
-        <span className={`flex shrink-0 items-center justify-center ${collapsed ? "h-6 w-6" : "h-5.5 w-5.5"}`} aria-hidden="true">
-          <Icon name={icon} size={collapsed ? 20 : 18} />
+        <span className={`flex shrink-0 items-center justify-center ${collapsed ? "h-7 w-7" : "h-6 w-6"}`} aria-hidden="true">
+          <NavIcon name={icon} size={collapsed ? 28 : 24} />
         </span>
         {!collapsed ? <span className="truncate">{label}</span> : null}
         {!collapsed && showBadge ? <span id={badgeKey} className={`ml-auto min-w-4.5 rounded-full px-1.5 py-0.5 text-center text-[11px] font-semibold text-white ${badgeForVariant(variant)}`}>{count}</span> : null}
@@ -163,7 +163,7 @@ export function Sidebar({ view, onSelect, badges, userInitial, onLogout, collaps
           <li>
             <span className={`mb-2 block px-3 text-[11px] font-semibold uppercase tracking-widest ${collapsed ? "hidden" : "text-(--secondary)"}`}>{t("nav.section.productivity")}</span>
             <ul className="flex flex-col gap-1">
-              {item("pomodoro", t("nav.pomodoro"), "clock", "badge-pomodoro", "secondary")}
+              {item("pomodoro", t("nav.pomodoro"), "pomodoro", "badge-pomodoro", "secondary")}
               {item("eisenhower", t("nav.eisenhower"), "eisenhower", "badge-eisenhower", "secondary")}
               {item("habits", t("nav.habits"), "users", "badge-habits", "secondary")}
             </ul>
@@ -171,7 +171,7 @@ export function Sidebar({ view, onSelect, badges, userInitial, onLogout, collaps
           <li>
             <span className={`mb-2 block px-3 text-[11px] font-semibold uppercase tracking-widest ${collapsed ? "hidden" : "text-(--accent)"}`}>{t("nav.section.tools")}</span>
             <ul className="flex flex-col gap-1">
-              {item("countdown", t("nav.countdown"), "clock", "badge-countdown", "accent")}
+              {item("countdown", t("nav.countdown"), "countdown", "badge-countdown", "accent")}
               {item("search", t("nav.search"), "search", undefined, "accent")}
             </ul>
           </li>
@@ -190,12 +190,12 @@ export function Sidebar({ view, onSelect, badges, userInitial, onLogout, collaps
         {collapsed ? (
           <TooltipSimple content={t("nav.help")} side="right" align="center" sideOffset={10}>
             <button className={navLink(view === "help")} data-page="help" onClick={() => onSelect("help")}>
-              <span className="flex h-5.5 w-5.5 items-center justify-center" aria-hidden="true"><Icon name="help" size={18} /></span>
+              <span className={`flex items-center justify-center ${collapsed ? "h-7 w-7" : "h-6 w-6"}`} aria-hidden="true"><NavIcon name="help" size={collapsed ? 28 : 24} /></span>
             </button>
           </TooltipSimple>
         ) : (
           <button className={navLink(view === "help")} data-page="help" onClick={() => onSelect("help")}>
-            <span className="flex h-5.5 w-5.5 items-center justify-center" aria-hidden="true"><Icon name="help" size={18} /></span>
+            <span className={`flex items-center justify-center ${collapsed ? "h-7 w-7" : "h-6 w-6"}`} aria-hidden="true"><NavIcon name="help" size={collapsed ? 28 : 24} /></span>
             <span>{t("nav.help")}</span>
           </button>
         )}
