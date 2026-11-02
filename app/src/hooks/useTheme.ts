@@ -1,4 +1,5 @@
 import { useCallback, useSyncExternalStore } from "react";
+import { applyIconThemeDom } from "@/lib/iconTheme";
 import { isBridgeReady } from "@/services/api/bridge";
 import { settingsApi } from "@/services/api/system.api";
 import type { Theme } from "@/types/creeky";
@@ -33,6 +34,7 @@ function applyTheme(theme: Theme): void {
   root.setAttribute("data-theme", theme);
   root.classList.toggle("dark", theme === "dark");
   root.style.colorScheme = theme;
+  applyIconThemeDom();
 }
 
 /**
