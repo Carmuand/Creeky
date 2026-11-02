@@ -7,11 +7,25 @@
     <title>Creeky</title>
     <script>
       (function () {
+        function applyIconTheme(theme) {
+          var iconTheme = 'purple-green'
+          try {
+            var savedIcon = localStorage.getItem('iconTheme')
+            if (savedIcon === 'purple' || savedIcon === 'green' || savedIcon === 'gray' || savedIcon === 'black' || savedIcon === 'purple-green' || savedIcon === 'green-purple') {
+              iconTheme = savedIcon
+            }
+          } catch (error) {}
+          if ((iconTheme === 'black' && theme === 'dark') || (iconTheme === 'gray' && theme === 'light')) {
+            iconTheme = 'purple-green'
+          }
+          document.documentElement.setAttribute('data-icon-theme', iconTheme)
+        }
         function applyTheme(theme) {
           var root = document.documentElement
           root.setAttribute('data-theme', theme)
           root.classList.toggle('dark', theme === 'dark')
           root.style.colorScheme = theme
+          applyIconTheme(theme)
         }
         var match = (location.search + location.hash).match(/[?&#]theme=(light|dark)/)
         if (match) {
