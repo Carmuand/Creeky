@@ -1,0 +1,32 @@
+<svg data-name="Capa 2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+  <defs>
+    <style>
+      .uuid-48ce2fa3-0466-42eb-9614-6b64042735c4 {
+        fill: var(--icon-secondary);
+      }
+
+      .uuid-9f9c345c-d0da-4f27-a2c6-c772af5379d0 {
+        fill: var(--icon-primary);
+      }
+
+      .uuid-349142a5-ba6e-4dd4-a3dc-2b6fa0d65617 {
+        fill: none;
+        stroke: var(--icon-primary);
+        stroke-miterlimit: 10;
+        stroke-width: .8px;
+      }
+    </style>
+  </defs>
+  <g>
+    <rect class="uuid-48ce2fa3-0466-42eb-9614-6b64042735c4" x="1.4" y="16" width="1.2" height="1.1"/>
+    <rect class="uuid-48ce2fa3-0466-42eb-9614-6b64042735c4" x="2.7" y="16" width=".3" height="1.1"/>
+    <rect class="uuid-48ce2fa3-0466-42eb-9614-6b64042735c4" x="3.2" y="16" width="14.1" height="1.1"/>
+    <polygon class="uuid-48ce2fa3-0466-42eb-9614-6b64042735c4" points="17.5 16 17.5 17.1 18.6 16.5 17.5 16"/>
+  </g>
+  <ellipse class="uuid-9f9c345c-d0da-4f27-a2c6-c772af5379d0" cx="9.4" cy="8.3" rx="1.8" ry="1.5"/>
+  <path class="uuid-9f9c345c-d0da-4f27-a2c6-c772af5379d0" d="M11.5,11c0,.6-1.1,2.2-1.4,2.7s-.1,0-.2,0c-.4-.4-1.7-2.1-1.7-2.7s.7-1.3,1.6-1.3,1.6.6,1.6,1.3Z"/>
+  <path class="uuid-349142a5-ba6e-4dd4-a3dc-2b6fa0d65617" d="M10,13.5s1.7-.2,3.3-1.9.1,0,0,0c-.4.9-1.4,3.2.3,4"/>
+  <path class="uuid-349142a5-ba6e-4dd4-a3dc-2b6fa0d65617" d="M10,13.5s-1.7-.2-3.3-1.9-.1,0,0,0c.4.9,1.4,3.2-.3,4"/>
+  <path class="uuid-9f9c345c-d0da-4f27-a2c6-c772af5379d0" d="M6.7,4.7h1c0,0,.1,0,0,.1l-.6,1.3c0,0,0,.1,0,.1h.9s0,0,0,0l.7.7c0,0,0,.2-.1.1l-.9-.4s0,0,0,0h-1.2c0,0,0,0,0,0v-1.9s0,0,0,0Z"/>
+  <path class="uuid-9f9c345c-d0da-4f27-a2c6-c772af5379d0" d="M12.2,3.2h1.1c0-.2,0-.1,0,0l-1.4,2.3s0,0,0,0h-1.3c0,.1,0,.1,0,.2l.6.9s0,0,0,0l-.7.8s0,0,0,0v-.8c.1,0,.1,0,0,0l-.6-1.4s0,0,0,0h1.7s0,0,0,0l.5-1.8s0,0,0,0Z"/>
+</svg>
