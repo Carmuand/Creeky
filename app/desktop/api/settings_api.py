@@ -1,6 +1,6 @@
 """
-Application preferences API: theme, language, window size, sidebar state,
-start with Windows and the Pomodoro focus task of each user.
+Application preferences API: theme, icon style, language, window size, sidebar
+state, start with Windows and the Pomodoro focus task of each user.
 """
 
 # Standard library
@@ -27,9 +27,18 @@ import webview
 
 THEMES: tuple[str, ...] = ("light", "dark")
 LANGUAGES: tuple[str, ...] = ("es", "en")
+ICON_THEMES: tuple[str, ...] = (
+    "purple",
+    "green",
+    "gray",
+    "black",
+    "purple-green",
+    "green-purple",
+)
 
 _THEME_KEY: str = "theme"
 _LANGUAGE_KEY: str = "language"
+_ICON_THEME_KEY: str = "icon_theme"
 _FOCUS_KEY: str = "focus"
 _SIDEBAR_KEY: str = "sidebar_collapsed"
 _START_MINIMIZED_KEY: str = "start_minimized"
@@ -67,6 +76,14 @@ def read_language(session: Session) -> str:
     """Return the stored language, falling back to the default one."""
     language: str = read_setting(session, _LANGUAGE_KEY, config.default_language)
     return language if language in LANGUAGES else config.default_language
+
+
+def read_icon_theme(session: Session) -> str:
+    """Return the stored icon theme, falling back to the default one."""
+    icon_theme: str = read_setting(
+        session, _ICON_THEME_KEY, config.default_icon_theme
+    )
+    return icon_theme if icon_theme in ICON_THEMES else config.default_icon_theme
 
 
 def read_window_size(session: Session) -> dict[str, int]:
@@ -124,6 +141,15 @@ def set_language(language: str) -> dict[str, str]:
     with session_scope() as session:
         write_setting(session, _LANGUAGE_KEY, language)
     return {"language": language}
+
+
+def set_icon_theme(icon_theme: str) -> dict[str, str]:
+    """Persist the active icon theme."""
+    if icon_theme not in ICON_THEMES:
+        raise ApiError("invalid_icon_theme")
+    with session_scope() as session:
+        write_setting(session, _ICON_THEME_KEY, icon_theme)
+    return {"iconTheme": icon_theme}
 
 
 def _focus_key(user_id: str) -> str:
