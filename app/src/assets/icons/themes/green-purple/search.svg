@@ -1,0 +1,43 @@
+<svg data-name="Capa 2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+  <defs>
+    <style>
+      .uuid-e10f7379-7b6d-4aff-8cf1-fae5837a480b {
+        fill: var(--icon-secondary);
+      }
+
+      .uuid-d24e9df4-1156-4005-bb64-52c39f5f4165 {
+        stroke: var(--icon-secondary);
+        stroke-width: .5px;
+      }
+
+      .uuid-d24e9df4-1156-4005-bb64-52c39f5f4165, .uuid-25eaf10f-f1b0-44eb-8d69-ad3c3c98b573, .uuid-831b35d5-5925-476b-802d-c8fc07aebcb1 {
+        stroke-miterlimit: 10;
+      }
+
+      .uuid-d24e9df4-1156-4005-bb64-52c39f5f4165, .uuid-831b35d5-5925-476b-802d-c8fc07aebcb1 {
+        fill: none;
+      }
+
+      .uuid-25eaf10f-f1b0-44eb-8d69-ad3c3c98b573 {
+        fill: var(--icon-primary);
+        stroke-width: .8px;
+      }
+
+      .uuid-25eaf10f-f1b0-44eb-8d69-ad3c3c98b573, .uuid-831b35d5-5925-476b-802d-c8fc07aebcb1 {
+        stroke: var(--icon-primary);
+      }
+
+      .uuid-831b35d5-5925-476b-802d-c8fc07aebcb1 {
+        stroke-width: 2px;
+      }
+    </style>
+  </defs>
+  <ellipse class="uuid-e10f7379-7b6d-4aff-8cf1-fae5837a480b" cx="3.4" cy="11.6" rx=".9" ry=".8" transform="translate(-7.9 7.3) rotate(-52.9)"/>
+  <path class="uuid-e10f7379-7b6d-4aff-8cf1-fae5837a480b" d="M5,12c.2.2.5,1.2.6,1.5s0,0,0,0c-.3,0-1.4-.2-1.6-.4s-.2-.8,0-1.1.8-.4,1.1-.1Z"/>
+  <path class="uuid-d24e9df4-1156-4005-bb64-52c39f5f4165" d="M5.5,13.6s.5-.7.4-1.9,0,0,0,0c.2.5.8,1.7,1.7,1.4"/>
+  <path class="uuid-d24e9df4-1156-4005-bb64-52c39f5f4165" d="M5.5,13.5s-.7.5-1.9.5,0,0,0,0c.5.2,1.7.8,1.5,1.7"/>
+  <ellipse class="uuid-831b35d5-5925-476b-802d-c8fc07aebcb1" cx="13.5" cy="8.4" rx="5" ry="4.9"/>
+  <path class="uuid-25eaf10f-f1b0-44eb-8d69-ad3c3c98b573" d="M8.8,12.4l-4.4,4.8c-.3.3-.3.8,0,1.1h0c.3.3.7.3,1,0l4.4-4.8c.3-.3.3-.8,0-1.1h0c-.3-.3-.7-.3-1,0Z"/>
+  <path class="uuid-e10f7379-7b6d-4aff-8cf1-fae5837a480b" d="M3.6,11.1l-1-1.1s0,0,0,0v-.8c0,0,.1,0,.2,0l.3.4c0,.1.3.1.3,0h0s-.3-.7-.3-.7c0,0,0,0,0,0l-.7-.4s0,0,0,0l-.2,1.8s0,0,0,0l1.4.9s0,0,0,0Z"/>
+  <path class="uuid-e10f7379-7b6d-4aff-8cf1-fae5837a480b" d="M2.7,12l-.5-.3s0,0,0,0l-.3.4s0,0,0,0l.3.5s0,0,0,0h-.3s0,0,0,0l-.3-.5s0,0,0,0l.7-1s0,0,0,0l.5.7s0,.1,0,0Z"/>
+</svg>
