@@ -1,0 +1,40 @@
+<svg data-name="Capa 2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+  <defs>
+    <style>
+      .uuid-7d5776ae-bf4a-4881-823c-511a4eb41b33 {
+        fill: var(--icon-primary);
+      }
+
+      .uuid-7d5776ae-bf4a-4881-823c-511a4eb41b33, .uuid-91294161-f2f6-428a-bf2d-feb8ac14b068 {
+        stroke-width: .2px;
+      }
+
+      .uuid-7d5776ae-bf4a-4881-823c-511a4eb41b33, .uuid-91294161-f2f6-428a-bf2d-feb8ac14b068, .uuid-960fea43-695b-4442-a732-bebfcc60d1e9 {
+        stroke-miterlimit: 10;
+      }
+
+      .uuid-7d5776ae-bf4a-4881-823c-511a4eb41b33, .uuid-960fea43-695b-4442-a732-bebfcc60d1e9 {
+        stroke: var(--icon-primary);
+      }
+
+      .uuid-91294161-f2f6-428a-bf2d-feb8ac14b068 {
+        fill: var(--icon-secondary);
+        stroke: var(--icon-secondary);
+      }
+
+      .uuid-960fea43-695b-4442-a732-bebfcc60d1e9 {
+        fill: none;
+        stroke-width: .8px;
+      }
+    </style>
+  </defs>
+  <ellipse class="uuid-7d5776ae-bf4a-4881-823c-511a4eb41b33" cx="7.7" cy="8.7" rx="2" ry="1.8"/>
+  <path class="uuid-7d5776ae-bf4a-4881-823c-511a4eb41b33" d="M9.5,11.9c0,.7-1.2,2.7-1.5,3.2s-.1,0-.2,0c-.4-.5-1.9-2.5-1.9-3.3s.8-1.6,1.8-1.6,1.8.7,1.8,1.6Z"/>
+  <path class="uuid-960fea43-695b-4442-a732-bebfcc60d1e9" d="M7.8,15s1.9-.3,3.7-2.3.1,0,.1,0c-.5,1.1-1.5,4,.4,4.9"/>
+  <path class="uuid-960fea43-695b-4442-a732-bebfcc60d1e9" d="M7.9,15s-1.9-.3-3.7-2.3-.1,0-.1,0c.5,1.1,1.5,4-.4,4.9"/>
+  <path class="uuid-7d5776ae-bf4a-4881-823c-511a4eb41b33" d="M8.9,8.2l-.8-2.5s0,0,0,0l2.8-1.9c0,0,0-.1,0-.1l-2.5.6s0,0,0,0l-.6,1.4s0,0,0,0l1,2.6Z"/>
+  <path class="uuid-7d5776ae-bf4a-4881-823c-511a4eb41b33" d="M6.8,8.2l-.8-2.6s0,0,0,0l3.4-3.2s0-.1,0-.1l-2.6.6s0,0,0,0l-1.1,2.6s0,0,0,0l1,2.6Z"/>
+  <polygon class="uuid-91294161-f2f6-428a-bf2d-feb8ac14b068" points="11.9 8 12.3 8.4 17.6 5.8 16.5 3.5 11.9 8"/>
+  <path class="uuid-91294161-f2f6-428a-bf2d-feb8ac14b068" d="M12.6,8.9s2.4-.9,2.5-.9,0,1.3,0,1.3l-2.5-.4Z"/>
+  <path class="uuid-91294161-f2f6-428a-bf2d-feb8ac14b068" d="M12.5,9.7c0,0-.2.7-.2.7l4.8,2.8.3-2.3-4.8-1.2Z"/>
+</svg>
