@@ -15,6 +15,7 @@ const ITEMS: [MessageKey, MessageKey][] = [
   ["help.philosophy.title", "help.philosophy.text"],
   ["help.privacy.title", "help.privacy.text"],
   ["help.colors.title", "help.colors.text"],
+  ["help.icons.title", "help.icons.text"],
   ["help.faq.title", "help.faq.text"],
 ];
 
