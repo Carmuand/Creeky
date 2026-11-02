@@ -52,6 +52,8 @@
   --border-dark: var(--border-strong);
   --color-gray-400: #bdbdbd;
   --color-gray-300: #e0e0e0;
+  --icon-primary: #5c478a;
+  --icon-secondary: #638f2e;
 }
 
 [data-theme="dark"] {
@@ -100,6 +102,13 @@
   --color-gray-400: #3a3a4e;
   --color-gray-300: #2a2a3c;
 }
+
+[data-icon-theme="purple"] { --icon-primary: #5c478a; --icon-secondary: #5c478a; }
+[data-icon-theme="green"] { --icon-primary: #638f2e; --icon-secondary: #638f2e; }
+[data-icon-theme="gray"] { --icon-primary: #b3b3b3; --icon-secondary: #b3b3b3; }
+[data-icon-theme="black"] { --icon-primary: #000000; --icon-secondary: #000000; }
+[data-icon-theme="purple-green"] { --icon-primary: #5c478a; --icon-secondary: #638f2e; }
+[data-icon-theme="green-purple"] { --icon-primary: #638f2e; --icon-secondary: #5c478a; }
 
 @layer base {
 
@@ -150,3 +159,6 @@ html, body, #root, header, aside, main { transition: background-color 200ms ease
 /* Utility */
 .pywebview-drag-region { -webkit-app-region: drag; }
 .pywebview-drag-region button, .pywebview-drag-region a { -webkit-app-region: no-drag; }
+
+.nav-icon { transition: filter 160ms ease; }
+[data-page]:hover .nav-icon { filter: brightness(1.15) saturate(1.08); }
