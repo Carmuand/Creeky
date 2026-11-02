@@ -1,0 +1,38 @@
+<svg data-name="Capa 2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+  <defs>
+    <style>
+      .uuid-c85bbc99-cb7a-4e16-98f0-783d6cd75fe5 {
+        stroke-width: .8px;
+      }
+
+      .uuid-c85bbc99-cb7a-4e16-98f0-783d6cd75fe5, .uuid-da94b4fb-232d-4542-8d56-791f8083c44c {
+        fill: var(--icon-primary);
+      }
+
+      .uuid-c85bbc99-cb7a-4e16-98f0-783d6cd75fe5, .uuid-bb4a6a77-8678-4c6e-b6d0-5558434e6b42, .uuid-9466584f-3186-4ce1-9cae-9b997416e193 {
+        stroke: var(--icon-primary);
+        stroke-miterlimit: 10;
+      }
+
+      .uuid-bb4a6a77-8678-4c6e-b6d0-5558434e6b42 {
+        stroke-width: .5px;
+      }
+
+      .uuid-bb4a6a77-8678-4c6e-b6d0-5558434e6b42, .uuid-9466584f-3186-4ce1-9cae-9b997416e193 {
+        fill: none;
+      }
+
+      .uuid-9466584f-3186-4ce1-9cae-9b997416e193 {
+        stroke-width: 2px;
+      }
+    </style>
+  </defs>
+  <ellipse class="uuid-da94b4fb-232d-4542-8d56-791f8083c44c" cx="3.4" cy="11.6" rx=".9" ry=".8" transform="translate(-7.9 7.3) rotate(-52.9)"/>
+  <path class="uuid-da94b4fb-232d-4542-8d56-791f8083c44c" d="M5,12c.2.2.5,1.2.6,1.5s0,0,0,0c-.3,0-1.4-.2-1.6-.4s-.2-.8,0-1.1.8-.4,1.1-.1Z"/>
+  <path class="uuid-bb4a6a77-8678-4c6e-b6d0-5558434e6b42" d="M5.5,13.6s.5-.7.4-1.9,0,0,0,0c.2.5.8,1.7,1.7,1.4"/>
+  <path class="uuid-bb4a6a77-8678-4c6e-b6d0-5558434e6b42" d="M5.5,13.5s-.7.5-1.9.5,0,0,0,0c.5.2,1.7.8,1.5,1.7"/>
+  <ellipse class="uuid-9466584f-3186-4ce1-9cae-9b997416e193" cx="13.5" cy="8.4" rx="5" ry="4.9"/>
+  <path class="uuid-c85bbc99-cb7a-4e16-98f0-783d6cd75fe5" d="M8.8,12.4l-4.4,4.8c-.3.3-.3.8,0,1.1h0c.3.3.7.3,1,0l4.4-4.8c.3-.3.3-.8,0-1.1h0c-.3-.3-.7-.3-1,0Z"/>
+  <path class="uuid-da94b4fb-232d-4542-8d56-791f8083c44c" d="M3.6,11.1l-1-1.1s0,0,0,0v-.8c0,0,.1,0,.2,0l.3.4c0,.1.3.1.3,0h0s-.3-.7-.3-.7c0,0,0,0,0,0l-.7-.4s0,0,0,0l-.2,1.8s0,0,0,0l1.4.9s0,0,0,0Z"/>
+  <path class="uuid-da94b4fb-232d-4542-8d56-791f8083c44c" d="M2.7,12l-.5-.3s0,0,0,0l-.3.4s0,0,0,0l.3.5s0,0,0,0h-.3s0,0,0,0l-.3-.5s0,0,0,0l.7-1s0,0,0,0l.5.7s0,.1,0,0Z"/>
+</svg>
