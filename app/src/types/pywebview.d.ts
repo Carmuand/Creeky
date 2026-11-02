@@ -5,6 +5,7 @@ import type {
   EmailLink,
   FocusPayload,
   Habit,
+  IconTheme,
   Language,
   NotificationCategory,
   PomoLogEntry,
@@ -140,6 +141,7 @@ export interface CreekyBridgeApi {
   unad_sync_now(): Promise<BridgeResult<{ error: string; agendas: number }>>;
   wipe_data(): Promise<BridgeResult<null>>;
   set_theme(theme: Theme): Promise<BridgeResult<{ theme: Theme }>>;
+  set_icon_theme(iconTheme: IconTheme): Promise<BridgeResult<{ iconTheme: IconTheme }>>;
   set_language(language: Language): Promise<BridgeResult<{ language: Language }>>;
   set_focus(focus: FocusPayload | null): Promise<BridgeResult<null>>;
   sign_up(name: string, email: string, password: string): Promise<BridgeResult<User>>;
