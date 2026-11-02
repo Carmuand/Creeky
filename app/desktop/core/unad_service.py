@@ -11,7 +11,7 @@ and only publishes events for the frontend.
 from __future__ import annotations
 import threading
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 # Third-party
 from sqlalchemy import select
@@ -27,10 +27,10 @@ from desktop.core.events import events
 from desktop.core.messages import translate
 from desktop.core.notices import send_desktop_notice
 from desktop.database.engine import session_scope
-from desktop.database.models import UnadAccount, UnadActivity, UnadAgenda
+from desktop.database.models import UnadAccount, UnadActivity, UnadAgenda, UnadCipas
 from desktop.unad.client import CampusClient, CampusUnreachable
-from desktop.unad.parser import parse_agenda, parse_profile
-from desktop.unad.schemas import AgendaActivity, CampusProfile, CourseAgenda
+from desktop.unad.parser import parse_agenda, parse_cipas_courses, parse_profile
+from desktop.unad.schemas import AgendaActivity, CampusProfile, CipasGroup, CourseAgenda
 from desktop.utills.dates import now_ms, today_iso
 from desktop.utills.logger import log, Tags
 
@@ -40,6 +40,7 @@ MAX_DEADLINE_DAYS: int = 14
 
 _TICK_SECONDS: float = 60.0
 _FIRST_TICK_DELAY_SECONDS: float = 8.0
+_CIPAS_REMINDER_MINUTES: int = 60
 _PROFILE_FIELDS: tuple[str, ...] = (
     "campus_user_id",
     "full_name",
@@ -73,7 +74,6 @@ _ACTIVITY_FIELDS: tuple[str, ...] = (
     "alert",
     "feedback",
 )
-
 _sync_lock: threading.Lock = threading.Lock()
 
 
@@ -92,6 +92,9 @@ class _Fetched:
 
     profile: CampusProfile | None = None
     agendas: dict[str, CourseAgenda] = field(default_factory=dict)
+    cipas: list[CipasGroup] = field(default_factory=list)
+    cipas_loaded: bool = False
+    logged_in: bool = False
     error: str = ""
 
 
@@ -256,6 +259,124 @@ def _new_activity(item: AgendaActivity, position: int) -> UnadActivity:
     return activity
 
 
+def apply_cipas(
+    session: Session, user_id: str, groups: list[CipasGroup], language: str
+) -> list[_Notice]:
+    """
+    Store the CIPAS groups of the courses page and describe what changed.
+
+    Classes are matched by course, group and their position inside the
+    group. A matched class keeps its reminder flag unless its dates moved.
+
+    Returns:
+        Change notices; a first sync yields a single summary notice.
+    """
+    existing: list[UnadCipas] = list(
+        session.scalars(select(UnadCipas).where(UnadCipas.user_id == user_id))
+    )
+    first_sync: bool = not existing
+    by_key: dict[tuple[str, str, int], UnadCipas] = {
+        (row.course_code, row.group_name, row.position): row for row in existing
+    }
+    kept: set[tuple[str, str, int]] = set()
+    notices: list[_Notice] = []
+    title: str = translate(language, "unad_title")
+
+    for group in groups:
+        course: str = group.course_name or group.course_code
+        for position, item in enumerate(group.sessions):
+            key: tuple[str, str, int] = (group.course_code, group.group_name, position)
+            kept.add(key)
+            values: dict[str, object] = {
+                "course_code": group.course_code,
+                "course_name": group.course_name,
+                "group_name": group.group_name,
+                "confirmation": group.confirmation,
+                "summary": group.summary,
+                "scenario": item.scenario,
+                "topic": item.topic,
+                "additional_info": item.additional_info,
+                "link": item.link,
+                "date_raw": item.date_raw,
+                "starts_at": item.starts_at,
+                "ends_at": item.ends_at,
+                "position": position,
+            }
+            stored: UnadCipas | None = by_key.get(key)
+            if stored is None:
+                session.add(
+                    UnadCipas(user_id=user_id, notified_start=False, **values)
+                )
+                if not first_sync:
+                    notices.append(
+                        _Notice(
+                            "unad_changes",
+                            title,
+                            translate(
+                                language,
+                                "unad_cipas_new",
+                                course=course,
+                                topic=item.topic or group.group_name,
+                                start=format_moment(item.starts_at),
+                            ),
+                        )
+                    )
+                continue
+            moved: bool = stored.starts_at != item.starts_at
+            if moved:
+                stored.notified_start = False
+            for name, value in values.items():
+                setattr(stored, name, value)
+            if moved and not first_sync:
+                notices.append(
+                    _Notice(
+                        "unad_changes",
+                        title,
+                        translate(
+                            language,
+                            "unad_cipas_changed",
+                            course=course,
+                            topic=item.topic or group.group_name,
+                            start=format_moment(item.starts_at),
+                        ),
+                    )
+                )
+
+    for key, stored in by_key.items():
+        if key in kept:
+            continue
+        session.delete(stored)
+        if not first_sync:
+            notices.append(
+                _Notice(
+                    "unad_changes",
+                    title,
+                    translate(
+                        language,
+                        "unad_cipas_removed",
+                        course=stored.course_name or stored.course_code,
+                        topic=stored.topic or stored.group_name,
+                        start=format_moment(stored.starts_at),
+                    ),
+                )
+            )
+
+    if first_sync and groups:
+        notices.append(
+            _Notice(
+                "unad_changes",
+                title,
+                translate(
+                    language,
+                    "unad_cipas_synced",
+                    count=len(kept),
+                    courses=len({group.course_code for group in groups}),
+                ),
+            )
+        )
+    return notices
+
+
 def _collect_reminders(
     session: Session, account: UnadAccount, language: str
 ) -> list[_Notice]:
@@ -320,6 +441,51 @@ def _collect_reminders(
     return notices
 
 
+def _collect_cipas_reminders(
+    session: Session, account: UnadAccount, language: str
+) -> list[_Notice]:
+    """Mark CIPAS classes that start within the lead time as reminded and return their notices."""
+    now: datetime = datetime.now()
+    lead: timedelta = timedelta(minutes=_CIPAS_REMINDER_MINUTES)
+    notices: list[_Notice] = []
+    for cipas in session.scalars(
+        select(UnadCipas).where(
+            UnadCipas.user_id == account.user_id, UnadCipas.notified_start.is_(False)
+        )
+    ):
+        if not cipas.starts_at:
+            cipas.notified_start = True
+            continue
+        try:
+            starts: datetime = datetime.fromisoformat(cipas.starts_at)
+        except ValueError:
+            cipas.notified_start = True
+            continue
+        if now >= starts:
+            cipas.notified_start = True
+            continue
+        if starts - now > lead:
+            continue
+        cipas.notified_start = True
+        text: str = translate(
+            language,
+            "unad_cipas_soon",
+            course=cipas.course_name or cipas.course_code,
+            topic=cipas.topic or cipas.group_name,
+            time=starts.strftime("%H:%M"),
+        )
+        if cipas.scenario:
+            text = f"{text} {translate(language, 'unad_cipas_scenario', scenario=cipas.scenario)}"
+        notices.append(
+            _Notice(
+                "unad_cipas",
+                translate(language, "unad_cipas_soon_title"),
+                text,
+            )
+        )
+    return notices
+
+
 def _publish(session: Session, user_id: str, notices: list[_Notice]) -> list[_Notice]:
     """Store the notices in the app and return those that also go to the desktop."""
     desktop: list[_Notice] = []
@@ -347,6 +513,7 @@ def _download(account: UnadAccount, agendas: list[tuple[str, str, str]]) -> _Fet
             if not password or not client.login(account.document_type, account.document, password):
                 fetched.error = "unad_invalid_credentials"
             else:
+                fetched.logged_in = True
                 fetched.profile = parse_profile(client.fetch_profile_html())
         except CampusUnreachable as error:
             log("ERROR", Tags.UNAD, f"Campus unreachable: {error}")
@@ -362,6 +529,16 @@ def _download(account: UnadAccount, agendas: list[tuple[str, str, str]]) -> _Fet
             except ValueError:
                 log("ERROR", Tags.UNAD, f"Agenda {code} could not be parsed")
                 fetched.error = fetched.error or "unad_agenda_unreadable"
+        if fetched.logged_in:
+            try:
+                fetched.cipas = parse_cipas_courses(client.fetch_courses_html())
+                fetched.cipas_loaded = True
+            except CampusUnreachable as error:
+                log("ERROR", Tags.UNAD, f"CIPAS page unreachable: {error}")
+                fetched.error = fetched.error or "unad_unreachable"
+            except ValueError:
+                log("ERROR", Tags.UNAD, "CIPAS page could not be parsed")
+                fetched.error = fetched.error or "unad_cipas_unreadable"
     finally:
         client.close()
     return fetched
@@ -416,8 +593,11 @@ def sync_user(user_id: str) -> dict[str, object]:
                 parsed: CourseAgenda | None = fetched.agendas.get(agenda.id)
                 if parsed is not None:
                     notices.extend(apply_agenda(agenda, parsed, language))
+            if fetched.cipas_loaded:
+                notices.extend(apply_cipas(session, user_id, fetched.cipas, language))
             session.flush()
             notices.extend(_collect_reminders(session, stored, language))
+            notices.extend(_collect_cipas_reminders(session, stored, language))
             stored.last_sync_at = now_ms()
             stored.last_error = fetched.error
             desktop: list[_Notice] = _publish(session, user_id, notices)
@@ -440,6 +620,7 @@ def check_reminders(user_id: str) -> None:
         if account is None or not account.enabled:
             return
         notices: list[_Notice] = _collect_reminders(session, account, read_language(session))
+        notices.extend(_collect_cipas_reminders(session, account, read_language(session)))
         desktop: list[_Notice] = _publish(session, user_id, notices)
     if not notices:
         return
