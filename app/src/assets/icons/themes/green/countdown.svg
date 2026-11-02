@@ -1,0 +1,36 @@
+<svg data-name="Capa 2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+  <defs>
+    <style>
+      .uuid-d3b32508-ff38-4616-894c-05cc77d5742e, .uuid-e11fa22f-b80c-4043-bdaf-279fa1eaf75d, .uuid-d442bbbf-f46b-4800-a315-e5787bf464a4 {
+        fill: var(--icon-primary);
+      }
+
+      .uuid-e11fa22f-b80c-4043-bdaf-279fa1eaf75d {
+        stroke-width: .5px;
+      }
+
+      .uuid-e11fa22f-b80c-4043-bdaf-279fa1eaf75d, .uuid-d442bbbf-f46b-4800-a315-e5787bf464a4, .uuid-f424df0f-13a9-47f1-b500-5e37b4596f95, .uuid-b34bff9a-dd56-44ea-b098-37e0131d2f1f {
+        stroke: var(--icon-primary);
+        stroke-miterlimit: 10;
+      }
+
+      .uuid-d442bbbf-f46b-4800-a315-e5787bf464a4 {
+        stroke-width: .2px;
+      }
+
+      .uuid-f424df0f-13a9-47f1-b500-5e37b4596f95, .uuid-b34bff9a-dd56-44ea-b098-37e0131d2f1f {
+        fill: none;
+      }
+
+      .uuid-b34bff9a-dd56-44ea-b098-37e0131d2f1f {
+        stroke-width: .8px;
+      }
+    </style>
+  </defs>
+  <path class="uuid-e11fa22f-b80c-4043-bdaf-279fa1eaf75d" d="M9.9,8.2L6.4.8c0-.1-.2,0-.2,0l-.3,3.6s0,0,0,0l3.8,3.8c.1.1.3,0,.2-.2Z"/>
+  <path class="uuid-e11fa22f-b80c-4043-bdaf-279fa1eaf75d" d="M12.7,7.3l2.5-3.8c0-.1.2,0,.2,0v2.5s0,0,0,.1l-2.5,1.3c-.1,0-.2,0-.2-.2Z"/>
+  <ellipse class="uuid-d3b32508-ff38-4616-894c-05cc77d5742e" cx="11.2" cy="9" rx="2.3" ry="2"/>
+  <path class="uuid-d442bbbf-f46b-4800-a315-e5787bf464a4" d="M13.3,12.7c0,.8-1.4,3-1.8,3.7s-.2,0-.2,0c-.5-.6-2.2-2.8-2.2-3.7s1-1.8,2.1-1.8,2.1.8,2.1,1.8Z"/>
+  <path class="uuid-f424df0f-13a9-47f1-b500-5e37b4596f95" d="M11.3,16.2s2.2-.3,4.3-2.6c0,0,.1,0,.1,0-.5,1.2-1.8,4.5.4,5.5"/>
+  <path class="uuid-b34bff9a-dd56-44ea-b098-37e0131d2f1f" d="M11.4,16.2s-4.1,0-4.5-2.6-.2-.3-.4-.3c-.9.3-3,1-4.1-.2"/>
+</svg>
