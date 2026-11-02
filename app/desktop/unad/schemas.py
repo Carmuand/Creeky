@@ -125,3 +125,49 @@ class CourseAgenda:
     credits: str
     period: str
     activities: list[AgendaActivity]
+
+
+@dataclass(frozen=True)
+class CipasSession:
+    """
+    Scheduled CIPAS class read from the courses page.
+
+    Attributes:
+        date_raw: Date range as written by the portal.
+        starts_at: Start as ``YYYY-MM-DDTHH:MM``, or empty when it cannot be read.
+        ends_at: End as ``YYYY-MM-DDTHH:MM``, or empty when it cannot be read.
+        scenario: Meeting scenario, such as a virtual room or a campus site.
+        topic: Topic of the class.
+        additional_info: Additional information shown by the portal.
+        link: Meeting URL found in the additional information, when any.
+    """
+
+    date_raw: str
+    starts_at: str
+    ends_at: str
+    scenario: str
+    topic: str
+    additional_info: str
+    link: str
+
+
+@dataclass(frozen=True)
+class CipasGroup:
+    """
+    CIPAS group of a course, with its confirmation number and scheduled classes.
+
+    Attributes:
+        course_code: Course code shown by the courses page, such as 80017.
+        course_name: Course name.
+        group_name: CIPAS group name, such as CIPAS PM/CC.
+        confirmation: Confirmation number of the enrollment.
+        summary: Enrollment status text shown by the portal.
+        sessions: Scheduled classes in page order.
+    """
+
+    course_code: str
+    course_name: str
+    group_name: str
+    confirmation: str
+    summary: str
+    sessions: list[CipasSession]
