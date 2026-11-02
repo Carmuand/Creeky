@@ -1,0 +1,29 @@
+<svg data-name="Capa 2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+  <defs>
+    <style>
+      .uuid-8aea4183-6c23-4259-9dc6-06100ff2d80b {
+        fill: none;
+        stroke-width: .8px;
+      }
+
+      .uuid-8aea4183-6c23-4259-9dc6-06100ff2d80b, .uuid-841f5aa7-e00b-45ff-b426-b09997b55e6b {
+        stroke: var(--icon-primary);
+        stroke-miterlimit: 10;
+      }
+
+      .uuid-5610cd54-a3ba-4f2b-835d-cc86e6e5e9c5, .uuid-841f5aa7-e00b-45ff-b426-b09997b55e6b {
+        fill: var(--icon-primary);
+      }
+
+      .uuid-841f5aa7-e00b-45ff-b426-b09997b55e6b {
+        stroke-width: .2px;
+      }
+    </style>
+  </defs>
+  <polygon class="uuid-841f5aa7-e00b-45ff-b426-b09997b55e6b" points="11.1 8.9 11.1 7.2 12.6 6 11.1 4.8 11.1 1.2 13.5 .7 11.6 4.5 13.5 6.2 11.6 7.3 11.1 8.9"/>
+  <polygon class="uuid-841f5aa7-e00b-45ff-b426-b09997b55e6b" points="5.4 8.2 10.1 8.5 4.5 9.6 5.4 8.2"/>
+  <ellipse class="uuid-5610cd54-a3ba-4f2b-835d-cc86e6e5e9c5" cx="10.7" cy="10" rx="2" ry="1.9"/>
+  <path class="uuid-5610cd54-a3ba-4f2b-835d-cc86e6e5e9c5" d="M13,13.4c0,.8-1.2,2.8-1.6,3.3s-.1,0-.2,0c-.4-.5-2-2.6-2-3.3s.8-1.6,1.9-1.6,1.9.7,1.9,1.6Z"/>
+  <path class="uuid-8aea4183-6c23-4259-9dc6-06100ff2d80b" d="M11.3,16.6s1.9-.3,3.8-2.3.1,0,.1,0c-.5,1.1-1.5,4.1.4,5"/>
+  <path class="uuid-8aea4183-6c23-4259-9dc6-06100ff2d80b" d="M11.4,16.6s-1.9-.3-3.8-2.3-.1,0-.1,0c.5,1.1,1.5,4.1-.4,5"/>
+</svg>
