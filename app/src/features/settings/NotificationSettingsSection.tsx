@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { ComponentType } from "react";
-import { BellRing, CalendarClock, DoorOpen, GraduationCap, ListChecks, Repeat, Timer } from "lucide-react";
+import { BellRing, CalendarClock, DoorOpen, GraduationCap, ListChecks, Repeat, Timer, Video } from "lucide-react";
 import { Switch } from "@/components/ui/Switch";
 import { Select } from "@/components/ui/Select";
 import { useCreekyStore } from "@/hooks/useCreekyStore";
@@ -40,6 +40,7 @@ const UNAD_ROWS: CategoryRow[] = [
   { id: "unad_changes", titleKey: "settings.notif.unadChanges.title", textKey: "settings.notif.unadChanges.text", icon: GraduationCap },
   { id: "unad_opening", titleKey: "settings.notif.unadOpening.title", textKey: "settings.notif.unadOpening.text", icon: DoorOpen },
   { id: "unad_deadline", titleKey: "settings.notif.unadDeadline.title", textKey: "settings.notif.unadDeadline.text", icon: CalendarClock },
+  { id: "unad_cipas", titleKey: "settings.notif.unadCipas.title", textKey: "settings.notif.unadCipas.text", icon: Video },
 ];
 
 /**
