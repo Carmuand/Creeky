@@ -1,0 +1,23 @@
+<svg data-name="Capa 2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+  <defs>
+    <style>
+      .uuid-933da5d3-298f-4a43-aaad-a23b2c4e2117 {
+        fill: none;
+      }
+
+      .uuid-933da5d3-298f-4a43-aaad-a23b2c4e2117, .uuid-86deed8e-1ae2-4626-b2e8-a08a6bd61a9d {
+        stroke: var(--icon-primary);
+        stroke-miterlimit: 10;
+        stroke-width: .5px;
+      }
+    </style>
+  </defs>
+  <ellipse cx="15.5" cy="6.7" rx="2" ry="1.9"/>
+  <path d="M14.4,4.9c0,.9-.6,2.7-1.9,1.5s-4.9-1.9-4.9-1.9c0,0,2.6-1.9,4.9-1.2s1.9.7,1.9,1.5Z"/>
+  <path class="uuid-933da5d3-298f-4a43-aaad-a23b2c4e2117" d="M8.8,3.9l.6-1.3c0,0,0-.1-.1,0-.6.5-2.3,1.8-5,2.5"/>
+  <path class="uuid-86deed8e-1ae2-4626-b2e8-a08a6bd61a9d" d="M16.5,8s4,2.7.8,5.3c0,0-1.3,1.3-1.4,0s1-.5,1-.5c0,0,2.5-1.7-.4-4.8Z"/>
+  <ellipse cx="4.5" cy="13.4" rx="2" ry="1.9"/>
+  <path d="M5.6,15.1c0-.9.6-2.7,1.9-1.5s4.9,1.9,4.9,1.9c0,0-2.6,1.9-4.9,1.2s-1.9-.7-1.9-1.5Z"/>
+  <path class="uuid-933da5d3-298f-4a43-aaad-a23b2c4e2117" d="M11.2,16.1l-.5,1.3c0,0,0,.2.2,0,.7-.5,2.3-1.7,4.9-2.4"/>
+  <path class="uuid-86deed8e-1ae2-4626-b2e8-a08a6bd61a9d" d="M3.5,12s-4-2.7-.8-5.3c0,0,1.3-1.3,1.4,0s-1,.5-1,.5c0,0-2.5,1.7.4,4.8Z"/>
+</svg>
