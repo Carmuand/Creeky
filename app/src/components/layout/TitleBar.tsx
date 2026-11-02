@@ -1,4 +1,5 @@
 import { VscChromeMinimize, VscChromeClose } from "react-icons/vsc";
+import { useIconTheme } from "@/hooks/useIconTheme";
 import { windowApi } from "@/services/api";
 import { useI18n } from "@/i18n";
 
@@ -23,6 +24,7 @@ export function TitleBar({
   bridgeReady = false,
 }: TitleBarProps) {
   const { t } = useI18n();
+  const { effectiveIconTheme } = useIconTheme();
   const handleMinimize = () => {
     if (bridgeReady) void windowApi.minimizeWindow().catch(() => {});
   };
@@ -34,7 +36,7 @@ export function TitleBar({
     <header className="pywebview-drag-region h-10 px-3.5 flex items-center justify-between bg-(--bg) border-b border-(--border) select-none shrink-0" style={{ zIndex: 50, position: "relative" }}>
       <div className="flex items-center gap-2">
         <img
-          src="/assets/app/DevLogo.ico"
+          src={`/assets/app/themes/${effectiveIconTheme}.png`}
           alt={title}
           width={24}
           height={24}
